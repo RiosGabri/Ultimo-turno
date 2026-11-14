@@ -1,6 +1,7 @@
 #include "lista-dupla.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 
 ListaDupla *criar_lista_dupla(void){

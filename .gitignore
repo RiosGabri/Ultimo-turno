@@ -36,6 +36,9 @@
 *.x86_64
 *.hex
 
+# Executaveis gerados pelos testes
+test/teste_dia
+
 # Debug files
 *.dSYM/
 *.su
@@ -57,3 +60,4 @@ dkms.conf
 # Build output
 build/
 /.vscode
+base/
