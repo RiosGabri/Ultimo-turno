@@ -24,23 +24,35 @@ RAYLIB_LIBS := -L$(RAYLIB_SRC) -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 # ---------------------------------------------------------------------------
 # Fontes
 # ---------------------------------------------------------------------------
-# Jogo: arquivos na raiz e em estruturas/ (a pasta test/ fica de fora).
-# Como as três listas usam os mesmos nomes de função, dá para escolher quais
-# implementações linkar, por exemplo:
-#   make JOGO_ESTRUTURAS=estruturas/lista-simples.c
-JOGO_ESTRUTURAS ?= $(wildcard $(ESTRUTURAS_DIR)/*.c)
+# Jogo: arquivos na raiz, em estruturas/listas/ e estruturas/entidades/
+# (a pasta test/ fica de fora). As funções das listas têm prefixos diferentes,
+# então as três implementações podem ser linkadas juntas. Se quiser linkar
+# apenas uma, por exemplo:
+#   make JOGO_ESTRUTURAS=estruturas/listas/lista-simples.c
+JOGO_ESTRUTURAS ?= $(wildcard $(ESTRUTURAS_DIR)/listas/*.c) \
+                   $(wildcard $(ESTRUTURAS_DIR)/entidades/*.c)
 JOGO_SRCS := $(wildcard *.c) $(JOGO_ESTRUTURAS)
-CABECALHOS := $(wildcard *.h) $(wildcard $(ESTRUTURAS_DIR)/*.h)
+CABECALHOS := $(wildcard *.h) $(wildcard $(ESTRUTURAS_DIR)/*.h) \
+              $(wildcard $(ESTRUTURAS_DIR)/*/*.h)
 
 # Cada teste linka apenas a implementação que está testando, porque as
 # listas compartilham os mesmos nomes de funções.
 TESTE_LISTA_SIMPLES_SRC := $(TEST_DIR)/teste_lista_simples.c
 TESTE_LISTA_DUPLA_SRC := $(TEST_DIR)/teste_lista_dupla.c
 TESTE_LISTA_CIRCULAR_SRC := $(TEST_DIR)/teste_lista_circular.c
+TESTE_CADERNO_SRC := $(TEST_DIR)/teste_caderno.c
+TESTE_SUSPEITO_SRC := $(TEST_DIR)/teste_suspeito.c
 
-TESTE_LISTA_SIMPLES_IMPL := $(ESTRUTURAS_DIR)/lista-simples.c
-TESTE_LISTA_DUPLA_IMPL := $(ESTRUTURAS_DIR)/lista-dupla.c
-TESTE_LISTA_CIRCULAR_IMPL := $(ESTRUTURAS_DIR)/lista-dupla-circular.c
+TESTE_LISTA_SIMPLES_IMPL := $(ESTRUTURAS_DIR)/listas/lista-simples.c
+TESTE_LISTA_DUPLA_IMPL := $(ESTRUTURAS_DIR)/listas/lista-dupla.c
+TESTE_LISTA_CIRCULAR_IMPL := $(ESTRUTURAS_DIR)/listas/lista-dupla-circular.c
+# O caderno usa a lista dupla (seções) e a lista simples (resultado do filtro).
+TESTE_CADERNO_IMPL := $(ESTRUTURAS_DIR)/entidades/caderno.c \
+                      $(ESTRUTURAS_DIR)/listas/lista-simples.c \
+                      $(ESTRUTURAS_DIR)/listas/lista-dupla.c
+# Suspeitos ficam na lista dupla circular.
+TESTE_SUSPEITO_IMPL := $(ESTRUTURAS_DIR)/entidades/suspeito.c \
+                       $(ESTRUTURAS_DIR)/listas/lista-dupla-circular.c
 
 # Só entram no alvo test os arquivos de teste existentes e não vazios.
 # Assim o Makefile continua válido enquanto os testes novos são escritos.
@@ -53,6 +65,12 @@ TESTE_BINS += $(BUILD)/teste_lista_dupla
 endif
 ifneq ($(strip $(shell test -s $(TESTE_LISTA_CIRCULAR_SRC) && echo 1)),)
 TESTE_BINS += $(BUILD)/teste_lista_circular
+endif
+ifneq ($(strip $(shell test -s $(TESTE_CADERNO_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_caderno
+endif
+ifneq ($(strip $(shell test -s $(TESTE_SUSPEITO_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_suspeito
 endif
 
 .PHONY: all jogo test valgrind submodules raylib clean distclean FORCE
@@ -90,19 +108,32 @@ $(BUILD)/jogo: $(JOGO_SRCS) $(CABECALHOS) $(RAYLIB_LIB)
 # Testes das estruturas
 # ---------------------------------------------------------------------------
 $(BUILD)/teste_lista_simples: $(TESTE_LISTA_SIMPLES_SRC) $(TESTE_LISTA_SIMPLES_IMPL) \
-		$(ESTRUTURAS_DIR)/lista-simples.h
+		$(ESTRUTURAS_DIR)/listas/lista-simples.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_LISTA_SIMPLES_IMPL) -o $@
 
 $(BUILD)/teste_lista_dupla: $(TESTE_LISTA_DUPLA_SRC) $(TESTE_LISTA_DUPLA_IMPL) \
-		$(ESTRUTURAS_DIR)/lista-dupla.h
+		$(ESTRUTURAS_DIR)/listas/lista-dupla.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_LISTA_DUPLA_IMPL) -o $@
 
 $(BUILD)/teste_lista_circular: $(TESTE_LISTA_CIRCULAR_SRC) $(TESTE_LISTA_CIRCULAR_IMPL) \
-		$(ESTRUTURAS_DIR)/lista-dupla-circular.h
+		$(ESTRUTURAS_DIR)/listas/lista-dupla-circular.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_LISTA_CIRCULAR_IMPL) -o $@
+
+$(BUILD)/teste_caderno: $(TESTE_CADERNO_SRC) $(TESTE_CADERNO_IMPL) \
+		$(ESTRUTURAS_DIR)/entidades/caderno.h \
+		$(ESTRUTURAS_DIR)/listas/lista-simples.h \
+		$(ESTRUTURAS_DIR)/listas/lista-dupla.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_CADERNO_IMPL) -o $@
+
+$(BUILD)/teste_suspeito: $(TESTE_SUSPEITO_SRC) $(TESTE_SUSPEITO_IMPL) \
+		$(ESTRUTURAS_DIR)/entidades/suspeito.h \
+		$(ESTRUTURAS_DIR)/listas/lista-dupla-circular.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_SUSPEITO_IMPL) -o $@
 
 test: $(TESTE_BINS)
 	@status=0; \

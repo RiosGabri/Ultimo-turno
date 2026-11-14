@@ -1,8 +1,11 @@
-#include "lista-simples.h"
+#include "lista-dupla.h"
+#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-Lista *criar_lista(void) {
-    Lista *lista = malloc(sizeof(Lista));
+
+ListaDupla *criar_lista_dupla(void){
+    ListaDupla *lista = malloc(sizeof(ListaDupla));
     if (lista == NULL) {
         return NULL;
     }
@@ -12,12 +15,12 @@ Lista *criar_lista(void) {
     return lista;
 }
 
-int inserir_no_fim(Lista *lista, int id, void *dado) {
+int lista_dupla_inserir_no_fim(ListaDupla *lista, int id, void *dado) {
     if (lista == NULL || dado == NULL) {
         return 0;
     }
 
-    NoLista *novo = malloc(sizeof(NoLista));
+    NoListaDupla *novo = malloc(sizeof(NoListaDupla));
     if (novo == NULL) {
         return 0;
     }
@@ -25,6 +28,7 @@ int inserir_no_fim(Lista *lista, int id, void *dado) {
     novo->id = id;
     novo->dado = dado;
     novo->prox = NULL;
+    novo->ant = lista->fim;
 
     if (lista->fim == NULL) {
         lista->inicio = novo;
@@ -36,12 +40,12 @@ int inserir_no_fim(Lista *lista, int id, void *dado) {
     return 1;
 }
 
-void *buscar_por_id(const Lista *lista, int id) {
+void *lista_dupla_buscar_por_id(const ListaDupla *lista, int id) {
     if (lista == NULL) {
         return NULL;
     }
 
-    for (const NoLista *atual = lista->inicio; atual != NULL; atual = atual->prox) {
+    for (const NoListaDupla *atual = lista->inicio; atual != NULL; atual = atual->prox) {
         if (atual->id == id) {
             return atual->dado;
         }
@@ -50,16 +54,14 @@ void *buscar_por_id(const Lista *lista, int id) {
     return NULL;
 }
 
-void *remover(Lista *lista, int id) {
+void *lista_dupla_remover(ListaDupla *lista, int id) {
     if (lista == NULL) {
         return NULL;
     }
 
-    NoLista *anterior = NULL;
-    NoLista *atual = lista->inicio;
+    NoListaDupla *atual = lista->inicio;
 
     while (atual != NULL && atual->id != id) {
-        anterior = atual;
         atual = atual->prox;
     }
 
@@ -67,14 +69,16 @@ void *remover(Lista *lista, int id) {
         return NULL;
     }
 
-    if (anterior == NULL) {
+    if (atual->ant == NULL) {
         lista->inicio = atual->prox;
     } else {
-        anterior->prox = atual->prox;
+        atual->ant->prox = atual->prox;
     }
 
-    if (atual == lista->fim) {
-        lista->fim = anterior;
+    if (atual->prox == NULL) {
+        lista->fim = atual->ant;
+    } else {
+        atual->prox->ant = atual->ant;
     }
 
     void *dado = atual->dado;
@@ -82,47 +86,46 @@ void *remover(Lista *lista, int id) {
     return dado;
 }
 
-void listar(const Lista *lista, void (*imprimir)(const void *dado)) {
-    if (lista == NULL || imprimir == NULL) {
-        return;
-    }
-
-    for (const NoLista *atual = lista->inicio; atual != NULL; atual = atual->prox) {
-        imprimir(atual->dado);
+void lista_dupla_listar(const ListaDupla *lista) {
+    NoListaDupla *atual = lista->inicio;
+    while (atual != NULL) {
+        printf("ID: %d, Dado: %p\n", atual->id, atual->dado);
+        atual = atual->prox;
     }
 }
 
-void liberar_lista(Lista *lista) {
+void liberar_lista_dupla(ListaDupla *lista) {
     if (lista == NULL) {
         return;
     }
 
-    NoLista *atual = lista->inicio;
+    NoListaDupla *atual = lista->inicio;
     while (atual != NULL) {
-        NoLista *prox = atual->prox;
+        NoListaDupla *proximo = atual->prox;
         free(atual);
-        atual = prox;
+        atual = proximo;
     }
 
     free(lista);
 }
 
-void trocar_dados(Lista *lista, int id1, int id2) {
+void lista_dupla_trocar_dados(ListaDupla *lista, int id1, int id2) {
     if (lista == NULL) {
         return;
     }
 
-    NoLista *no1 = NULL;
-    NoLista *no2 = NULL;
+    NoListaDupla *no1 = NULL;
+    NoListaDupla *no2 = NULL;
 
-    NoLista *atual = lista->inicio;
-    while (atual != NULL) {
+    for (NoListaDupla *atual = lista->inicio; atual != NULL; atual = atual->prox) {
         if (atual->id == id1) {
             no1 = atual;
         } else if (atual->id == id2) {
             no2 = atual;
         }
-        atual = atual->prox;
+        if (no1 != NULL && no2 != NULL) {
+            break;
+        }
     }
 
     if (no1 != NULL && no2 != NULL) {
