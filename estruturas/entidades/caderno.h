@@ -26,6 +26,15 @@ enum Periodo{
     NOITE
 };
 
+// Seções navegáveis do caderno, na ordem em que o jogador as percorre.
+typedef enum {
+    SECAO_DEPOIMENTOS,
+    SECAO_PISTAS,
+    SECAO_REACOES,
+    SECAO_CONTRADICOES,
+    TOTAL_SECOES
+} SecaoCaderno;
+
 typedef struct {
     NoListaDupla *inicio;  // primeiro item da seção
     NoListaDupla *fim;     // último item (inserir no fim sem percorrer)
@@ -42,6 +51,7 @@ typedef struct {
     int prox_id_pista; // Próximo ID de pista a ser atribuído e começa em 1
     int prox_id_reacao; // Próximo ID de reação a ser atribuído e começa em 1
     Secao contradicoes;
+    SecaoCaderno secao_ativa; // seção que o jogador está navegando no momento
 } Caderno;
 
 //secoes
@@ -81,10 +91,12 @@ int registrar_depoimento(Caderno *caderno, int dia, int quem_falou, char* local,
 int verificar_conflitos_do_depoimento(Caderno *caderno, Depoimento *novo);
 void registrar_pista(Caderno *caderno, int dia, char* local, char* objeto, char* descricao, ListaDupla *suspeitos_relacionados);
 void registrar_reacao(Caderno *caderno, int dia, int id_depoimento, char* quem_reagiu, enum TipoReacao tipo_reacao);
+void selecionar_secao(Caderno *caderno, SecaoCaderno secao); //define a seção ativa e posiciona no primeiro item
 void avancar_secao(Caderno *caderno); //move o atual para o próximo ou anterior da seção, parando nas pontas
 void voltar_secao(Caderno *caderno);
 NoListaDupla *obter_item_atual(Caderno *caderno); //retorna o nó atual da seção, ou NULL se não houver
 void ler_item_atual(Caderno *caderno);
+void ordenar_pistas_por_dia(Caderno *caderno); //bubble sort das evidências, do dia mais antigo para o mais recente
 Depoimento* buscar_depoimento_por_id(Caderno *caderno, int id_depoimento);
 void liberar_caderno(Caderno *caderno); //libera a memória alocada para o caderno e suas seções
 
@@ -93,7 +105,7 @@ void liberar_caderno(Caderno *caderno); //libera a memória alocada para o cader
 typedef struct {
     int falante;   // id de quem falou, ou DESABILITADO
     int assunto;   // id de sobre quem se fala, ou DESABILITADO
-    int dia;       // 1 a 7, ou DESABILITADO
+    int dia;       // 1 a 4, ou DESABILITADO
     int periodo;   // manhã, tarde ou noite, ou DESABILITADO
 } CriterioFiltro;
 

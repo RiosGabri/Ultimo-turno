@@ -16,7 +16,7 @@ typedef enum {
     TOTAL_BOTOES
 } OpcaoMenu;
 
-#define TEXTO_RODAPE "Protótipo: botões ainda não funcionais"
+#define TEXTO_RODAPE "Menu gráfico em construção — jogue no terminal com: make run"
 #define TAMANHO_RODAPE 18
 #define LARGURA_BOTAO 300
 #define ALTURA_BOTAO 56

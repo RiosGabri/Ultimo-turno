@@ -35,6 +35,9 @@ JOGO_SRCS := $(wildcard *.c) $(JOGO_ESTRUTURAS)
 CABECALHOS := $(wildcard *.h) $(wildcard $(ESTRUTURAS_DIR)/*.h) \
               $(wildcard $(ESTRUTURAS_DIR)/*/*.h)
 
+# Versão de terminal: não depende da raylib nem do main gráfico.
+TERMINAL_SRCS := terminal/main.c jogo.c jogo_terminal.c dia.c $(JOGO_ESTRUTURAS)
+
 # Cada teste linka apenas a implementação que está testando, porque as
 # listas compartilham os mesmos nomes de funções.
 TESTE_LISTA_SIMPLES_SRC := $(TEST_DIR)/teste_lista_simples.c
@@ -42,6 +45,8 @@ TESTE_LISTA_DUPLA_SRC := $(TEST_DIR)/teste_lista_dupla.c
 TESTE_LISTA_CIRCULAR_SRC := $(TEST_DIR)/teste_lista_circular.c
 TESTE_CADERNO_SRC := $(TEST_DIR)/teste_caderno.c
 TESTE_SUSPEITO_SRC := $(TEST_DIR)/teste_suspeito.c
+TESTE_DIA_SRC := $(TEST_DIR)/teste_dia.c
+TESTE_JOGO_SRC := $(TEST_DIR)/teste_jogo.c
 
 TESTE_LISTA_SIMPLES_IMPL := $(ESTRUTURAS_DIR)/listas/lista-simples.c
 TESTE_LISTA_DUPLA_IMPL := $(ESTRUTURAS_DIR)/listas/lista-dupla.c
@@ -53,6 +58,10 @@ TESTE_CADERNO_IMPL := $(ESTRUTURAS_DIR)/entidades/caderno.c \
 # Suspeitos ficam na lista dupla circular.
 TESTE_SUSPEITO_IMPL := $(ESTRUTURAS_DIR)/entidades/suspeito.c \
                        $(ESTRUTURAS_DIR)/listas/lista-dupla-circular.c
+# Controle de dias e fases fica no módulo dia.
+TESTE_DIA_IMPL := dia.c
+# O motor do jogo usa dia, caderno, personagens e as três listas.
+TESTE_JOGO_IMPL := jogo.c dia.c $(wildcard $(ESTRUTURAS_DIR)/*/*.c)
 
 # Só entram no alvo test os arquivos de teste existentes e não vazios.
 # Assim o Makefile continua válido enquanto os testes novos são escritos.
@@ -72,12 +81,23 @@ endif
 ifneq ($(strip $(shell test -s $(TESTE_SUSPEITO_SRC) && echo 1)),)
 TESTE_BINS += $(BUILD)/teste_suspeito
 endif
+ifneq ($(strip $(shell test -s $(TESTE_DIA_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_dia
+endif
+ifneq ($(strip $(shell test -s $(TESTE_JOGO_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_jogo
+endif
 
-.PHONY: all jogo test valgrind submodules raylib clean distclean FORCE
+.PHONY: all jogo terminal run test valgrind submodules raylib clean distclean FORCE
 
 all: jogo
 
 jogo: $(BUILD)/jogo
+
+terminal: $(BUILD)/jogo-terminal
+
+run: $(BUILD)/jogo-terminal
+	./$(BUILD)/jogo-terminal
 
 # ---------------------------------------------------------------------------
 # raylib (submodule)
@@ -103,6 +123,11 @@ raylib: $(RAYLIB_LIB)
 $(BUILD)/jogo: $(JOGO_SRCS) $(CABECALHOS) $(RAYLIB_LIB)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $(RAYLIB_CFLAGS) $(JOGO_SRCS) -o $@ $(RAYLIB_LIBS)
+
+# Versão de terminal: compila sem raylib, para testar as regras do jogo.
+$(BUILD)/jogo-terminal: $(TERMINAL_SRCS) $(CABECALHOS)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $(TERMINAL_SRCS) -o $@
 
 # ---------------------------------------------------------------------------
 # Testes das estruturas
@@ -134,6 +159,14 @@ $(BUILD)/teste_suspeito: $(TESTE_SUSPEITO_SRC) $(TESTE_SUSPEITO_IMPL) \
 		$(ESTRUTURAS_DIR)/listas/lista-dupla-circular.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_SUSPEITO_IMPL) -o $@
+
+$(BUILD)/teste_dia: $(TESTE_DIA_SRC) $(TESTE_DIA_IMPL) dia.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_DIA_IMPL) -o $@
+
+$(BUILD)/teste_jogo: $(TESTE_JOGO_SRC) $(TESTE_JOGO_IMPL) $(CABECALHOS)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $(TESTE_JOGO_SRC) $(TESTE_JOGO_IMPL) -o $@
 
 test: $(TESTE_BINS)
 	@status=0; \

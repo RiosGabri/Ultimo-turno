@@ -4,17 +4,17 @@ Jogo de investigação (*whodunit*) em linguagem C, feito para a atividade prát
 
 ## Sobre o jogo
 
-Um operário de *Tempos Modernos*, Chaplin, é encontrado morto ao fim do turno na fábrica. O jogador conduz a investigação como **Hercule Poirot** ou **Miss Marple** e tem **7 dias** para descobrir o culpado entre os suspeitos.
+Um operário de *Tempos Modernos*, Chaplin, é encontrado morto ao fim do turno na fábrica. O jogador conduz a investigação como **Hercule Poirot** ou **Miss Marple** e tem **4 dias** para descobrir o culpado entre os suspeitos.
 
-O assassino está entre os suspeitos e continua agindo à noite. Todo dia há um debate: o jogador interroga, os outros suspeitos reagem, e ele decide se prende alguém. Prender um inocente custa credibilidade. Chegar ao dia 7 sem prender o culpado é game over.
+O assassino está entre os suspeitos e continua agindo à noite. Todo dia há um debate: o jogador interroga, os outros suspeitos reagem, e ele decide se prende alguém. Prender um inocente custa credibilidade. Chegar ao dia 4 sem prender o culpado é game over.
 
 ## Objetivo
 
-Descobrir quem matou Chaplin, usando o caderno de pistas e depoimentos, antes que os 7 dias acabem ou que a credibilidade chegue a zero.
+Descobrir quem matou Chaplin, usando o caderno de pistas e depoimentos, antes que os 4 dias acabem ou que a credibilidade chegue a zero.
 
 ## Como funciona (resumo)
 
-- **Duração:** 7 dias.
+- **Duração:** 4 dias.
 - **Suspeitos:** 6 no início (exemplo: Gerente, Capataz, Engenheiro, Operária, Enfermeiro e Vigia noturno), com 1 assassino e, possivelmente, 1 cúmplice.
 - **Cada dia tem 4 fases:** Manhã (resumo e pista), Debate, Julgamento e Noite.
 - **Debate:** os turnos seguem uma volta completa na lista de suspeitos vivos. O jogador pergunta, o suspeito responde e os demais reagem com "Concordo" ou "Discordo".
@@ -32,7 +32,7 @@ Descobrir quem matou Chaplin, usando o caderno de pistas e depoimentos, antes qu
 ## Tecnologias
 
 - Linguagem **C**
-- Interface: em breve
+- Interface: terminal (protótipo jogável) e raylib (menu inicial em desenvolvimento)
 
 ## Como compilar e executar
 
@@ -81,7 +81,32 @@ make distclean   # remove build/ e os artefatos compilados da raylib
 
 ## Como jogar
 
-Em breve.
+Enquanto a interface gráfica está em desenvolvimento, a partida completa roda no terminal:
+
+```sh
+make run
+```
+
+Ou, separadamente:
+
+```sh
+make terminal
+./build/jogo-terminal
+```
+
+A versão de terminal não depende da raylib. Você escolhe o detetive, acompanha as quatro fases de cada dia e usa o caderno para cruzar depoimentos, pistas, reações e contradições.
+
+- **Manhã:** uma pista nova entra no caderno.
+- **Debate:** cada suspeito vivo fala uma vez. Escolha sobre quem perguntar; os outros reagem.
+- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 25 de credibilidade.
+- **Noite:** o assassino ataca um inocente e o caso continua no dia seguinte.
+
+O menu gráfico ainda é um protótipo:
+
+```sh
+make
+./build/jogo
+```
 
 ## Estrutura do projeto
 

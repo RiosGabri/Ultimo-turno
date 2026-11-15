@@ -37,6 +37,7 @@ Caderno* inicializar_caderno(int id) {
     caderno->prox_id_depoimento = 1; 
     caderno->prox_id_pista = 1;
     caderno->prox_id_reacao = 1;
+    caderno->secao_ativa = SECAO_DEPOIMENTOS;
 
     return caderno;
 }
@@ -152,6 +153,7 @@ void registrar_reacao(Caderno *caderno, int dia, int id_depoimento, char* quem_r
     //reação em si, que será armazenada no nó da lista dupla
     Reacao *reacao = malloc(sizeof(Reacao));
     if (reacao == NULL) {
+        free(nova_reacao);
         return; // Falha ao alocar memória
     }
     reacao->dia = dia;
@@ -175,48 +177,149 @@ void registrar_reacao(Caderno *caderno, int dia, int id_depoimento, char* quem_r
     caderno->reacoes.tamanho++;
 }
 
-void avancar_secao(Caderno *caderno){
-    if (caderno->depoimentos.atual != NULL && caderno->depoimentos.atual->prox != NULL) {
-        caderno->depoimentos.atual = caderno->depoimentos.atual->prox;
-    }else if (caderno->pistas.atual != NULL && caderno->pistas.atual->prox != NULL) {
-        caderno->pistas.atual = caderno->pistas.atual->prox;
-    } else if (caderno->reacoes.atual != NULL && caderno->reacoes.atual->prox != NULL) {
-        caderno->reacoes.atual = caderno->reacoes.atual->prox;
+static Secao *obter_secao(Caderno *caderno, SecaoCaderno secao) {
+    switch (secao) {
+        case SECAO_DEPOIMENTOS: return &caderno->depoimentos;
+        case SECAO_PISTAS:      return &caderno->pistas;
+        case SECAO_REACOES:     return &caderno->reacoes;
+        case SECAO_CONTRADICOES:return &caderno->contradicoes;
+        default:                return NULL;
     }
 }
+
+void selecionar_secao(Caderno *caderno, SecaoCaderno secao) {
+    if (caderno == NULL || secao < 0 || secao >= TOTAL_SECOES) {
+        return;
+    }
+
+    caderno->secao_ativa = secao;
+
+    // Ao entrar numa seção, começa pelo primeiro item. Se já havia um item
+    // selecionado (ex.: voltou para a seção), mantém a posição.
+    Secao *ativa = obter_secao(caderno, secao);
+    if (ativa != NULL && ativa->atual == NULL) {
+        ativa->atual = ativa->inicio;
+    }
+}
+
+void avancar_secao(Caderno *caderno){
+    if (caderno == NULL) {
+        return;
+    }
+
+    Secao *ativa = obter_secao(caderno, caderno->secao_ativa);
+    if (ativa == NULL) {
+        return;
+    }
+
+    if (ativa->atual == NULL) {
+        ativa->atual = ativa->inicio;
+    } else if (ativa->atual->prox != NULL) {
+        ativa->atual = ativa->atual->prox;
+    }
+}
+
 void voltar_secao(Caderno *caderno){
-    if (caderno->depoimentos.atual != NULL && caderno->depoimentos.atual->ant != NULL) {
-        caderno->depoimentos.atual = caderno->depoimentos.atual->ant;
-    }else if (caderno->pistas.atual != NULL && caderno->pistas.atual->ant != NULL) {
-        caderno->pistas.atual = caderno->pistas.atual->ant;
-    } else if (caderno->reacoes.atual != NULL && caderno->reacoes.atual->ant != NULL) {
-        caderno->reacoes.atual = caderno->reacoes.atual->ant;
+    if (caderno == NULL) {
+        return;
+    }
+
+    Secao *ativa = obter_secao(caderno, caderno->secao_ativa);
+    if (ativa == NULL) {
+        return;
+    }
+
+    if (ativa->atual == NULL) {
+        ativa->atual = ativa->inicio;
+    } else if (ativa->atual->ant != NULL) {
+        ativa->atual = ativa->atual->ant;
     }
 }
 
 NoListaDupla *obter_item_atual(Caderno *caderno){
-    if (caderno->depoimentos.atual != NULL) {
-        return caderno->depoimentos.atual;
-    } else if (caderno->pistas.atual != NULL) {
-        return caderno->pistas.atual;
-    } else if (caderno->reacoes.atual != NULL) {
-        return caderno->reacoes.atual;
+    if (caderno == NULL) {
+        return NULL;
     }
-    return NULL; // Nenhum item atual
+
+    Secao *ativa = obter_secao(caderno, caderno->secao_ativa);
+    return (ativa != NULL) ? ativa->atual : NULL;
 }
+
 void ler_item_atual(Caderno *caderno){
-    if (caderno->depoimentos.atual != NULL) {
-        Depoimento *depoimento = (Depoimento *)caderno->depoimentos.atual->dado;
-        //printf por enquanto que nao tem graficos
-        printf("Depoimento do suspeito %d: %s\n", depoimento->id_falante, depoimento->texto);
-    } else if (caderno->pistas.atual != NULL) {
-        Pista *pista = (Pista *)caderno->pistas.atual->dado;
-        printf("Pista encontrada no dia %d: %s\n", pista->dia, pista->descricao);
-    } else if (caderno->reacoes.atual != NULL) {
-        Reacao *reacao = (Reacao *)caderno->reacoes.atual->dado;
-        printf("Reação de %s ao depoimento %d: %d\n", reacao->quem_reagiu, reacao->id_depoimento, reacao->tipo_reacao);
-    } else {
+    NoListaDupla *atual = obter_item_atual(caderno);
+    if (atual == NULL) {
         printf("Nenhum item atual para ler.\n");
+        return;
+    }
+
+    switch (caderno->secao_ativa) {
+        case SECAO_DEPOIMENTOS: {
+            Depoimento *depoimento = (Depoimento *)atual->dado;
+            printf("Depoimento do suspeito %d: %s\n", depoimento->id_falante, depoimento->texto);
+            break;
+        }
+        case SECAO_PISTAS: {
+            Pista *pista = (Pista *)atual->dado;
+            printf("Pista encontrada no dia %d: %s\n", pista->dia, pista->descricao);
+            break;
+        }
+        case SECAO_REACOES: {
+            Reacao *reacao = (Reacao *)atual->dado;
+            printf("Reação de %s ao depoimento %d: %d\n", reacao->quem_reagiu, reacao->id_depoimento, reacao->tipo_reacao);
+            break;
+        }
+        case SECAO_CONTRADICOES: {
+            Contradicao *contradicao = (Contradicao *)atual->dado;
+            printf("Contradição entre os depoimentos %d e %d\n",
+                   contradicao->depoimento1->id_depoimento,
+                   contradicao->depoimento2->id_depoimento);
+            break;
+        }
+        default:
+            printf("Nenhum item atual para ler.\n");
+            break;
+    }
+}
+
+// Troca o conteúdo dos nós (id + dado) para que o id do nó continue
+// apontando para a mesma pista depois da ordenação.
+static void trocar_conteudo_nos(NoListaDupla *a, NoListaDupla *b) {
+    int id = a->id;
+    void *dado = a->dado;
+    a->id = b->id;
+    a->dado = b->dado;
+    b->id = id;
+    b->dado = dado;
+}
+
+void ordenar_pistas_por_dia(Caderno *caderno) {
+    if (caderno == NULL || caderno->pistas.tamanho < 2) {
+        return;
+    }
+
+    int quantidade = caderno->pistas.tamanho;
+
+    // Bubble sort: a cada passada o maior dia "afunda" para o fim.
+    // A comparação estrita (> ) mantém a ordenação estável.
+    for (int i = 0; i < quantidade - 1; i++) {
+        int trocou = 0;
+        NoListaDupla *atual = caderno->pistas.inicio;
+
+        for (int j = 0; j < quantidade - 1 - i && atual != NULL && atual->prox != NULL; j++) {
+            Pista *pista_atual = (Pista *)atual->dado;
+            Pista *pista_proxima = (Pista *)atual->prox->dado;
+
+            if (pista_atual != NULL && pista_proxima != NULL &&
+                pista_atual->dia > pista_proxima->dia) {
+                trocar_conteudo_nos(atual, atual->prox);
+                trocou = 1;
+            }
+            atual = atual->prox;
+        }
+
+        if (!trocou) {
+            break; // lista já ordenada
+        }
     }
 }
 
