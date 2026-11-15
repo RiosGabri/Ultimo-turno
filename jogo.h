@@ -75,5 +75,6 @@ Suspeito *buscar_suspeito(const Jogo *jogo, int id);
 int jogo_terminou(const Jogo *jogo);
 const char *nome_fase(FaseDia fase);
 const char *descricao_ultima_pista(const Jogo *jogo);
+const char * nome_ultima_pista(const Jogo * jogo);
 
 #endif

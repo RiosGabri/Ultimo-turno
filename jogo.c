@@ -15,14 +15,14 @@ static const struct {
     [ID_GERENTE]    = {"Almeida", "Gerente"},
     [ID_CAPATAZ]    = {"Bastos",  "Capataz"},
     [ID_ENGENHEIRO] = {"Costa",   "Engenheiro"},
-    [ID_OPERARIO]   = {"Dias",    "Operária"},
-    [ID_ENFERMEIRA] = {"Esteves", "Enfermeiro"},
+    [ID_OPERARIO]   = {"Dias",    "Operário"},
+    [ID_ENFERMEIRA] = {"Esteves", "Enfermeira"},
     [ID_VIGIA]      = {"Farias",  "Vigia noturno"},
 };
 
 static const char *LOCAIS[] = {
-    "Fundição", "Refeitório", "Escritório",
-    "Sala de máquinas", "Almoxarifado", "Portão"
+    "Sala de máquinas", "Gerência", "Linha de produção",
+    "Vestiário", "Enfermaria"
 };
 #define TOTAL_LOCAIS ((int)(sizeof(LOCAIS) / sizeof(LOCAIS[0])))
 
@@ -32,20 +32,57 @@ static const struct {
     const char *descricao;
 } PISTAS_DO_DIA[TOTAL_DIAS] = {
     [0] = {
-        "Refeitório", "Xícara quebrada",
-        "Uma xícara quebrada no refeitório. Alguém saiu às pressas."
-    },
+        "Sala de máquinas", "Chave inglesa",
+        "Encontrada próxima ao corpo da vítima, na sala de máquinas. É uma das ferramentas utilizadas na manutenção da fábrica. Sua presença no local não é incomum, mas sua proximidade com o corpo lhe chama a atenção. Não apresenta vestígios de sangue ou marcas."
+    },  //falta atualizar os dos outros dias
     [1] = {
-        "Fundição", "Luva de trabalho",
-        "Uma luva de trabalho esquecida na fundição, com graxa fresca."
+        "Linha de produção", "Luva de trabalho",
+        "Uma luva de trabalho esquecida na linha de produção, com graxa fresca."
     },
     [2] = {
-        "Escritório", "Carta rasgada",
-        "Uma carta rasgada no escritório. Sobrou o começo de uma ameaça."
+        "Gerência", "Carta rasgada",
+        "Uma carta rasgada na gerência. Sobrou o começo de uma ameaça."
     },
     [3] = {
-        "Portão", "Chave enferrujada",
-        "Uma chave enferrujada junto ao portão. A fechadura foi forçada."
+        "Vestiário", "Chave enferrujada",
+        "Uma chave enferrujada no vestiário. A fechadura foi forçada."
+    },
+};
+
+#define LOCAL_FORA_DA_FABRICA "Fora da fábrica"
+
+static const char *const LOCAL_VERDADEIRO[TOTAL_DIAS][TOTAL_SUSPEITOS] = {
+    [0] = {
+        [ID_GERENTE]    = "Gerência",
+        [ID_CAPATAZ]    = "Linha de produção",
+        [ID_ENGENHEIRO] = "Sala de máquinas",
+        [ID_OPERARIO]   = "Vestiário",
+        [ID_ENFERMEIRA] = "Enfermaria",
+        [ID_VIGIA]      = LOCAL_FORA_DA_FABRICA,
+    },
+    [1] = {
+        [ID_GERENTE]    = "Gerência",
+        [ID_CAPATAZ]    = "Linha de produção",
+        [ID_ENGENHEIRO] = "Sala de máquinas",
+        [ID_OPERARIO]   = "Linha de produção",
+        [ID_ENFERMEIRA] = "Enfermaria",
+        [ID_VIGIA]      = "Linha de produção",
+    },
+    [2] = {
+        [ID_GERENTE]    = "Gerência",
+        [ID_CAPATAZ]    = "Linha de produção",
+        [ID_ENGENHEIRO] = "Sala de máquinas",
+        [ID_OPERARIO]   = "Linha de produção",
+        [ID_ENFERMEIRA] = "Enfermaria",
+        [ID_VIGIA]      = "Linha de produção",
+    },
+    [3] = {
+        [ID_GERENTE]    = "Gerência",
+        [ID_CAPATAZ]    = "Linha de produção",
+        [ID_ENGENHEIRO] = "Sala de máquinas",
+        [ID_OPERARIO]   = "Linha de produção",
+        [ID_ENFERMEIRA] = "Enfermaria",
+        [ID_VIGIA]      = "Linha de produção",
     },
 };
 
@@ -61,6 +98,42 @@ static Suspeito *suspeito_por_id(const Jogo *jogo, int id) {
 
 static int esta_interrogado(const Jogo *jogo, int id) {
     return (jogo->interrogados & (1u << id)) != 0;
+}
+
+static const char *preposicao_local(const char *local) {
+    if (local != NULL && strcmp(local, "Vestiário") == 0){
+        return "no";
+    } else{
+        return "na";
+    }
+}
+static const char *local_falso(int dia, int id_alvo) {
+    const char *verdade = LOCAL_VERDADEIRO[dia - 1][id_alvo];
+
+    for (int i = 0; i < TOTAL_LOCAIS; i ++) {
+        if (strcmp(LOCAIS[i], verdade) == 0) {
+            int deslocamento = 1 + (dia + id_alvo) % (TOTAL_LOCAIS - 1);
+            return LOCAIS[(i + deslocamento) % TOTAL_LOCAIS];
+        }
+    }
+    return LOCAIS[(id_alvo + dia) % TOTAL_LOCAIS];
+}
+
+static void montar_fala(char *destino, size_t tamanho, int sobre_si, const char *nome_alvo, const char *local) {
+    if (strcmp(local, LOCAL_FORA_DA_FABRICA) == 0) {    //se o local da pessoa for fora da fábrica:
+        if (sobre_si) {
+            snprintf(destino, tamanho, "Eu não estava na fábrica na noite anterior.");
+        } else {
+            snprintf(destino, tamanho, "Não vi %s na fábrica na noite anterior.", nome_alvo);
+        }
+        return;
+    }
+
+    if (sobre_si) {
+        snprintf(destino, tamanho, "Eu estava %s %s na noite anterior.", preposicao_local(local), local);
+    } else {
+        snprintf(destino, tamanho, "Vi %s %s %s na noite anterior.", nome_alvo, preposicao_local(local), local);
+    }
 }
 
 static void avancar_turno(Jogo *jogo) {
@@ -280,6 +353,35 @@ Suspeito *suspeito_do_turno(const Jogo *jogo) {
     return (Suspeito *)jogo->turno_atual->dado;
 }
 
+static enum TipoReacao reagir(int dia, int id_alvo, const char *local_afirmado, const Suspeito *outro, SorteioPapeis papeis) {
+    int indice = dia - 1;
+    int outro_mentindo = outro->id == papeis.id_assassino || outro->id == papeis.id_cumplice;
+
+    if (outro_mentindo) {
+        if (strcmp(local_afirmado, local_falso(dia, id_alvo)) == 0){
+            return CONCORDA;
+        } else{
+            return DISCORDA;
+        }
+    }
+
+    const char *verdade_alvo = LOCAL_VERDADEIRO[indice][id_alvo];
+    const char *verdade_outro = LOCAL_VERDADEIRO[indice][outro->id];
+
+    if (outro->id == id_alvo || strcmp(verdade_outro, verdade_alvo) == 0) {
+        if (strcmp(local_afirmado, verdade_alvo) == 0){
+            return CONCORDA;
+        } else{
+            return DISCORDA;
+        }
+    }
+    if (strcmp(verdade_outro, local_afirmado) == 0) {
+        return DISCORDA;
+    }
+
+    return NEUTRO;
+}
+
 int perguntar_sobre(Jogo *jogo, int id_alvo) {
     if (jogo == NULL || jogo->resultado != JOGO_EM_ANDAMENTO ||
         jogo->dia.fase_atual != FASE_DEBATE) {
@@ -292,20 +394,18 @@ int perguntar_sobre(Jogo *jogo, int id_alvo) {
         return -1;
     }
 
-    // Cada falante tem uma versão diferente do local, então duas pessoas
-    // falando sobre o mesmo alvo no mesmo dia geram contradição.
-    int indice_local = (jogo->dia.dia_atual * 7 + id_alvo * 3 + falante->id * 5)
-                       % TOTAL_LOCAIS;
-    const char *local = LOCAIS[indice_local];
+    //os inocentes falam a verdade, enquanto o assassino e cumplice mentem
+    int mentindo = falante->papel == ASSASSINO || falante->papel == CUMPLICE;
+    const char *local;
 
-    char texto[256];
-    if (alvo->id == falante->id) {
-        snprintf(texto, sizeof texto,
-                 "Eu estava no %s na noite anterior.", local);
-    } else {
-        snprintf(texto, sizeof texto,
-                 "Vi %s no %s na noite anterior.", alvo->nome, local);
+    if(mentindo == 1){
+        local = local_falso(jogo->dia.dia_atual, alvo->id);
+    } else{
+        local = LOCAL_VERDADEIRO[jogo->dia.dia_atual - 1][alvo->id];
     }
+    
+    char texto[256];
+    montar_fala(texto, sizeof texto, alvo->id == falante->id, alvo->nome, local);
 
     int id_depoimento = registrar_depoimento(
         jogo->caderno, jogo->dia.dia_atual, falante->id, (char *)local,
@@ -321,16 +421,7 @@ int perguntar_sobre(Jogo *jogo, int id_alvo) {
         do {
             Suspeito *outro = (Suspeito *)no->dado;
             if (outro != NULL && outro->situacao == VIVO && outro->id != falante->id) {
-                int fator = (jogo->dia.dia_atual * 31 + falante->id * 17 +
-                             id_alvo * 13 + outro->id * 7) % 5;
-
-                enum TipoReacao reacao = (fator == 0) ? DISCORDA : CONCORDA;
-
-                // O assassino sempre nega quando o alvo é ele mesmo.
-                if (outro->id == jogo->papeis.id_assassino &&
-                    id_alvo == jogo->papeis.id_assassino) {
-                    reacao = DISCORDA;
-                }
+                enum TipoReacao reacao = reagir(jogo->dia.dia_atual, alvo->id, local, outro, jogo->papeis);
 
                 registrar_reacao(jogo->caderno, jogo->dia.dia_atual,
                                  id_depoimento, outro->nome, reacao);
@@ -410,4 +501,16 @@ const char *descricao_ultima_pista(const Jogo *jogo) {
     }
     Pista *pista = (Pista *)jogo->caderno->pistas.fim->dado;
     return (pista != NULL) ? pista->descricao : "";
+}
+
+const char * nome_ultima_pista(const Jogo * jogo){
+    if(jogo == NULL || jogo->caderno == NULL || jogo->caderno->pistas.fim == NULL){
+        return "";
+    }
+    Pista * pista = (Pista *)jogo->caderno->pistas.fim->dado;
+    if(pista != NULL){
+        return pista->objeto;
+    } else{
+        return "";
+    }
 }

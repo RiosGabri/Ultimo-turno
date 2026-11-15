@@ -1,6 +1,7 @@
 #include "jogo.h"
 
 #include <stdio.h>
+#include <string.h>
 
 static int falhas = 0;
 
@@ -146,8 +147,10 @@ static void testar_ciclo_de_debate_e_contradicoes(void) {
               "cada turno gera um depoimento");
     verificar(jogo.caderno->reacoes.tamanho == TOTAL_SUSPEITOS * (TOTAL_SUSPEITOS - 1),
               "cada depoimento recebe reação dos demais vivos");
-    verificar(jogo.caderno->contradicoes.tamanho == 15,
-              "falar sobre a mesma pessoa gera todas as contradições");
+    // Os 4 inocentes concordam com o local verdadeiro e os 2 culpados contam a
+    // mesma versão falsa: cada culpado contradiz cada inocente (2 x 4 = 8).
+    verificar(jogo.caderno->contradicoes.tamanho == 8,
+              "contradições aparecem entre culpados e inocentes");
 
     avancar_fase_jogo(&jogo); // debate -> julgamento
     verificar(jogo.dia.fase_atual == FASE_JULGAMENTO,
@@ -338,10 +341,70 @@ static void testar_acoes_invalidas(void) {
     liberar_jogo(&jogo);
 }
 
+static void testar_reacoes_confirmam_a_verdade(void) {
+    Jogo jogo;
+    verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 42),
+              "partida inicia");
+
+    int assassino = jogo.papeis.id_assassino;
+    int cumplice = jogo.papeis.id_cumplice;
+
+    avancar_fase_jogo(&jogo); // manhã -> debate
+
+    // Avança até a vez de um dos culpados e pergunta sobre ele mesmo: a
+    // resposta é uma mentira sobre o próprio paradeiro.
+    int id_depoimento = -1;
+    while (suspeito_do_turno(&jogo) != NULL) {
+        Suspeito *falante = suspeito_do_turno(&jogo);
+        if (falante->id == assassino || falante->id == cumplice) {
+            id_depoimento = perguntar_sobre(&jogo, falante->id);
+            break;
+        }
+        perguntar_sobre(&jogo, assassino);
+    }
+
+    verificar(id_depoimento > 0, "culpado depõe sobre si mesmo");
+
+    int confirmacoes_culpadas = 0;
+    int confirmacoes_inocentes = 0;
+    for (NoListaDupla *no = jogo.caderno->reacoes.inicio;
+         no != NULL && id_depoimento > 0; no = no->prox) {
+        const Reacao *reacao = (const Reacao *)no->dado;
+        if (reacao == NULL || reacao->id_depoimento != id_depoimento ||
+            reacao->tipo_reacao != CONCORDA) {
+            continue;
+        }
+
+        int culpado = 0;
+        for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+            const Suspeito *suspeito = buscar_suspeito(&jogo, id);
+            if (suspeito != NULL &&
+                strcmp(suspeito->nome, reacao->quem_reagiu) == 0) {
+                culpado = (id == assassino || id == cumplice);
+                break;
+            }
+        }
+
+        if (culpado) {
+            confirmacoes_culpadas++;
+        } else {
+            confirmacoes_inocentes++;
+        }
+    }
+
+    verificar(confirmacoes_culpadas == 1,
+              "o outro culpado confirma a versão combinada");
+    verificar(confirmacoes_inocentes == 0,
+              "nenhum inocente confirma a mentira");
+
+    liberar_jogo(&jogo);
+}
+
 int main(void) {
     testar_inicializacao();
     testar_sorteio_reprodutivel();
     testar_ciclo_de_debate_e_contradicoes();
+    testar_reacoes_confirmam_a_verdade();
     testar_debate_pula_mortos();
     testar_dia_completo_ate_a_derrota_por_tempo();
     testar_vitoria_ao_prender_assassino();

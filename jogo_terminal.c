@@ -45,6 +45,17 @@ static const char *nome_suspeito(const Jogo *jogo, int id) {
     return (suspeito != NULL) ? suspeito->nome : "Alguém";
 }
 
+static const char * nome_detetive(int id_detetive) {
+    switch(id_detetive) {
+        case ID_MISS_MARPLE:   
+            return "Miss Marple";
+        case ID_HERCULE_POIROT: 
+            return "Hercule Poirot";
+        default:               
+            return "um detetive";
+    }
+}
+
 static const char *nome_periodo(enum Periodo periodo) {
     switch (periodo) {
         case MANHA: return "manhã";
@@ -210,6 +221,7 @@ static int escolher_alvo(Jogo *jogo) {
     while (!entrada_encerrada) {
         printf("\nSobre quem interrogar?\n");
         listar_vivos(jogo);
+        printf("  (escolha o próprio suspeito para ouvir o álibi dele)\n");
         printf("  0 - Cancelar\n> ");
 
         int escolha = ler_inteiro();
@@ -230,7 +242,7 @@ static int escolher_alvo(Jogo *jogo) {
 
 static void jogar_manha(Jogo *jogo) {
     printf("\nMANHÃ — O turno começa e a fábrica comenta o caso.\n");
-    printf("  Pista do dia: %s\n", descricao_ultima_pista(jogo));
+    printf("  Pista do dia: %s\n", nome_ultima_pista(jogo));
     pausar();
 
     if (!entrada_encerrada) {
@@ -348,6 +360,37 @@ static void jogar_noite(Jogo *jogo) {
 // ---------------------------------------------------------------------------
 // Partida
 // ---------------------------------------------------------------------------
+static void mostrar_intro(void) {
+    printf("============================================================\n");
+    printf(" ÚLTIMO TURNO\n");
+    printf("============================================================\n");
+
+    printf("\n Na década de 1930, em uma fábrica industrial marcada por uma\n");
+    printf(" rotina rígida de trabalho, conflitos internos e relações de\n");
+    printf(" hierarquia, um acontecimento inesperado interrompe o\n");
+    printf(" funcionamento normal da produção.\n");
+
+    printf("\n Ao final de mais um expediente, um operário da fábrica é\n");
+    printf(" encontrado morto na sala de máquinas. As circunstâncias de\n");
+    printf(" sua morte são misteriosas, e ninguém parece saber exatamente\n");
+    printf(" o que aconteceu.\n");
+}
+
+static void mostrar_intro_restante(int detetive) {
+    printf("\n A investigação fica sob responsabilidade de %s, que precisa\n",
+           nome_detetive(detetive));
+    printf(" descobrir quem está por trás do assassinato antes que seja\n");
+    printf(" tarde demais.\n");
+
+    printf("\n O assassino continua agindo durante as noites, e novas mortes\n");
+    printf(" tornam a investigação cada vez mais urgente. A cada dia, os\n");
+    printf(" sobreviventes são interrogados, apresentam suas versões dos\n");
+    printf(" acontecimentos e reagem aos depoimentos uns dos outros.\n");
+
+    printf("\n Você tem %d dias para descobrir o culpado.\n", TOTAL_DIAS);
+    printf("============================================================\n");
+}
+
 static int escolher_detetive(void) {
     while (!entrada_encerrada) {
         printf("\nQuem conduz a investigação?\n");
@@ -393,14 +436,16 @@ static void mostrar_resultado(const Jogo *jogo) {
 int executar_jogo_terminal(void) {
     entrada_encerrada = 0;
 
-    printf("============================================================\n");
-    printf(" ÚLTIMO TURNO\n");
-    printf(" Chaplin foi encontrado morto ao fim do turno.\n");
-    printf(" Você tem %d dias para descobrir o culpado.\n", TOTAL_DIAS);
-    printf("============================================================\n");
+    mostrar_intro();
 
     int detetive = escolher_detetive();
     if (entrada_encerrada || detetive < 0) {
+        return 0;
+    }
+
+    mostrar_intro_restante(detetive);
+    pausar();
+    if (entrada_encerrada) {
         return 0;
     }
 
