@@ -718,6 +718,129 @@ static void testar_detectar_contradicoes_todas(void) {
     liberar_caderno(caderno);
 }
 
+static void testar_navegacao_por_secao(void) {
+    Caderno *caderno = inicializar_caderno(ID_MARPLE);
+    verificar(caderno != NULL, "inicializar_caderno deve alocar");
+    if (caderno == NULL) {
+        return;
+    }
+
+    verificar(caderno->secao_ativa == SECAO_DEPOIMENTOS,
+              "caderno comeca na secao de depoimentos");
+
+    // Seção vazia: não há item atual e navegar não quebra.
+    selecionar_secao(caderno, SECAO_DEPOIMENTOS);
+    verificar(obter_item_atual(caderno) == NULL,
+              "secao vazia nao tem item atual");
+    avancar_secao(caderno);
+    voltar_secao(caderno);
+    verificar(obter_item_atual(caderno) == NULL,
+              "navegar em secao vazia mantem item atual NULL");
+
+    registrar_depoimento(caderno, 1, ID_ENGENHEIRO, "Fundição", TARDE,
+                         ID_ENGENHEIRO, TESTEMUNHO, "Depoimento 1");
+    registrar_depoimento(caderno, 1, ID_OPERARIA, "Refeitório", TARDE,
+                         ID_ENGENHEIRO, TESTEMUNHO, "Depoimento 2");
+    registrar_depoimento(caderno, 2, ID_VIGIA, "Portão", NOITE,
+                         ID_OPERARIA, ALIBI, "Depoimento 3");
+
+    selecionar_secao(caderno, SECAO_DEPOIMENTOS);
+    verificar(obter_item_atual(caderno) == caderno->depoimentos.inicio,
+              "selecionar secao posiciona no primeiro item");
+
+    avancar_secao(caderno);
+    verificar(obter_item_atual(caderno)->id == 2,
+              "avancar vai para o segundo depoimento");
+
+    avancar_secao(caderno);
+    verificar(obter_item_atual(caderno)->id == 3,
+              "avancar vai para o terceiro depoimento");
+
+    avancar_secao(caderno);
+    verificar(obter_item_atual(caderno)->id == 3,
+              "avancar para no ultimo item");
+
+    voltar_secao(caderno);
+    verificar(obter_item_atual(caderno)->id == 2,
+              "voltar retorna ao item anterior");
+
+    voltar_secao(caderno);
+    voltar_secao(caderno);
+    verificar(obter_item_atual(caderno)->id == 1,
+              "voltar para no primeiro item");
+
+    // As seções são independentes: pistas têm sua própria posição.
+    int relacionado = ID_VIGIA;
+    ListaDupla *lista_relacionados = criar_lista_dupla();
+    verificar(lista_relacionados != NULL,
+              "lista de suspeitos relacionados deve alocar");
+    if (lista_relacionados != NULL) {
+        lista_dupla_inserir_no_fim(lista_relacionados, relacionado, &relacionado);
+    }
+    registrar_pista(caderno, 3, "Pátio", "Martelo", "Martelo achado no pátio.",
+                    lista_relacionados);
+
+    selecionar_secao(caderno, SECAO_PISTAS);
+    verificar(obter_item_atual(caderno) == caderno->pistas.inicio,
+              "selecionar pistas posiciona na primeira pista");
+    verificar(caderno->depoimentos.atual->id == 1,
+              "posicao dos depoimentos e preservada ao trocar de secao");
+
+    selecionar_secao(caderno, SECAO_REACOES);
+    verificar(obter_item_atual(caderno) == NULL,
+              "secao de reacoes vazia nao tem item atual");
+
+    liberar_caderno(caderno);
+}
+
+static void testar_ordenacao_de_pistas(void) {
+    Caderno *caderno = inicializar_caderno(ID_POIROT);
+    verificar(caderno != NULL, "inicializar_caderno deve alocar");
+    if (caderno == NULL) {
+        return;
+    }
+
+    // Ordem de registro: dias 3, 1, 2, 1 (ids de nó 1 a 4).
+    registrar_pista(caderno, 3, "Fundição", "Luva", "Luva na fundição.", NULL);
+    registrar_pista(caderno, 1, "Portão", "Chave", "Chave no portão.", NULL);
+    registrar_pista(caderno, 2, "Refeitório", "Xícara", "Xícara no refeitório.", NULL);
+    registrar_pista(caderno, 1, "Escritório", "Carta", "Carta no escritório.", NULL);
+
+    ordenar_pistas_por_dia(caderno);
+
+    const int dias_esperados[] = {1, 1, 2, 3};
+    const int ids_esperados[] = {2, 4, 3, 1}; // o id acompanha a pista
+
+    int posicao = 0;
+    for (const NoListaDupla *no = caderno->pistas.inicio;
+         no != NULL && posicao < 4;
+         no = no->prox, posicao++) {
+        const Pista *pista = (const Pista *)no->dado;
+        verificar(pista != NULL && pista->dia == dias_esperados[posicao],
+                  "pistas ordenadas por dia crescente");
+        verificar(no->id == ids_esperados[posicao],
+                  "id do no acompanha a pista apos a ordenacao");
+    }
+    verificar(posicao == 4, "ordenacao preserva todas as pistas");
+    verificar(caderno->pistas.tamanho == 4, "tamanho da secao nao muda");
+    verificar(caderno->pistas.fim != NULL &&
+              ((const Pista *)caderno->pistas.fim->dado)->dia == 3,
+              "ultima pista e a de maior dia");
+
+    // A navegação continua consistente depois da ordenação.
+    selecionar_secao(caderno, SECAO_PISTAS);
+    verificar(((const Pista *)obter_item_atual(caderno)->dado)->dia == 1,
+              "navegacao comeca pela pista de menor dia");
+
+    // Ordenar de novo não altera uma lista já ordenada.
+    ordenar_pistas_por_dia(caderno);
+    verificar(caderno->pistas.inicio->id == 2 &&
+              caderno->pistas.fim->id == 1,
+              "ordenacao e estavel quando a lista ja esta ordenada");
+
+    liberar_caderno(caderno);
+}
+
 int main(void) {
     testar_inicializacao_e_caderno_vazio();
     testar_criterios();
@@ -739,6 +862,8 @@ int main(void) {
     testar_caderno_vazio_contradicoes();
     testar_integridade_memoria_contradicoes();
     testar_detectar_contradicoes_todas();
+    testar_navegacao_por_secao();
+    testar_ordenacao_de_pistas();
 
     if (falhas == 0) {
         printf("OK: todos os testes do caderno passaram\n");

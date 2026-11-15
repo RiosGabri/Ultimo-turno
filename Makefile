@@ -42,6 +42,7 @@ TESTE_LISTA_DUPLA_SRC := $(TEST_DIR)/teste_lista_dupla.c
 TESTE_LISTA_CIRCULAR_SRC := $(TEST_DIR)/teste_lista_circular.c
 TESTE_CADERNO_SRC := $(TEST_DIR)/teste_caderno.c
 TESTE_SUSPEITO_SRC := $(TEST_DIR)/teste_suspeito.c
+TESTE_DIA_SRC := $(TEST_DIR)/teste_dia.c
 
 TESTE_LISTA_SIMPLES_IMPL := $(ESTRUTURAS_DIR)/listas/lista-simples.c
 TESTE_LISTA_DUPLA_IMPL := $(ESTRUTURAS_DIR)/listas/lista-dupla.c
@@ -53,6 +54,8 @@ TESTE_CADERNO_IMPL := $(ESTRUTURAS_DIR)/entidades/caderno.c \
 # Suspeitos ficam na lista dupla circular.
 TESTE_SUSPEITO_IMPL := $(ESTRUTURAS_DIR)/entidades/suspeito.c \
                        $(ESTRUTURAS_DIR)/listas/lista-dupla-circular.c
+# Controle de dias e fases fica no módulo dia.
+TESTE_DIA_IMPL := dia.c
 
 # Só entram no alvo test os arquivos de teste existentes e não vazios.
 # Assim o Makefile continua válido enquanto os testes novos são escritos.
@@ -71,6 +74,9 @@ TESTE_BINS += $(BUILD)/teste_caderno
 endif
 ifneq ($(strip $(shell test -s $(TESTE_SUSPEITO_SRC) && echo 1)),)
 TESTE_BINS += $(BUILD)/teste_suspeito
+endif
+ifneq ($(strip $(shell test -s $(TESTE_DIA_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_dia
 endif
 
 .PHONY: all jogo test valgrind submodules raylib clean distclean FORCE
@@ -134,6 +140,10 @@ $(BUILD)/teste_suspeito: $(TESTE_SUSPEITO_SRC) $(TESTE_SUSPEITO_IMPL) \
 		$(ESTRUTURAS_DIR)/listas/lista-dupla-circular.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_SUSPEITO_IMPL) -o $@
+
+$(BUILD)/teste_dia: $(TESTE_DIA_SRC) $(TESTE_DIA_IMPL) dia.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_DIA_IMPL) -o $@
 
 test: $(TESTE_BINS)
 	@status=0; \
