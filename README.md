@@ -32,7 +32,7 @@ Descobrir quem matou Chaplin, usando o caderno de pistas e depoimentos, antes qu
 ## Tecnologias
 
 - Linguagem **C**
-- Interface: em breve
+- Interface: terminal (protótipo jogável) e raylib (menu inicial em desenvolvimento)
 
 ## Como compilar e executar
 
@@ -81,7 +81,32 @@ make distclean   # remove build/ e os artefatos compilados da raylib
 
 ## Como jogar
 
-Em breve.
+Enquanto a interface gráfica está em desenvolvimento, a partida completa roda no terminal:
+
+```sh
+make run
+```
+
+Ou, separadamente:
+
+```sh
+make terminal
+./build/jogo-terminal
+```
+
+A versão de terminal não depende da raylib. Você escolhe o detetive, acompanha as quatro fases de cada dia e usa o caderno para cruzar depoimentos, pistas, reações e contradições.
+
+- **Manhã:** uma pista nova entra no caderno.
+- **Debate:** cada suspeito vivo fala uma vez. Escolha sobre quem perguntar; os outros reagem.
+- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 25 de credibilidade.
+- **Noite:** o assassino ataca um inocente e o caso continua no dia seguinte.
+
+O menu gráfico ainda é um protótipo:
+
+```sh
+make
+./build/jogo
+```
 
 ## Estrutura do projeto
 
