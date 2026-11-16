@@ -30,10 +30,10 @@ static int contar_situacao(const Jogo *jogo, enum Situacao situacao) {
     return total;
 }
 
-static int id_sem_ser_assassino(const Jogo *jogo) {
+static int id_com_papel(const Jogo *jogo, enum Papel papel) {
     for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
         const Suspeito *suspeito = buscar_suspeito(jogo, id);
-        if (suspeito != NULL && suspeito->papel != ASSASSINO) {
+        if (suspeito != NULL && suspeito->papel == papel) {
             return id;
         }
     }
@@ -280,6 +280,33 @@ static void testar_vitoria_ao_prender_assassino(void) {
     liberar_jogo(&jogo);
 }
 
+static void testar_custo_prisao_inocente(void) {
+    Jogo jogo;
+    verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 77),
+              "partida inicia");
+
+    ir_para_julgamento(&jogo);
+
+    int inocente = id_com_papel(&jogo, INOCENTE);
+    verificar(inocente != NENHUM, "existe suspeito inocente");
+
+    int credibilidade_antes = jogo.credibilidade;
+    verificar(prender_suspeito(&jogo, inocente) == 1,
+              "prisão de inocente é aceita");
+    verificar(jogo.credibilidade == credibilidade_antes - CUSTO_PRENDER_INOCENTE,
+              "prisão de inocente custa 30");
+    verificar(jogo.resultado == JOGO_EM_ANDAMENTO,
+              "prisão de inocente não vence");
+    verificar(jogo.dia.fase_atual == FASE_JULGAMENTO,
+              "prisão de inocente não avança a fase");
+
+    const Suspeito *suspeito = buscar_suspeito(&jogo, inocente);
+    verificar(suspeito != NULL && suspeito->situacao == PRESO,
+              "inocente fica preso");
+
+    liberar_jogo(&jogo);
+}
+
 static void testar_derrota_por_credibilidade(void) {
     Jogo jogo;
     verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 11),
@@ -288,8 +315,8 @@ static void testar_derrota_por_credibilidade(void) {
     jogo.credibilidade = CUSTO_PRENDER_INOCENTE;
     ir_para_julgamento(&jogo);
 
-    int inocente = id_sem_ser_assassino(&jogo);
-    verificar(inocente != NENHUM, "existe suspeito que não é assassino");
+    int inocente = id_com_papel(&jogo, INOCENTE);
+    verificar(inocente != NENHUM, "existe suspeito inocente");
     verificar(prender_suspeito(&jogo, inocente) == 1,
               "prisão de inocente é aceita");
 
@@ -328,7 +355,7 @@ static void testar_acoes_invalidas(void) {
     verificar(prender_suspeito(&jogo, 999) == 0,
               "não dá para prender suspeito inexistente");
 
-    int inocente = id_sem_ser_assassino(&jogo);
+    int inocente = id_com_papel(&jogo, INOCENTE);
     verificar(prender_suspeito(&jogo, inocente) == 1,
               "primeira prisão do inocente é aceita");
     verificar(prender_suspeito(&jogo, inocente) == 0,
@@ -408,6 +435,7 @@ int main(void) {
     testar_debate_pula_mortos();
     testar_dia_completo_ate_a_derrota_por_tempo();
     testar_vitoria_ao_prender_assassino();
+    testar_custo_prisao_inocente();
     testar_derrota_por_credibilidade();
     testar_acoes_invalidas();
 

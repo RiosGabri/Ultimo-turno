@@ -151,7 +151,7 @@ A versão de terminal não depende da raylib. No Windows, ela ajusta a página d
 
 - **Manhã:** uma pista nova entra no caderno.
 - **Debate:** cada suspeito vivo fala uma vez. Escolha sobre quem perguntar; os outros reagem.
-- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 25 de credibilidade.
+- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 30 de credibilidade.
 - **Noite:** o assassino ataca um inocente e o caso continua no dia seguinte.
 
 O menu gráfico ainda é um protótipo:

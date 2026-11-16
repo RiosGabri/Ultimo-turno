@@ -8,7 +8,7 @@
 #include "listas/lista-dupla-circular.h"
 
 #define CREDIBILIDADE_INICIAL 100
-#define CUSTO_PRENDER_INOCENTE 25
+#define CUSTO_PRENDER_INOCENTE 30
 
 typedef enum {
     JOGO_EM_ANDAMENTO,
