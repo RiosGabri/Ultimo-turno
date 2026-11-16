@@ -32,14 +32,15 @@ Descobrir quem matou Chaplin, usando o caderno de pistas e depoimentos, antes qu
 ## Tecnologias
 
 - Linguagem **C**
-- Interface: terminal (protótipo jogável) e raylib (menu inicial em desenvolvimento)
+- Interface: terminal (protótipo jogável) e raylib 6.2 (menu inicial em desenvolvimento)
 
 ## Como compilar e executar
 
 ### Dependências
 
-- Compilador C (GCC), Make e Git
-- Bibliotecas de desenvolvimento do X11/OpenGL, usadas pela raylib
+- Compilador C (GCC, Clang ou MSVC) e Git
+- `make` no Linux/macOS **ou** CMake 3.22+ (recomendado no Windows)
+- Bibliotecas de desenvolvimento do X11/OpenGL, usadas apenas pela raylib no Linux
 
 No Debian/Ubuntu/Linux Mint:
 
@@ -48,6 +49,8 @@ sudo apt install build-essential git libx11-dev libxrandr-dev libxinerama-dev li
 ```
 
 ### Passos
+
+> No Windows, use a seção **Com CMake** abaixo: ela não depende de `make`.
 
 Clone o repositório já com os submódulos:
 
@@ -73,11 +76,55 @@ O primeiro `make` compila a **raylib** a partir do submódulo (`raylib/`) e gera
 Outros comandos:
 
 ```sh
-make test        # testes da lista
+make test        # testes das estruturas, do dia e do jogo
 make valgrind    # testes com verificação de memória
 make clean       # remove a pasta build/
 make distclean   # remove build/ e os artefatos compilados da raylib
 ```
+
+### Com CMake (Windows, macOS e Linux)
+
+O CMake gera os dois executáveis: `jogo-terminal` (sem raylib) e `jogo`
+(gráfico, com raylib). O build é **Release** por padrão e a pasta `assets/` é
+copiada para junto do executável gráfico quando ela existir.
+
+```sh
+cmake -S . -B build-cmake
+cmake --build build-cmake
+```
+
+No Linux/macOS (configuração única), os binários ficam em `build-cmake/`:
+
+```sh
+./build-cmake/jogo-terminal
+./build-cmake/jogo
+```
+
+Para rodar os testes:
+
+```sh
+ctest --test-dir build-cmake --output-on-failure
+```
+
+No Windows com Visual Studio (gerador multi-config), informe `--config Release`:
+
+```bat
+cmake --build build-cmake --config Release
+ctest --test-dir build-cmake -C Release --output-on-failure
+build-cmake\Release\jogo-terminal.exe
+build-cmake\Release\jogo.exe
+```
+
+Para compilar apenas o terminal e os testes, sem raylib:
+
+```sh
+cmake -S . -B build-cmake -DULTIMO_TURNO_BUILD_JOGO=OFF
+cmake --build build-cmake
+```
+
+O alvo gráfico requer o submódulo `raylib/` inicializado
+(`git submodule update --init --recursive`), fixado na tag **6.2**, e as
+dependências de X11/OpenGL no Linux.
 
 ## Como jogar
 
@@ -94,7 +141,13 @@ make terminal
 ./build/jogo-terminal
 ```
 
-A versão de terminal não depende da raylib. Você escolhe o detetive, acompanha as quatro fases de cada dia e usa o caderno para cruzar depoimentos, pistas, reações e contradições.
+Se compilou com CMake:
+
+```sh
+./build-cmake/jogo-terminal
+```
+
+A versão de terminal não depende da raylib. No Windows, ela ajusta a página de código do console para UTF-8 automaticamente, para os acentos aparecerem corretamente. Você escolhe o detetive, acompanha as quatro fases de cada dia e usa o caderno para cruzar depoimentos, pistas, reações e contradições.
 
 - **Manhã:** uma pista nova entra no caderno.
 - **Debate:** cada suspeito vivo fala uma vez. Escolha sobre quem perguntar; os outros reagem.
