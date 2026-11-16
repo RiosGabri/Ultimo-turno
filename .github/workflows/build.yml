@@ -14,7 +14,7 @@ jobs:
       fail-fast: false            # se um sistema falhar, os outros continuam
       matrix:                     # o mesmo roteiro roda uma vez por linha
         include:
-          - { nome: linux,   os: ubuntu-latest,  bin: build,         ext: "" }
+          - { nome: linux,   os: ubuntu-22.04,  bin: build,         ext: "" }
           - { nome: windows, os: windows-latest, bin: build/Release, ext: ".exe" }
           - { nome: macos,   os: macos-latest,   bin: build,         ext: "" }
 
@@ -55,7 +55,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { nome: linux,   os: ubuntu-latest,  bin: build,         ext: "" }
+          - { nome: linux,   os: ubuntu-22.04,  bin: build,         ext: "" }
           - { nome: windows, os: windows-latest, bin: build/Release, ext: ".exe" }
           - { nome: macos,   os: macos-latest,   bin: build,         ext: "" }
 
