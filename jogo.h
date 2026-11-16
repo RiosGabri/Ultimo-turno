@@ -66,8 +66,8 @@ int debate_encerrado(const Jogo *jogo);
 // Julgamento
 // ---------------------------------------------------------------------------
 // Prende um suspeito vivo durante o julgamento. Retorna 1 se a ação foi aceita.
-// Prender o assassino encerra o jogo em vitória; prender outro suspeito custa
-// credibilidade.
+// Prender o assassino encerra o jogo em vitória; prender o cúmplice custa 15
+// e revela uma informação; prender um inocente custa 30.
 int prender_suspeito(Jogo *jogo, int id);
 
 // ---------------------------------------------------------------------------
