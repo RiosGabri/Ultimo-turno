@@ -3,6 +3,7 @@ name: Build                       # nome que aparece na aba Actions
 on:                               # quando o roteiro roda
   push:
     branches: [main]              # push na branch do jogo (trocar para main depois)
+    tags: ['v*']                  # qualquer tag que comece com "v" dispara o workflow
   pull_request:                   # a cada pull request
   workflow_dispatch:              # botão manual (só aparece com o arquivo na main)
 
@@ -88,3 +89,56 @@ jobs:
           name: ultimo-turno-grafico-${{ matrix.nome }}
           path: dist
           if-no-files-found: error
+          
+  release:
+    name: Publicar release
+    needs: [build, grafico]                 # só roda se os builds passaram
+    if: >-                                  # só em push (nunca em pull request) na tag ou na branch principal
+      github.event_name == 'push' &&
+      (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write                       # permissão para criar tag e release
+
+    steps:
+      - name: Definir a versão
+        id: versao
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"                   # tag criada à mão
+          else
+            echo "tag=v0.1.0-alpha.${{ github.run_number }}" >> "$GITHUB_OUTPUT"   # tag automática
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefatos
+
+      - name: Empacotar um arquivo por sistema
+        env:
+          TAG: ${{ steps.versao.outputs.tag }}
+        run: |
+          set -e
+          mkdir -p release
+          for pasta in artefatos/*/; do
+            nome=$(basename "$pasta")
+            case "$nome" in
+              *windows*)
+                (cd "$pasta" && zip -r "../../release/${nome}-${TAG}.zip" .) ;;
+              *)
+                chmod +x "$pasta"/jogo* 2>/dev/null || true
+                tar -czf "release/${nome}-${TAG}.tar.gz" -C "$pasta" . ;;
+            esac
+          done
+
+      - name: Criar a release (pré-release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.versao.outputs.tag }}
+        run: |
+          gh release create "$TAG" release/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "O Último Turno $TAG" \
+            --generate-notes
