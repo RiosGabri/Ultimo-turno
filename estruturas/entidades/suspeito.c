@@ -1,8 +1,7 @@
-#define _POSIX_C_SOURCE 200809L //para o strdup funcionar no linux
 #include "entidades/suspeito.h"
+#include "entidades/texto.h"
 #include "listas/lista-dupla-circular.h"
 #include <stdlib.h>
-#include <string.h>
 
 void carregar_suspeito(ListaDuplaCircular *lista,int id, char *nome, char *cargo, enum Situacao situacao, enum Papel papel){
     Suspeito *novo_suspeito = malloc(sizeof(Suspeito));
@@ -12,8 +11,15 @@ void carregar_suspeito(ListaDuplaCircular *lista,int id, char *nome, char *cargo
 
     // Atribuir valores aos campos do suspeito
     novo_suspeito->id = id;
-    novo_suspeito->nome = strdup(nome);
-    novo_suspeito->cargo = strdup(cargo);
+    novo_suspeito->nome = copiar_texto(nome);
+    novo_suspeito->cargo = copiar_texto(cargo);
+    if (novo_suspeito->nome == NULL || novo_suspeito->cargo == NULL) {
+        free(novo_suspeito->nome);
+        free(novo_suspeito->cargo);
+        free(novo_suspeito);
+        return; // Falha ao copiar os textos
+    }
+
     novo_suspeito->situacao = situacao;
     novo_suspeito->papel = papel;
 
