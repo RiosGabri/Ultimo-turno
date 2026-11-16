@@ -19,6 +19,7 @@ Descobrir quem matou Chaplin, usando o caderno de pistas e depoimentos, antes qu
 - **Cada dia tem 4 fases:** Manhã (resumo e pista), Debate, Julgamento e Noite.
 - **Debate:** os turnos seguem uma volta completa na lista de suspeitos vivos. O jogador pergunta, o suspeito responde e os demais reagem com "Concordo" ou "Discordo".
 - **Credibilidade:** começa em 100. Prender o inocente custa pontos, e chegar a 0 é game over.
+- **Cúmplice:** se existir, prendê-lo não vence; custa 15 de credibilidade e revela uma pista verdadeira sobre o assassino.
 - **Caderno:** registra depoimentos, pistas e reações, e destaca contradições.
 
 ## Estruturas de dados e algoritmo de ordenação
@@ -151,7 +152,7 @@ A versão de terminal não depende da raylib. No Windows, ela ajusta a página d
 
 - **Manhã:** uma pista nova entra no caderno.
 - **Debate:** cada suspeito vivo fala uma vez. Escolha sobre quem perguntar; os outros reagem.
-- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 30 de credibilidade.
+- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 30 de credibilidade; prender o cúmplice custa 15 e revela o local verdadeiro do assassino na noite do crime.
 - **Noite:** o assassino ataca um inocente e o caso continua no dia seguinte.
 
 O menu gráfico ainda é um protótipo:
