@@ -6,14 +6,11 @@ project(ultimo_turno LANGUAGES C)
 # Configuracao padrao
 # ---------------------------------------------------------------------------
 # Build Release por padrao em geradores de configuracao unica (Linux/macOS).
+# Em geradores multi-config (Visual Studio/Xcode) NAO definimos a configuracao
+# aqui: o Visual Studio rejeita CMAKE_DEFAULT_BUILD_TYPE na geracao.
+# Nesses casos o CI (e o usuario) passa --config Release explicitamente.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Tipo de build" FORCE)
-endif()
-
-# Em geradores multi-config (Visual Studio/Xcode), Release e a configuracao
-# usada quando --config nao e informado.
-if(CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_DEFAULT_BUILD_TYPE)
-    set(CMAKE_DEFAULT_BUILD_TYPE Release CACHE STRING "Configuracao padrao" FORCE)
 endif()
 
 # C11 com extensoes GNU (gnu11).
@@ -48,7 +45,8 @@ function(ultimo_turno_configurar_alvo alvo)
 
     if(MSVC)
         # /utf-8 garante que os literais acentuados sejam compilados como UTF-8.
-        target_compile_options(${alvo} PRIVATE /W4 /utf-8)
+        # /std:c11 liga os inicializadores designados usados em jogo.c.
+        target_compile_options(${alvo} PRIVATE /W4 /utf-8 /std:c11)
     else()
         target_compile_options(${alvo} PRIVATE -Wall -Wextra -Wpedantic)
     endif()

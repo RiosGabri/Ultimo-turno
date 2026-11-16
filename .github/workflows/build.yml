@@ -1,7 +1,8 @@
 name: Build                       # nome que aparece na aba Actions
 
 on:                               # quando o roteiro roda
-  push:                           # a cada push em qualquer branch
+  push:
+    branches: [build/executavel-outros-so]              # push na branch do jogo (trocar para main depois)
   pull_request:                   # a cada pull request
   workflow_dispatch:              # botão manual (só aparece com o arquivo na main)
 
@@ -20,10 +21,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4   # baixa o código do repositório
 
+      - name: Testes do Makefile (só Linux)
+        if: runner.os == 'Linux'
+        run: make BUILD=build-make test
+
       - name: Configurar (só terminal, sem raylib)
         run: cmake -S . -B build -DULTIMO_TURNO_BUILD_JOGO=OFF
 
       - name: Compilar
+        # --config Release é usado pelo Visual Studio; nos geradores de
+        # configuração única (Linux/macOS) ele é simplesmente ignorado.
         run: cmake --build build --config Release
 
       - name: Rodar os testes
@@ -32,10 +39,11 @@ jobs:
       - name: Empacotar
         shell: bash               # bash também no Windows
         run: |
-          mkdir dist
+          mkdir -p dist
           cp "${{ matrix.bin }}/jogo-terminal${{ matrix.ext }}" dist/
 
       - uses: actions/upload-artifact@v4   # guarda o resultado para download
         with:
           name: ultimo-turno-${{ matrix.nome }}
           path: dist
+          if-no-files-found: error

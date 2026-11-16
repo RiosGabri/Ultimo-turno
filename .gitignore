@@ -60,6 +60,7 @@ dkms.conf
 # Build output
 build/
 build-cmake/
+build-make/
 
 # CMake (caso alguém configure no próprio diretório)
 CMakeCache.txt
