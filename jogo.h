@@ -9,6 +9,7 @@
 
 #define CREDIBILIDADE_INICIAL 100
 #define CUSTO_PRENDER_INOCENTE 30
+#define CUSTO_PRENDER_CUMPLICE 15
 
 typedef enum {
     JOGO_EM_ANDAMENTO,
@@ -36,6 +37,7 @@ typedef struct {
     unsigned int interrogados;
 
     int ultima_vitima; // id do suspeito morto na última noite, ou NENHUM
+    char revelacao_cumplice[256]; // mensagem revelada ao prender o cúmplice
 } Jogo;
 
 // ---------------------------------------------------------------------------
@@ -74,6 +76,8 @@ int prender_suspeito(Jogo *jogo, int id);
 Suspeito *buscar_suspeito(const Jogo *jogo, int id);
 // Local verdadeiro do suspeito no dia atual (agenda). Retorna NULL se inválido.
 const char *local_verdadeiro_do_suspeito(const Jogo *jogo, int id);
+// Revelação guardada ao prender o cúmplice; string vazia se não houver.
+const char *revelacao_do_cumplice(const Jogo *jogo);
 int jogo_terminou(const Jogo *jogo);
 const char *nome_fase(FaseDia fase);
 const char *descricao_ultima_pista(const Jogo *jogo);

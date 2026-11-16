@@ -109,6 +109,13 @@ const char *local_verdadeiro_do_suspeito(const Jogo *jogo, int id) {
     return LOCAL_VERDADEIRO[dia][id];
 }
 
+const char *revelacao_do_cumplice(const Jogo *jogo) {
+    if (jogo == NULL) {
+        return "";
+    }
+    return jogo->revelacao_cumplice;
+}
+
 static int esta_interrogado(const Jogo *jogo, int id) {
     return (jogo->interrogados & (1u << id)) != 0;
 }

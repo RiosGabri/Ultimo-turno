@@ -72,6 +72,10 @@ static void testar_inicializacao(void) {
               "caderno começa sem depoimentos");
     verificar(jogo.turno_atual == NULL,
               "cursor do debate começa vazio");
+    verificar(revelacao_do_cumplice(&jogo)[0] == '\0',
+              "partida começa sem revelação do cúmplice");
+    verificar(revelacao_do_cumplice(NULL)[0] == '\0',
+              "revelação de jogo NULL é vazia");
 
     verificar(jogo.papeis.id_assassino >= 0 &&
               jogo.papeis.id_assassino < TOTAL_SUSPEITOS,
