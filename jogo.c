@@ -96,6 +96,26 @@ static Suspeito *suspeito_por_id(const Jogo *jogo, int id) {
     return (Suspeito *)lista_dupla_circular_buscar_por_id(jogo->suspeitos, id);
 }
 
+const char *local_verdadeiro_do_suspeito(const Jogo *jogo, int id) {
+    if (jogo == NULL || id < 0 || id >= TOTAL_SUSPEITOS) {
+        return NULL;
+    }
+
+    int dia = jogo->dia.dia_atual - 1;
+    if (dia < 0 || dia >= TOTAL_DIAS) {
+        return NULL;
+    }
+
+    return LOCAL_VERDADEIRO[dia][id];
+}
+
+const char *revelacao_do_cumplice(const Jogo *jogo) {
+    if (jogo == NULL) {
+        return "";
+    }
+    return jogo->revelacao_cumplice;
+}
+
 static int esta_interrogado(const Jogo *jogo, int id) {
     return (jogo->interrogados & (1u << id)) != 0;
 }
@@ -444,6 +464,17 @@ int debate_encerrado(const Jogo *jogo) {
 // ---------------------------------------------------------------------------
 // Julgamento
 // ---------------------------------------------------------------------------
+static void preparar_revelacao_cumplice(Jogo *jogo, const Suspeito *cumplice) {
+    const char *local = local_verdadeiro_do_suspeito(jogo, jogo->papeis.id_assassino);
+    if (local == NULL) {
+        local = "local desconhecido";
+    }
+
+    snprintf(jogo->revelacao_cumplice, sizeof jogo->revelacao_cumplice,
+             "Revelação de %s: o local do assassino na noite do crime era %s.",
+             cumplice->nome, local);
+}
+
 int prender_suspeito(Jogo *jogo, int id) {
     if (jogo == NULL || jogo->resultado != JOGO_EM_ANDAMENTO ||
         jogo->dia.fase_atual != FASE_JULGAMENTO) {
@@ -463,7 +494,21 @@ int prender_suspeito(Jogo *jogo, int id) {
         return 1;
     }
 
-    jogo->credibilidade -= CUSTO_PRENDER_INOCENTE;
+    if (suspeito->papel == CUMPLICE) {
+        preparar_revelacao_cumplice(jogo, suspeito);
+
+        const char *local = local_verdadeiro_do_suspeito(jogo, jogo->papeis.id_assassino);
+        if (local != NULL) {
+            registrar_pista(jogo->caderno, jogo->dia.dia_atual,
+                            (char *)local, "Revelação do cúmplice",
+                            jogo->revelacao_cumplice, NULL);
+        }
+
+        jogo->credibilidade -= CUSTO_PRENDER_CUMPLICE;
+    } else {
+        jogo->credibilidade -= CUSTO_PRENDER_INOCENTE;
+    }
+
     if (jogo->credibilidade <= 0) {
         jogo->credibilidade = 0;
         jogo->resultado = JOGO_DERROTA_CREDIBILIDADE;

@@ -511,6 +511,11 @@ static void jogar_julgamento(Jogo *jogo) {
 
         if (jogo->resultado == JOGO_VITORIA) {
             printf("\nVocê prendeu %s. É o assassino!\n", suspeito->nome);
+        } else if (suspeito->papel == CUMPLICE) {
+            printf("\nVocê prendeu %s. Ele não é o assassino, mas decide falar.\n",
+                   suspeito->nome);
+            printf("%s\n", revelacao_do_cumplice(jogo));
+            printf("Credibilidade agora: %d\n", jogo->credibilidade);
         } else {
             printf("\nVocê prendeu %s, mas as provas não se sustentam.\n",
                    suspeito->nome);

@@ -133,6 +133,16 @@ ultimo_turno_adicionar_teste(teste_lista_simples
     estruturas/listas/lista-simples.c
 )
 
+ultimo_turno_adicionar_teste(teste_lista_dupla
+    test/teste_lista_dupla.c
+    estruturas/listas/lista-dupla.c
+)
+
+ultimo_turno_adicionar_teste(teste_lista_circular
+    test/teste_lista_circular.c
+    estruturas/listas/lista-dupla-circular.c
+)
+
 ultimo_turno_adicionar_teste(teste_caderno
     test/teste_caderno.c
     estruturas/entidades/caderno.c
@@ -165,5 +175,4 @@ ultimo_turno_adicionar_teste(teste_jogo
     ${ULTIMO_TURNO_ESTRUTURAS}
 )
 
-# test/teste_lista_dupla.c esta vazio no repositorio; quando tiver conteudo,
-# basta adicionar um alvo como os anteriores.
+
