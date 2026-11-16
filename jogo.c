@@ -496,6 +496,14 @@ int prender_suspeito(Jogo *jogo, int id) {
 
     if (suspeito->papel == CUMPLICE) {
         preparar_revelacao_cumplice(jogo, suspeito);
+
+        const char *local = local_verdadeiro_do_suspeito(jogo, jogo->papeis.id_assassino);
+        if (local != NULL) {
+            registrar_pista(jogo->caderno, jogo->dia.dia_atual,
+                            (char *)local, "Revelação do cúmplice",
+                            jogo->revelacao_cumplice, NULL);
+        }
+
         jogo->credibilidade -= CUSTO_PRENDER_CUMPLICE;
     } else {
         jogo->credibilidade -= CUSTO_PRENDER_INOCENTE;
