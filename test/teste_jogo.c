@@ -531,6 +531,121 @@ static void testar_reacoes_confirmam_a_verdade(void) {
     liberar_jogo(&jogo);
 }
 
+static void testar_pontuacao_e_texto_final(void) {
+    // Cálculo puro: depende apenas dos três parâmetros.
+    verificar(calcular_pontuacao(TOTAL_DIAS, 0, 0) == 0,
+              "sem dias restantes, sem credibilidade e sem contradições vale 0");
+    verificar(calcular_pontuacao(1, CREDIBILIDADE_INICIAL, 0) ==
+                  (TOTAL_DIAS - 1) * PONTOS_POR_DIA_RESTANTE +
+                  CREDIBILIDADE_INICIAL * PONTOS_POR_CREDIBILIDADE,
+              "dias restantes e credibilidade entram na pontuação");
+    verificar(calcular_pontuacao(1, 50, 4) - calcular_pontuacao(1, 50, 3) ==
+                  PONTOS_POR_CONTRADICAO,
+              "cada contradição vale PONTOS_POR_CONTRADICAO");
+    verificar(calcular_pontuacao(2, 100, 0) - calcular_pontuacao(3, 100, 0) ==
+                  PONTOS_POR_DIA_RESTANTE,
+              "usar um dia a mais custa PONTOS_POR_DIA_RESTANTE");
+    verificar(calcular_pontuacao(1, 90, 0) - calcular_pontuacao(1, 80, 0) ==
+                  10 * PONTOS_POR_CREDIBILIDADE,
+              "cada ponto de credibilidade vale PONTOS_POR_CREDIBILIDADE");
+
+    // Limites: entrada fora da faixa não deixa a pontuação negativa.
+    verificar(calcular_pontuacao(TOTAL_DIAS, -50, -10) == 0,
+              "credibilidade e contradições negativas valem 0");
+    verificar(calcular_pontuacao(1, -50, -10) ==
+                  calcular_pontuacao(1, 0, 0),
+              "credibilidade e contradições negativas não somam pontos");
+    verificar(calcular_pontuacao(TOTAL_DIAS + 10, 100, 0) ==
+                  calcular_pontuacao(TOTAL_DIAS, 100, 0),
+              "dias além do limite contam como TOTAL_DIAS");
+
+    Jogo jogo;
+    verificar(iniciar_jogo_com_semente(&jogo, ID_HERCULE_POIROT, 2024),
+              "partida inicia");
+    verificar(jogo.caderno->contradicoes.tamanho == 0,
+              "partida começa sem contradições");
+    verificar(pontuacao_do_jogo(&jogo) ==
+                  calcular_pontuacao(1, CREDIBILIDADE_INICIAL, 0),
+              "partida em andamento não recebe bônus de vitória");
+    verificar(pontuacao_do_jogo(NULL) == 0, "jogo NULL vale 0");
+
+    ir_para_julgamento(&jogo);
+    verificar(prender_suspeito(&jogo, jogo.papeis.id_assassino) == 1,
+              "prender o assassino é aceito");
+    verificar(jogo.resultado == JOGO_VITORIA, "vitória registrada");
+    verificar(pontuacao_do_jogo(&jogo) ==
+                  calcular_pontuacao(jogo.dia.dia_atual, jogo.credibilidade, 0) +
+                  PONTOS_VITORIA,
+              "vitória soma PONTOS_VITORIA");
+    verificar(pontuacao_do_jogo(&jogo) >= PONTOS_VITORIA,
+              "vitória vale ao menos PONTOS_VITORIA");
+
+    const char *texto_vitoria = texto_final(&jogo);
+    verificar(texto_vitoria != NULL && texto_vitoria[0] != '\0',
+              "vitória tem texto narrativo");
+    verificar(texto_final(NULL) != NULL && texto_final(NULL)[0] == '\0',
+              "jogo NULL não tem texto narrativo");
+    int pontuacao_vitoria = pontuacao_do_jogo(&jogo);
+    liberar_jogo(&jogo);
+
+    // Derrota por credibilidade: texto próprio e sem bônus de vitória.
+    Jogo credibilidade;
+    verificar(iniciar_jogo_com_semente(&credibilidade, ID_MISS_MARPLE, 11),
+              "partida para derrota por credibilidade inicia");
+    credibilidade.credibilidade = CUSTO_PRENDER_INOCENTE;
+    ir_para_julgamento(&credibilidade);
+
+    int inocente = id_com_papel(&credibilidade, INOCENTE);
+    verificar(inocente != NENHUM, "existe suspeito inocente");
+    verificar(prender_suspeito(&credibilidade, inocente) == 1,
+              "prisão de inocente é aceita");
+    verificar(credibilidade.resultado == JOGO_DERROTA_CREDIBILIDADE,
+              "credibilidade zero dá derrota");
+
+    const char *texto_credibilidade = texto_final(&credibilidade);
+    verificar(texto_credibilidade != NULL && texto_credibilidade[0] != '\0',
+              "derrota por credibilidade tem texto narrativo");
+    verificar(strcmp(texto_credibilidade, texto_vitoria) != 0,
+              "texto da vitória e da derrota por credibilidade são diferentes");
+    verificar(pontuacao_do_jogo(&credibilidade) ==
+                  calcular_pontuacao(credibilidade.dia.dia_atual,
+                                     credibilidade.credibilidade, 0),
+              "derrota por credibilidade não soma bônus de vitória");
+    liberar_jogo(&credibilidade);
+
+    // Derrota por tempo: texto próprio e pontuação com os dias todos usados.
+    Jogo tempo;
+    verificar(iniciar_jogo_com_semente(&tempo, ID_MISS_MARPLE, 99),
+              "partida para derrota por tempo inicia");
+
+    for (int dia = 1; dia <= TOTAL_DIAS; dia++) {
+        ir_para_julgamento(&tempo);
+        avancar_fase_jogo(&tempo); // sem prender ninguém
+
+        if (tempo.resultado == JOGO_EM_ANDAMENTO) {
+            avancar_fase_jogo(&tempo); // noite -> manhã seguinte
+        }
+    }
+
+    verificar(tempo.resultado == JOGO_DERROTA_TEMPO, "prazo encerrado dá derrota");
+    verificar(tempo.dia.dia_atual == TOTAL_DIAS,
+              "derrota por tempo usa todos os dias");
+
+    const char *texto_tempo = texto_final(&tempo);
+    verificar(texto_tempo != NULL && texto_tempo[0] != '\0',
+              "derrota por tempo tem texto narrativo");
+    verificar(strcmp(texto_tempo, texto_vitoria) != 0 &&
+                  strcmp(texto_tempo, texto_credibilidade) != 0,
+              "os três finais têm textos diferentes");
+    verificar(pontuacao_do_jogo(&tempo) ==
+                  calcular_pontuacao(TOTAL_DIAS, tempo.credibilidade,
+                                     tempo.caderno->contradicoes.tamanho),
+              "derrota por tempo não soma bônus de vitória");
+    verificar(pontuacao_do_jogo(&tempo) < pontuacao_vitoria,
+              "vitória pontua acima da derrota por tempo");
+    liberar_jogo(&tempo);
+}
+
 int main(void) {
     testar_inicializacao();
     testar_agenda_local_verdadeiro();
@@ -545,6 +660,7 @@ int main(void) {
     testar_prisao_do_cumplice();
     testar_derrota_por_credibilidade_cumplice();
     testar_acoes_invalidas();
+    testar_pontuacao_e_texto_final();
 
     if (falhas == 0) {
         printf("OK: todos os testes do jogo passaram\n");
