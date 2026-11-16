@@ -96,6 +96,19 @@ static Suspeito *suspeito_por_id(const Jogo *jogo, int id) {
     return (Suspeito *)lista_dupla_circular_buscar_por_id(jogo->suspeitos, id);
 }
 
+const char *local_verdadeiro_do_suspeito(const Jogo *jogo, int id) {
+    if (jogo == NULL || id < 0 || id >= TOTAL_SUSPEITOS) {
+        return NULL;
+    }
+
+    int dia = jogo->dia.dia_atual - 1;
+    if (dia < 0 || dia >= TOTAL_DIAS) {
+        return NULL;
+    }
+
+    return LOCAL_VERDADEIRO[dia][id];
+}
+
 static int esta_interrogado(const Jogo *jogo, int id) {
     return (jogo->interrogados & (1u << id)) != 0;
 }

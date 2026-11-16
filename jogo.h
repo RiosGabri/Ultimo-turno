@@ -72,6 +72,8 @@ int prender_suspeito(Jogo *jogo, int id);
 // Consultas usadas pela interface
 // ---------------------------------------------------------------------------
 Suspeito *buscar_suspeito(const Jogo *jogo, int id);
+// Local verdadeiro do suspeito no dia atual (agenda). Retorna NULL se inválido.
+const char *local_verdadeiro_do_suspeito(const Jogo *jogo, int id);
 int jogo_terminou(const Jogo *jogo);
 const char *nome_fase(FaseDia fase);
 const char *descricao_ultima_pista(const Jogo *jogo);

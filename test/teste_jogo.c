@@ -92,6 +92,24 @@ static void testar_inicializacao(void) {
     liberar_jogo(&jogo);
 }
 
+static void testar_agenda_local_verdadeiro(void) {
+    Jogo jogo;
+    verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 1234),
+              "partida inicia");
+
+    const char *local = local_verdadeiro_do_suspeito(&jogo, ID_GERENTE);
+    verificar(local != NULL && local[0] != '\0',
+              "agenda tem local verdadeiro para suspeito válido");
+    verificar(local_verdadeiro_do_suspeito(&jogo, -1) == NULL,
+              "id negativo não tem local");
+    verificar(local_verdadeiro_do_suspeito(&jogo, TOTAL_SUSPEITOS) == NULL,
+              "id inválido não tem local");
+    verificar(local_verdadeiro_do_suspeito(NULL, ID_GERENTE) == NULL,
+              "jogo NULL não tem local");
+
+    liberar_jogo(&jogo);
+}
+
 static void testar_sorteio_reprodutivel(void) {
     Jogo a;
     Jogo b;
@@ -429,6 +447,7 @@ static void testar_reacoes_confirmam_a_verdade(void) {
 
 int main(void) {
     testar_inicializacao();
+    testar_agenda_local_verdadeiro();
     testar_sorteio_reprodutivel();
     testar_ciclo_de_debate_e_contradicoes();
     testar_reacoes_confirmam_a_verdade();
