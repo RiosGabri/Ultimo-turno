@@ -19,7 +19,7 @@ jobs:
           - { nome: macos,   os: macos-latest,   bin: build,         ext: "" }
 
     steps:
-      - uses: actions/checkout@v4   # baixa o código do repositório
+      - uses: actions/checkout@v7   # baixa o código do repositório
 
       - name: Testes do Makefile (só Linux)
         if: runner.os == 'Linux'
@@ -42,8 +42,49 @@ jobs:
           mkdir -p dist
           cp "${{ matrix.bin }}/jogo-terminal${{ matrix.ext }}" dist/
 
-      - uses: actions/upload-artifact@v4   # guarda o resultado para download
+      - uses: actions/upload-artifact@v7   # guarda o resultado para download
         with:
           name: ultimo-turno-${{ matrix.nome }}
+          path: dist
+          if-no-files-found: error
+
+  grafico:                          # job novo, independente do job do terminal
+    name: Gráfico (${{ matrix.nome }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { nome: linux,   os: ubuntu-latest,  bin: build,         ext: "" }
+          - { nome: windows, os: windows-latest, bin: build/Release, ext: ".exe" }
+          - { nome: macos,   os: macos-latest,   bin: build,         ext: "" }
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive     # baixa a raylib (fixada na tag 6.2)
+
+      - name: Dependências da raylib (Linux)
+        if: runner.os == 'Linux'    # só o Linux precisa instalar isto
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+
+      - name: Configurar (com raylib)
+        run: cmake -S . -B build    # sem o OFF: liga o alvo gráfico
+
+      - name: Compilar o jogo gráfico
+        run: cmake --build build --config Release --target jogo
+
+      - name: Empacotar
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "${{ matrix.bin }}/jogo${{ matrix.ext }}" dist/
+          if [ -d assets ]; then cp -r assets dist/; fi   # opcional: só copia se existir
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ultimo-turno-grafico-${{ matrix.nome }}
           path: dist
           if-no-files-found: error
