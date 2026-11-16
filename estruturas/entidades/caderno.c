@@ -1,5 +1,5 @@
-#define _POSIX_C_SOURCE 200809L //para o strdup funcionar no linux
 #include "caderno.h"
+#include "entidades/texto.h"
 #include "listas/lista-dupla.h"
 #include "listas/lista-simples.h"
 #include <stdlib.h>
@@ -55,14 +55,23 @@ int registrar_depoimento(Caderno *caderno, int dia, int quem_falou, char* local,
         free(novo_depoimento);
         return -1; // Falha ao alocar memória
     }
-    depoimento->id_depoimento = caderno->prox_id_depoimento++; // Atribui o próximo id de depoimento e incrementa
     depoimento->dia = dia;
     depoimento->id_falante = quem_falou;
-    depoimento->local = strdup(local);
+    depoimento->local = copiar_texto(local);
     depoimento->periodo = periodo;
     depoimento->id_assunto = sobre_quem_fala;
-    depoimento->texto = strdup(texto);
+    depoimento->texto = copiar_texto(texto);
     depoimento->categoria = categoria;
+
+    if (depoimento->local == NULL || depoimento->texto == NULL) {
+        free(depoimento->local);
+        free(depoimento->texto);
+        free(depoimento);
+        free(novo_depoimento);
+        return -1; // Falha ao copiar os textos
+    }
+
+    depoimento->id_depoimento = caderno->prox_id_depoimento++; // Atribui o próximo id de depoimento e incrementa
 
     //adicionando o depoimento na seção de depoimentos do caderno
     novo_depoimento->id = depoimento->id_depoimento; 
@@ -120,13 +129,23 @@ void registrar_pista(Caderno *caderno, int dia, char* local, char* objeto, char*
     //pista em si, que será armazenado no nó da lista dupla
     Pista *pista = malloc(sizeof(Pista));
     if (pista == NULL) {
+        free(nova_pista);
         return; // Falha ao alocar memória
     }
     pista->dia = dia;
-    pista->local = strdup(local);
-    pista->objeto = strdup(objeto);
-    pista->descricao = strdup(descricao);
+    pista->local = copiar_texto(local);
+    pista->objeto = copiar_texto(objeto);
+    pista->descricao = copiar_texto(descricao);
     pista->suspeitos_relacionados = suspeitos_relacionados;
+
+    if (pista->local == NULL || pista->objeto == NULL || pista->descricao == NULL) {
+        free(pista->local);
+        free(pista->objeto);
+        free(pista->descricao);
+        free(pista);
+        free(nova_pista);
+        return; // Falha ao copiar os textos
+    }
 
     //adicionando o depoimento na seção de depoimentos do caderno
     nova_pista->id = caderno->prox_id_pista++; // Atribui um ID único para a pista
@@ -158,8 +177,14 @@ void registrar_reacao(Caderno *caderno, int dia, int id_depoimento, char* quem_r
     }
     reacao->dia = dia;
     reacao->id_depoimento = id_depoimento;
-    reacao->quem_reagiu = strdup(quem_reagiu);
+    reacao->quem_reagiu = copiar_texto(quem_reagiu);
     reacao->tipo_reacao = tipo_reacao;
+
+    if (reacao->quem_reagiu == NULL) {
+        free(reacao);
+        free(nova_reacao);
+        return; // Falha ao copiar o texto
+    }
 
     //adicionando a reação na seção de reações do caderno
     nova_reacao->id = caderno->prox_id_reacao++; // Atribui um ID único para a reação

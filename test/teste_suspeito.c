@@ -123,9 +123,9 @@ static void testar_copia_dos_textos(void) {
     verificar(suspeito != NULL, "suspeito temporario foi inserido");
     if (suspeito != NULL) {
         verificar(strcmp(suspeito->nome, "Temporario") == 0,
-                  "nome e copiado com strdup (independente do buffer de origem)");
+                  "nome e copiado com copiar_texto (independente do buffer de origem)");
         verificar(strcmp(suspeito->cargo, "Cargo Temp") == 0,
-                  "cargo e copiado com strdup (independente do buffer de origem)");
+                  "cargo e copiado com copiar_texto (independente do buffer de origem)");
         verificar(suspeito->nome != nome_mutavel,
                   "nome do suspeito nao aponta para o buffer de origem");
         verificar(suspeito->cargo != cargo_mutavel,

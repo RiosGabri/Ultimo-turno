@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 static int entrada_encerrada = 0;
 
 // ---------------------------------------------------------------------------
@@ -434,6 +438,11 @@ static void mostrar_resultado(const Jogo *jogo) {
 }
 
 int executar_jogo_terminal(void) {
+#if defined(_WIN32)
+    // O jogo imprime textos em UTF-8. Sem isto, os acentos aparecem quebrados no console do Windows (a página de código padrão não é UTF-8).
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
     entrada_encerrada = 0;
 
     mostrar_intro();
