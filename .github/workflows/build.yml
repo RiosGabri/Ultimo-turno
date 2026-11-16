@@ -1,0 +1,41 @@
+name: Build                       # nome que aparece na aba Actions
+
+on:                               # quando o roteiro roda
+  push:                           # a cada push em qualquer branch
+  pull_request:                   # a cada pull request
+  workflow_dispatch:              # botão manual (só aparece com o arquivo na main)
+
+jobs:
+  build:
+    name: Build (${{ matrix.nome }})
+    runs-on: ${{ matrix.os }}     # a máquina que o GitHub empresta
+    strategy:
+      fail-fast: false            # se um sistema falhar, os outros continuam
+      matrix:                     # o mesmo roteiro roda uma vez por linha
+        include:
+          - { nome: linux,   os: ubuntu-latest,  bin: build,         ext: "" }
+          - { nome: windows, os: windows-latest, bin: build/Release, ext: ".exe" }
+          - { nome: macos,   os: macos-latest,   bin: build,         ext: "" }
+
+    steps:
+      - uses: actions/checkout@v4   # baixa o código do repositório
+
+      - name: Configurar (só terminal, sem raylib)
+        run: cmake -S . -B build -DULTIMO_TURNO_BUILD_JOGO=OFF
+
+      - name: Compilar
+        run: cmake --build build --config Release
+
+      - name: Rodar os testes
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Empacotar
+        shell: bash               # bash também no Windows
+        run: |
+          mkdir dist
+          cp "${{ matrix.bin }}/jogo-terminal${{ matrix.ext }}" dist/
+
+      - uses: actions/upload-artifact@v4   # guarda o resultado para download
+        with:
+          name: ultimo-turno-${{ matrix.nome }}
+          path: dist
