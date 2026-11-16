@@ -1,4 +1,4 @@
-<img src="logo.png">
+<img src="assets/logo.png">
 
 Jogo de investigação (*whodunit*) em linguagem C, feito para a atividade prática da disciplina de Algoritmos e Estrutura de Dados (AED 2026.2, CESAR School).
 
