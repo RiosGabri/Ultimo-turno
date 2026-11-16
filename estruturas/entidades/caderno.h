@@ -34,6 +34,12 @@ typedef enum {
     SECAO_CONTRADICOES,
     TOTAL_SECOES
 } SecaoCaderno;
+// Critérios disponíveis para ordenar as pistas.
+typedef enum {
+    ORDENAR_POR_LOCAL,
+    ORDENAR_POR_OBJETO,
+    ORDENAR_POR_DIA_RECENTE
+} CriterioOrdenacao;
 
 typedef struct {
     NoListaDupla *inicio;  // primeiro item da seção
@@ -97,6 +103,7 @@ void voltar_secao(Caderno *caderno);
 NoListaDupla *obter_item_atual(Caderno *caderno); //retorna o nó atual da seção, ou NULL se não houver
 void ler_item_atual(Caderno *caderno);
 void ordenar_pistas_por_dia(Caderno *caderno); //bubble sort das evidências, do dia mais antigo para o mais recente
+int ordenar_pistas(Caderno *caderno, CriterioOrdenacao criterio);
 Depoimento* buscar_depoimento_por_id(Caderno *caderno, int id_depoimento);
 void liberar_caderno(Caderno *caderno); //libera a memória alocada para o caderno e suas seções
 

@@ -198,6 +198,83 @@ static void navegar_secao(Jogo *jogo, SecaoCaderno secao) {
     }
 }
 
+static void menu_ordenar_pistas(Jogo *jogo) {
+    Caderno *caderno = jogo->caderno;
+
+    if (caderno->pistas.tamanho == 0) {
+        printf("\nNenhuma pista registrada para ordenar.\n");
+        pausar();
+        return;
+    }
+
+    printf("\n--- ORDENAR PISTAS ---\n");
+    printf("  [1] Local (A-Z)\n");
+    printf("  [2] Objeto (A-Z)\n");
+    printf("  [3] Dia (mais recente primeiro)\n");
+    printf("  [0] Cancelar\n> ");
+
+    int opcao = ler_inteiro();
+    CriterioOrdenacao criterio;
+
+    switch (opcao) {
+        case 1:
+            criterio = ORDENAR_POR_LOCAL;
+            break;
+
+        case 2:
+            criterio = ORDENAR_POR_OBJETO;
+            break;
+
+        case 3:
+            criterio = ORDENAR_POR_DIA_RECENTE;
+            break;
+
+        case 0:
+            return;
+
+        default:
+            printf("\nOpcao invalida.\n");
+            pausar();
+            return;
+    }
+
+    printf("\n--- ANTES DA ORDENACAO ---\n");
+
+    for (NoListaDupla *atual = caderno->pistas.inicio;
+         atual != NULL;
+         atual = atual->prox) {
+
+        Pista *pista = (Pista *)atual->dado;
+
+        printf("Pista %d | Dia %d | Local: %s | Objeto: %s\n",
+               atual->id,
+               pista->dia,
+               pista->local,
+               pista->objeto);
+    }
+
+    int trocas = ordenar_pistas(caderno, criterio);
+
+    printf("\n--- DEPOIS DA ORDENACAO ---\n");
+
+    for (NoListaDupla *atual = caderno->pistas.inicio;
+         atual != NULL;
+         atual = atual->prox) {
+
+        Pista *pista = (Pista *)atual->dado;
+
+        printf("Pista %d | Dia %d | Local: %s | Objeto: %s\n",
+               atual->id,
+               pista->dia,
+               pista->local,
+               pista->objeto);
+    }
+
+    printf("\nTotal de trocas realizadas: %d\n", trocas);
+
+    pausar();
+}
+
 static void ver_caderno(Jogo *jogo) {
     while (!entrada_encerrada) {
         printf("\n--- CADERNO ---\n");
@@ -205,6 +282,7 @@ static void ver_caderno(Jogo *jogo) {
         printf("  [2] Pistas (%d)\n", jogo->caderno->pistas.tamanho);
         printf("  [3] Reações (%d)\n", jogo->caderno->reacoes.tamanho);
         printf("  [4] Contradições (%d)\n", jogo->caderno->contradicoes.tamanho);
+        printf("  [5] Ordenar pistas\n");
         printf("  [0] Voltar\n> ");
 
         switch (ler_inteiro()) {
@@ -212,6 +290,7 @@ static void ver_caderno(Jogo *jogo) {
             case 2: navegar_secao(jogo, SECAO_PISTAS); break;
             case 3: navegar_secao(jogo, SECAO_REACOES); break;
             case 4: navegar_secao(jogo, SECAO_CONTRADICOES); break;
+            case 5: menu_ordenar_pistas(jogo);break;
             case 0: return;
             default: break;
         }
