@@ -351,6 +351,88 @@ static void testar_derrota_por_credibilidade(void) {
     liberar_jogo(&jogo);
 }
 
+static void testar_prisao_do_cumplice(void) {
+    Jogo jogo;
+    verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 2024),
+              "partida inicia");
+    ir_para_julgamento(&jogo);
+
+    int cumplice = jogo.papeis.id_cumplice;
+    int assassino = jogo.papeis.id_assassino;
+    verificar(cumplice != NENHUM, "partida tem cúmplice");
+    verificar(cumplice != assassino, "cúmplice é diferente do assassino");
+
+    const Suspeito *suspeito = buscar_suspeito(&jogo, cumplice);
+    verificar(suspeito != NULL && suspeito->papel == CUMPLICE,
+              "suspeito é o cúmplice");
+
+    int credibilidade_antes = jogo.credibilidade;
+    int pistas_antes = jogo.caderno->pistas.tamanho;
+
+    verificar(prender_suspeito(&jogo, cumplice) == 1,
+              "prender o cúmplice é aceito");
+    verificar(jogo.resultado == JOGO_EM_ANDAMENTO,
+              "prender o cúmplice não vence");
+    verificar(jogo.dia.fase_atual == FASE_JULGAMENTO,
+              "prender o cúmplice não avança a fase");
+    verificar(jogo.credibilidade == credibilidade_antes - CUSTO_PRENDER_CUMPLICE,
+              "prender o cúmplice custa 15");
+    verificar(suspeito->situacao == PRESO, "cúmplice fica preso");
+    verificar(jogo.caderno->pistas.tamanho == pistas_antes + 1,
+              "revelação entra no caderno como pista");
+
+    const char *local_esperado = local_verdadeiro_do_suspeito(&jogo, assassino);
+    verificar(local_esperado != NULL && local_esperado[0] != '\0',
+              "agenda do assassino tem local");
+
+    const Pista *pista = (const Pista *)jogo.caderno->pistas.fim->dado;
+    verificar(pista != NULL, "pista de revelação existe");
+    verificar(pista->dia == jogo.dia.dia_atual,
+              "pista de revelação é do dia atual");
+    verificar(pista->local != NULL && strcmp(pista->local, local_esperado) == 0,
+              "pista revela o local verdadeiro do assassino");
+    verificar(pista->descricao != NULL &&
+              strstr(pista->descricao, local_esperado) != NULL,
+              "descrição da pista contém o local verdadeiro");
+    verificar(pista->objeto != NULL && strstr(pista->objeto, "Revelação") != NULL,
+              "pista identifica a revelação do cúmplice");
+
+    const char *mensagem = revelacao_do_cumplice(&jogo);
+    verificar(mensagem != NULL && mensagem[0] != '\0',
+              "jogo guarda a revelação");
+    verificar(strstr(mensagem, local_esperado) != NULL,
+              "mensagem da revelação contém o local verdadeiro");
+
+    const Suspeito *assassino_vivo = buscar_suspeito(&jogo, assassino);
+    verificar(assassino_vivo != NULL && assassino_vivo->situacao == VIVO,
+              "assassino continua vivo após prender o cúmplice");
+
+    liberar_jogo(&jogo);
+}
+
+static void testar_derrota_por_credibilidade_cumplice(void) {
+    Jogo jogo;
+    verificar(iniciar_jogo_com_semente(&jogo, ID_HERCULE_POIROT, 2025),
+              "partida inicia");
+    ir_para_julgamento(&jogo);
+
+    int cumplice = jogo.papeis.id_cumplice;
+    verificar(cumplice != NENHUM, "partida tem cúmplice");
+
+    jogo.credibilidade = CUSTO_PRENDER_CUMPLICE;
+
+    verificar(prender_suspeito(&jogo, cumplice) == 1,
+              "prender o cúmplice é aceito");
+    verificar(jogo.credibilidade == 0,
+              "credibilidade chega a zero ao prender o cúmplice");
+    verificar(jogo.resultado == JOGO_DERROTA_CREDIBILIDADE,
+              "credibilidade zero ao prender o cúmplice dá derrota");
+    verificar(jogo.dia.fase_atual == FASE_FINALIZADO,
+              "derrota ao prender o cúmplice finaliza o jogo");
+
+    liberar_jogo(&jogo);
+}
+
 static void testar_acoes_invalidas(void) {
     Jogo invalido;
     verificar(iniciar_jogo_com_semente(&invalido, 99, 1) == 0,
@@ -460,6 +542,8 @@ int main(void) {
     testar_vitoria_ao_prender_assassino();
     testar_custo_prisao_inocente();
     testar_derrota_por_credibilidade();
+    testar_prisao_do_cumplice();
+    testar_derrota_por_credibilidade_cumplice();
     testar_acoes_invalidas();
 
     if (falhas == 0) {
