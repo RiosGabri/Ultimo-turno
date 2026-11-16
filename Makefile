@@ -45,6 +45,7 @@ TESTE_LISTA_DUPLA_SRC := $(TEST_DIR)/teste_lista_dupla.c
 TESTE_LISTA_CIRCULAR_SRC := $(TEST_DIR)/teste_lista_circular.c
 TESTE_CADERNO_SRC := $(TEST_DIR)/teste_caderno.c
 TESTE_SUSPEITO_SRC := $(TEST_DIR)/teste_suspeito.c
+TESTE_TEXTO_SRC := $(TEST_DIR)/teste_texto.c
 TESTE_DIA_SRC := $(TEST_DIR)/teste_dia.c
 TESTE_JOGO_SRC := $(TEST_DIR)/teste_jogo.c
 
@@ -53,11 +54,15 @@ TESTE_LISTA_DUPLA_IMPL := $(ESTRUTURAS_DIR)/listas/lista-dupla.c
 TESTE_LISTA_CIRCULAR_IMPL := $(ESTRUTURAS_DIR)/listas/lista-dupla-circular.c
 # O caderno usa a lista dupla (seções) e a lista simples (resultado do filtro).
 TESTE_CADERNO_IMPL := $(ESTRUTURAS_DIR)/entidades/caderno.c \
+                      $(ESTRUTURAS_DIR)/entidades/texto.c \
                       $(ESTRUTURAS_DIR)/listas/lista-simples.c \
                       $(ESTRUTURAS_DIR)/listas/lista-dupla.c
 # Suspeitos ficam na lista dupla circular.
 TESTE_SUSPEITO_IMPL := $(ESTRUTURAS_DIR)/entidades/suspeito.c \
+                       $(ESTRUTURAS_DIR)/entidades/texto.c \
                        $(ESTRUTURAS_DIR)/listas/lista-dupla-circular.c
+# Cópia portátil de strings (substitui strdup).
+TESTE_TEXTO_IMPL := $(ESTRUTURAS_DIR)/entidades/texto.c
 # Controle de dias e fases fica no módulo dia.
 TESTE_DIA_IMPL := dia.c
 # O motor do jogo usa dia, caderno, personagens e as três listas.
@@ -80,6 +85,9 @@ TESTE_BINS += $(BUILD)/teste_caderno
 endif
 ifneq ($(strip $(shell test -s $(TESTE_SUSPEITO_SRC) && echo 1)),)
 TESTE_BINS += $(BUILD)/teste_suspeito
+endif
+ifneq ($(strip $(shell test -s $(TESTE_TEXTO_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_texto
 endif
 ifneq ($(strip $(shell test -s $(TESTE_DIA_SRC) && echo 1)),)
 TESTE_BINS += $(BUILD)/teste_dia
@@ -149,6 +157,7 @@ $(BUILD)/teste_lista_circular: $(TESTE_LISTA_CIRCULAR_SRC) $(TESTE_LISTA_CIRCULA
 
 $(BUILD)/teste_caderno: $(TESTE_CADERNO_SRC) $(TESTE_CADERNO_IMPL) \
 		$(ESTRUTURAS_DIR)/entidades/caderno.h \
+		$(ESTRUTURAS_DIR)/entidades/texto.h \
 		$(ESTRUTURAS_DIR)/listas/lista-simples.h \
 		$(ESTRUTURAS_DIR)/listas/lista-dupla.h
 	@mkdir -p $(BUILD)
@@ -156,9 +165,15 @@ $(BUILD)/teste_caderno: $(TESTE_CADERNO_SRC) $(TESTE_CADERNO_IMPL) \
 
 $(BUILD)/teste_suspeito: $(TESTE_SUSPEITO_SRC) $(TESTE_SUSPEITO_IMPL) \
 		$(ESTRUTURAS_DIR)/entidades/suspeito.h \
+		$(ESTRUTURAS_DIR)/entidades/texto.h \
 		$(ESTRUTURAS_DIR)/listas/lista-dupla-circular.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_SUSPEITO_IMPL) -o $@
+
+$(BUILD)/teste_texto: $(TESTE_TEXTO_SRC) $(TESTE_TEXTO_IMPL) \
+		$(ESTRUTURAS_DIR)/entidades/texto.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_TEXTO_IMPL) -o $@
 
 $(BUILD)/teste_dia: $(TESTE_DIA_SRC) $(TESTE_DIA_IMPL) dia.h
 	@mkdir -p $(BUILD)
