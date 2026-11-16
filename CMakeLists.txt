@@ -138,6 +138,11 @@ ultimo_turno_adicionar_teste(teste_lista_dupla
     estruturas/listas/lista-dupla.c
 )
 
+ultimo_turno_adicionar_teste(teste_lista_circular
+    test/teste_lista_circular.c
+    estruturas/listas/lista-dupla-circular.c
+)
+
 ultimo_turno_adicionar_teste(teste_caderno
     test/teste_caderno.c
     estruturas/entidades/caderno.c
