@@ -93,6 +93,28 @@ static void listar_vivos(const Jogo *jogo) {
     } while (no != jogo->suspeitos->inicio);
 }
 
+static void listar_todos_suspeitos(const Jogo *jogo) {
+    const NoListaDuplaCircular *no = jogo->suspeitos->inicio;
+
+    if (no == NULL) {
+        return;
+    }
+
+    do {
+        const Suspeito *suspeito = (const Suspeito *)no->dado;
+
+        if (suspeito != NULL) {
+            printf("  %d - %s (%s)\n",
+                   suspeito->id + 1,
+                   suspeito->nome,
+                   suspeito->cargo);
+        }
+
+        no = no->prox;
+
+    } while (no != jogo->suspeitos->inicio);
+}
+
 static void mostrar_reacoes(const Jogo *jogo, int id_depoimento) {
     const NoListaDupla *no = jogo->caderno->reacoes.inicio;
     if (no == NULL) {
@@ -198,6 +220,160 @@ static void navegar_secao(Jogo *jogo, SecaoCaderno secao) {
     }
 }
 
+static void menu_ordenar_pistas(Jogo *jogo) {
+    Caderno *caderno = jogo->caderno;
+
+    if (caderno->pistas.tamanho == 0) {
+        printf("\nNenhuma pista registrada para ordenar.\n");
+        pausar();
+        return;
+    }
+
+    printf("\n--- ORDENAR PISTAS ---\n");
+    printf("  [1] Local (A-Z)\n");
+    printf("  [2] Objeto (A-Z)\n");
+    printf("  [3] Dia (mais recente primeiro)\n");
+    printf("  [0] Cancelar\n> ");
+
+    int opcao = ler_inteiro();
+    CriterioOrdenacao criterio;
+
+    switch (opcao) {
+        case 1:
+            criterio = ORDENAR_POR_LOCAL;
+            break;
+
+        case 2:
+            criterio = ORDENAR_POR_OBJETO;
+            break;
+
+        case 3:
+            criterio = ORDENAR_POR_DIA_RECENTE;
+            break;
+
+        case 0:
+            return;
+
+        default:
+            printf("\nOpcao invalida.\n");
+            pausar();
+            return;
+    }
+
+    printf("\n--- ANTES DA ORDENACAO ---\n");
+
+    for (NoListaDupla *atual = caderno->pistas.inicio;
+         atual != NULL;
+         atual = atual->prox) {
+
+        Pista *pista = (Pista *)atual->dado;
+
+        printf("Pista %d | Dia %d | Local: %s | Objeto: %s\n",
+               atual->id,
+               pista->dia,
+               pista->local,
+               pista->objeto);
+    }
+
+    int trocas = ordenar_pistas(caderno, criterio);
+
+    printf("\n--- DEPOIS DA ORDENACAO ---\n");
+
+    for (NoListaDupla *atual = caderno->pistas.inicio;
+         atual != NULL;
+         atual = atual->prox) {
+
+        Pista *pista = (Pista *)atual->dado;
+
+        printf("Pista %d | Dia %d | Local: %s | Objeto: %s\n",
+               atual->id,
+               pista->dia,
+               pista->local,
+               pista->objeto);
+    }
+
+    printf("\nTotal de trocas realizadas: %d\n", trocas);
+
+    pausar();
+}
+
+static void menu_depoimentos_suspeito(Jogo *jogo) {
+    printf("\n--- DEPOIMENTOS SOBRE UM SUSPEITO ---\n");
+
+    listar_todos_suspeitos(jogo);
+
+    printf("  0 - Voltar\n");
+    printf("\nEscolha um suspeito: ");
+
+    int opcao = ler_inteiro();
+
+    if (opcao == 0) {
+        return;
+    }
+
+    int id_suspeito = opcao - 1;
+    int suspeito_existe = 0;
+
+    const NoListaDuplaCircular *no = jogo->suspeitos->inicio;
+
+    if (no != NULL) {
+        do {
+            const Suspeito *suspeito = (const Suspeito *)no->dado;
+
+            if (suspeito != NULL && suspeito->id == id_suspeito) {
+                suspeito_existe = 1;
+                break;
+            }
+
+            no = no->prox;
+        } while (no != jogo->suspeitos->inicio);
+    }
+
+    if (!suspeito_existe) {
+        printf("\nSuspeito invalido.\n");
+        pausar();
+        return;
+    }
+
+    Lista *resultado = depoimentos_sobre_suspeito(
+        jogo->caderno, id_suspeito
+    );
+
+    if (resultado == NULL) {
+        printf("\nErro ao consultar depoimentos.\n");
+        pausar();
+        return;
+    }
+
+    if (resultado->inicio == NULL) {
+        printf("\nNenhum depoimento encontrado sobre esse suspeito.\n");
+    } else {
+        int quantidade = 0;
+
+        for (NoLista *atual = resultado->inicio;
+             atual != NULL;
+             atual = atual->prox) {
+
+            Depoimento *depoimento = (Depoimento *)atual->dado;
+
+            printf("\nDepoimento %d\n", depoimento->id_depoimento);
+            printf("Dia: %d\n", depoimento->dia);
+            printf("Falante: %s\n", nome_suspeito(jogo, depoimento->id_falante));
+            printf("Local: %s\n",
+                   depoimento->local != NULL ? depoimento->local : "Nao informado");
+            printf("Texto: %s\n",
+                   depoimento->texto != NULL ? depoimento->texto : "Sem texto");
+
+            quantidade++;
+        }
+
+        printf("\nTotal de depoimentos encontrados: %d\n", quantidade);
+    }
+
+    liberar_resultado_filtro(resultado);
+    pausar();
+}
+
 static void ver_caderno(Jogo *jogo) {
     while (!entrada_encerrada) {
         printf("\n--- CADERNO ---\n");
@@ -205,6 +381,8 @@ static void ver_caderno(Jogo *jogo) {
         printf("  [2] Pistas (%d)\n", jogo->caderno->pistas.tamanho);
         printf("  [3] Reações (%d)\n", jogo->caderno->reacoes.tamanho);
         printf("  [4] Contradições (%d)\n", jogo->caderno->contradicoes.tamanho);
+        printf("  [5] Ordenar pistas\n");
+        printf("  [6] Depoimentos sobre um suspeito\n");
         printf("  [0] Voltar\n> ");
 
         switch (ler_inteiro()) {
@@ -212,6 +390,8 @@ static void ver_caderno(Jogo *jogo) {
             case 2: navegar_secao(jogo, SECAO_PISTAS); break;
             case 3: navegar_secao(jogo, SECAO_REACOES); break;
             case 4: navegar_secao(jogo, SECAO_CONTRADICOES); break;
+            case 5: menu_ordenar_pistas(jogo);break;
+            case 6: menu_depoimentos_suspeito(jogo);break;
             case 0: return;
             default: break;
         }

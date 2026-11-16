@@ -539,23 +539,33 @@ const char *nome_fase(FaseDia fase) {
         default:              return "?";
     }
 }
+static Pista *obter_ultima_pista(const Jogo *jogo) {
+    if (jogo == NULL || jogo->caderno == NULL) {
+        return NULL;
+    }
+
+    NoListaDupla *atual = jogo->caderno->pistas.inicio;
+    NoListaDupla *ultima = NULL;
+
+    while (atual != NULL) {
+        if (ultima == NULL || atual->id > ultima->id) {
+            ultima = atual;
+        }
+
+        atual = atual->prox;
+    }
+
+    return ultima != NULL ? (Pista *)ultima->dado : NULL;
+}
 
 const char *descricao_ultima_pista(const Jogo *jogo) {
-    if (jogo == NULL || jogo->caderno == NULL || jogo->caderno->pistas.fim == NULL) {
-        return "";
-    }
-    Pista *pista = (Pista *)jogo->caderno->pistas.fim->dado;
+    Pista *pista = obter_ultima_pista(jogo);
+
     return (pista != NULL) ? pista->descricao : "";
 }
 
-const char * nome_ultima_pista(const Jogo * jogo){
-    if(jogo == NULL || jogo->caderno == NULL || jogo->caderno->pistas.fim == NULL){
-        return "";
-    }
-    Pista * pista = (Pista *)jogo->caderno->pistas.fim->dado;
-    if(pista != NULL){
-        return pista->objeto;
-    } else{
-        return "";
-    }
+const char *nome_ultima_pista(const Jogo *jogo) {
+    Pista *pista = obter_ultima_pista(jogo);
+
+    return (pista != NULL) ? pista->objeto : "";
 }

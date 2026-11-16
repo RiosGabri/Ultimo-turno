@@ -306,6 +306,23 @@ void ler_item_atual(Caderno *caderno){
     }
 }
 
+static int comparar_pistas(const Pista *a, const Pista *b,
+                          CriterioOrdenacao criterio) {
+    switch (criterio) {
+        case ORDENAR_POR_LOCAL:
+            return strcmp(a->local, b->local);
+
+        case ORDENAR_POR_OBJETO:
+            return strcmp(a->objeto, b->objeto);
+
+        case ORDENAR_POR_DIA_RECENTE:
+            return b->dia - a->dia;
+
+        default:
+            return 0;
+    }
+}
+
 // Troca o conteúdo dos nós (id + dado) para que o id do nó continue
 // apontando para a mesma pista depois da ordenação.
 static void trocar_conteudo_nos(NoListaDupla *a, NoListaDupla *b) {
@@ -315,6 +332,39 @@ static void trocar_conteudo_nos(NoListaDupla *a, NoListaDupla *b) {
     a->dado = b->dado;
     b->id = id;
     b->dado = dado;
+}
+
+int ordenar_pistas(Caderno *caderno, CriterioOrdenacao criterio) {
+    if (caderno == NULL || caderno->pistas.tamanho < 2) {
+        return 0;
+    }
+
+    int quantidade = caderno->pistas.tamanho;
+    int total_trocas = 0;
+
+    for (int i = 0; i < quantidade - 1; i++) {
+        int trocou = 0;
+        NoListaDupla *atual = caderno->pistas.inicio;
+
+        for (int j = 0; j < quantidade - 1 - i; j++) {
+            Pista *pista_atual = (Pista *)atual->dado;
+            Pista *pista_proxima = (Pista *)atual->prox->dado;
+
+            if (comparar_pistas(pista_atual, pista_proxima, criterio) > 0) {
+                trocar_conteudo_nos(atual, atual->prox);
+                total_trocas++;
+                trocou = 1;
+            }
+
+            atual = atual->prox;
+        }
+
+        if (!trocou) {
+            break;
+        }
+    }
+
+    return total_trocas;
 }
 
 void ordenar_pistas_por_dia(Caderno *caderno) {
