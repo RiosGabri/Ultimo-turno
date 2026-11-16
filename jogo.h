@@ -8,7 +8,8 @@
 #include "listas/lista-dupla-circular.h"
 
 #define CREDIBILIDADE_INICIAL 100
-#define CUSTO_PRENDER_INOCENTE 25
+#define CUSTO_PRENDER_INOCENTE 30
+#define CUSTO_PRENDER_CUMPLICE 15
 
 typedef enum {
     JOGO_EM_ANDAMENTO,
@@ -36,6 +37,7 @@ typedef struct {
     unsigned int interrogados;
 
     int ultima_vitima; // id do suspeito morto na última noite, ou NENHUM
+    char revelacao_cumplice[256]; // mensagem revelada ao prender o cúmplice
 } Jogo;
 
 // ---------------------------------------------------------------------------
@@ -64,14 +66,18 @@ int debate_encerrado(const Jogo *jogo);
 // Julgamento
 // ---------------------------------------------------------------------------
 // Prende um suspeito vivo durante o julgamento. Retorna 1 se a ação foi aceita.
-// Prender o assassino encerra o jogo em vitória; prender outro suspeito custa
-// credibilidade.
+// Prender o assassino encerra o jogo em vitória; prender o cúmplice custa 15
+// e revela uma informação; prender um inocente custa 30.
 int prender_suspeito(Jogo *jogo, int id);
 
 // ---------------------------------------------------------------------------
 // Consultas usadas pela interface
 // ---------------------------------------------------------------------------
 Suspeito *buscar_suspeito(const Jogo *jogo, int id);
+// Local verdadeiro do suspeito no dia atual (agenda). Retorna NULL se inválido.
+const char *local_verdadeiro_do_suspeito(const Jogo *jogo, int id);
+// Revelação guardada ao prender o cúmplice; string vazia se não houver.
+const char *revelacao_do_cumplice(const Jogo *jogo);
 int jogo_terminou(const Jogo *jogo);
 const char *nome_fase(FaseDia fase);
 const char *descricao_ultima_pista(const Jogo *jogo);
