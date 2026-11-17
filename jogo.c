@@ -195,6 +195,10 @@ static void registrar_pista_do_dia(Jogo *jogo) {
 static void realizar_crime_noturno(Jogo *jogo) {
     jogo->ultima_vitima = NENHUM;
 
+    if (jogo->dia.dia_atual == 1) {
+        return;
+    }
+
     Suspeito *candidatos[TOTAL_SUSPEITOS];
     int total = 0;
 
