@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "interface/telas/tela_debate.h"
 #include "paleta.h"
 #include "rlgl.h"
 
@@ -26,7 +27,8 @@ typedef enum {
     TELA_DETETIVE,
     TELA_MANHA,
     TELA_DEBATE,
-    TELA_CADERNO
+    TELA_CADERNO,
+    TELA_INTERLUDIO
 } Tela;
 
 typedef enum {
@@ -77,7 +79,7 @@ static int atualizar_selecao(const BotaoUI *botoes, int quantidade,
     Vector2 movimento = GetMouseDelta();
     if (movimento.x != 0.0f || movimento.y != 0.0f ||
         IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        Vector2 mouse = GetMousePosition();
+        Vector2 mouse = ui_mouse_canvas();
         for (int i = 0; i < quantidade; i++) {
             if (botoes[i].habilitado &&
                 CheckCollisionPointRec(mouse, botoes[i].area)) {
@@ -114,7 +116,10 @@ static void desenhar_fundo_historia(const Recursos *recursos) {
         DrawTexturePro(recursos->fundo_historia, origem, destino,
                        (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
     } else {
-        recursos_desenhar_fundo(recursos);
+        recursos_desenhar_fundo(
+            recursos,
+            (Rectangle){0.0f, 0.0f, (float)LARGURA_TELA,
+                        (float)ALTURA_TELA});
     }
 
     DrawRectangleGradientH(0, 0, 900, ALTURA_TELA,
@@ -290,7 +295,7 @@ static void desenhar_card_detetive(const UIFonte *fonte_titulo,
 
 static EntradaBotao ler_entrada_botao(void) {
     return (EntradaBotao){
-        .mouse = GetMousePosition(),
+        .mouse = ui_mouse_canvas(),
         .apertou = IsMouseButtonPressed(MOUSE_BUTTON_LEFT),
         .pressionado = IsMouseButtonDown(MOUSE_BUTTON_LEFT),
         .soltou = IsMouseButtonReleased(MOUSE_BUTTON_LEFT),
@@ -394,12 +399,12 @@ static void desenhar_fundo_textura_com_vinheta(Texture2D textura,
 
 static void desenhar_menu(const UIFonte *fonte_titulo,
                           const UIFonte *fonte_corpo, const Recursos *recursos) {
+    Rectangle tela = {0.0f, 0.0f, (float)LARGURA_TELA, (float)ALTURA_TELA};
+
     if (recursos->fundo_menu.id != 0) {
-        Rectangle tela = {0.0f, 0.0f, (float)LARGURA_TELA,
-                          (float)ALTURA_TELA};
         recursos_desenhar_textura_cover(recursos->fundo_menu, tela);
     } else {
-        recursos_desenhar_fundo(recursos);
+        recursos_desenhar_fundo(recursos, tela);
     }
 
     // Scrim lateral para o texto respirar sem virar um card.
@@ -428,6 +433,7 @@ static void desenhar_menu(const UIFonte *fonte_titulo,
 }
 
 static Tela tela = TELA_MENU;
+static Tela tela_origem_caderno = TELA_MANHA;
 static int selecionado = 0;
 static bool fechar = false;
 static bool jogo_ativo = false;
@@ -438,12 +444,15 @@ static UIFonte fonte_titulo;
 static UIFonte fonte_corpo;
 static UIFonte fonte_corpo_bold;
 static Recursos recursos;
+static RenderTexture2D canvas;
+static bool canvas_pronto;
+static TelaDebate debate;
 
 static BotaoUI botoes_menu[TOTAL_OPCOES_MENU];
 static BotaoUI botao_avancar_historia;
 static BotaoUI botao_iniciar_detetive;
 static BotaoUI botoes_manha[TOTAL_OPCOES_MANHA];
-static BotaoUI botao_debate_voltar;
+static BotaoUI botoes_interludio[2];
 
 static float escalas_detetives[2] = {1.06f, 0.98f};
 
@@ -475,40 +484,102 @@ static void desenhar_manha(void) {
                                descricao, 17.0f, 4.0f, COR_PAPEL);
 }
 
-static void desenhar_debate(void) {
-    desenhar_fundo_textura_com_vinheta(recursos.fundo_detetives, 180);
 
-    char titulo[64];
-    snprintf(titulo, sizeof(titulo), "DEBATE — DIA %d/%d",
-             jogo.dia.dia_atual, TOTAL_DIAS);
-    desenhar_titulo_centralizado(&fonte_titulo, titulo, 64.0f, 52.0f,
-                                 COR_OSSO);
+static void configurar_botoes_interludio(void) {
+    bool final = jogo_terminou(&jogo) ||
+                 jogo.dia.fase_atual == FASE_FINALIZADO;
 
-    Suspeito *falante = suspeito_do_turno(&jogo);
-    Rectangle painel = {160.0f, 230.0f, 960.0f, 260.0f};
-    DrawRectangleRec(painel, COR_TINTA);
-    DrawRectangleLinesEx(painel, 1.0f, COR_POEIRA);
+    botoes_interludio[0] = (BotaoUI){
+        .area = final ? (Rectangle){888.0f, 650.0f, 296.0f, 56.0f}
+                      : (Rectangle){96.0f, 650.0f, 240.0f, 56.0f},
+        .rotulo = "VOLTAR AO MENU",
+        .habilitado = true,
+        .primario = final,
+    };
 
-    if (falante != NULL) {
-        char vez[160];
-        snprintf(vez, sizeof(vez), "Vez de %s (%s)", falante->nome,
-                 falante->cargo);
-        Rectangle area_vez = {180.0f, 270.0f, 920.0f, 52.0f};
-        ui_desenhar_texto_centralizado(&fonte_titulo, vez, area_vez, 32.0f,
-                                       COR_OSSO);
-    } else {
-        Rectangle area_fim = {180.0f, 270.0f, 920.0f, 52.0f};
-        ui_desenhar_texto_centralizado(
-            &fonte_titulo, "Todos os suspeitos vivos já falaram", area_fim,
-            30.0f, COR_OSSO);
+    const char *rotulo = NULL;
+    if (!final) {
+        switch (jogo.dia.fase_atual) {
+            case FASE_JULGAMENTO:
+                rotulo = "IR PARA A NOITE";
+                break;
+            case FASE_NOITE:
+                rotulo = "AMANHECER";
+                break;
+            default:
+                rotulo = "CONTINUAR";
+                break;
+        }
     }
 
-    Rectangle dica = {200.0f, 350.0f, 880.0f, 100.0f};
-    ui_desenhar_texto_quebrado(
-        &fonte_corpo,
-        "A mesa do debate está montada. Perguntas, reações e caderno entram "
-        "na próxima etapa.",
-        dica, 20.0f, 6.0f, COR_PAPEL);
+    botoes_interludio[1] = (BotaoUI){
+        .area = {888.0f, 650.0f, 296.0f, 56.0f},
+        .rotulo = rotulo,
+        .habilitado = rotulo != NULL,
+        .primario = rotulo != NULL,
+    };
+}
+
+static void desenhar_interludio(void) {
+    bool final = jogo_terminou(&jogo) ||
+                 jogo.dia.fase_atual == FASE_FINALIZADO;
+
+    desenhar_fundo_textura_com_vinheta(recursos.fabrica, 170);
+
+    DrawRectangle(96, 68, 28, 2, COR_TIJOLO);
+    ui_desenhar_texto(&fonte_corpo_bold, "INTERLÚDIO",
+                      (Vector2){96.0f, 80.0f}, 13.0f, COR_TIJOLO);
+
+    const char *titulo = "O TURNO SEGUE";
+    if (final) {
+        titulo = "FIM DO CASO";
+    } else if (jogo.dia.fase_atual == FASE_JULGAMENTO) {
+        titulo = "JULGAMENTO";
+    } else if (jogo.dia.fase_atual == FASE_NOITE) {
+        titulo = "A NOITE CAI";
+    }
+
+    ui_desenhar_texto(&fonte_titulo, titulo,
+                      (Vector2){96.0f, 104.0f}, 52.0f, COR_OSSO);
+
+    Rectangle painel = {96.0f, 220.0f, 1088.0f, 320.0f};
+    DrawRectangleRec(painel, COR_TINTA);
+    DrawRectangleLinesEx(painel, 1.0f, COR_POEIRA);
+    DrawRectangle((int)painel.x, (int)painel.y, (int)painel.width, 4,
+                  COR_TIJOLO);
+
+    if (final) {
+        const char *texto = texto_final(&jogo);
+        if (texto == NULL || texto[0] == '\0') {
+            texto = "O caso chegou ao fim.";
+        }
+
+        Rectangle area_texto = {120.0f, 252.0f, 1040.0f, 200.0f};
+        ui_desenhar_texto_quebrado(&fonte_corpo, texto, area_texto, 19.0f,
+                                   7.0f, COR_PAPEL);
+
+        char pontos[64];
+        snprintf(pontos, sizeof(pontos), "PONTUAÇÃO: %d",
+                 pontuacao_do_jogo(&jogo));
+        ui_desenhar_texto(&fonte_titulo, pontos,
+                          (Vector2){120.0f, 468.0f}, 30.0f, COR_OSSO);
+    } else {
+        ui_desenhar_texto(&fonte_corpo_bold, "FASE ATUAL",
+                          (Vector2){120.0f, 244.0f}, 11.0f, COR_POEIRA);
+        ui_desenhar_texto(&fonte_titulo,
+                          nome_fase(jogo.dia.fase_atual),
+                          (Vector2){120.0f, 260.0f}, 30.0f, COR_OSSO);
+
+        DrawRectangle(120, 312, 1040, 1, (Color){138, 129, 117, 110});
+
+        Rectangle area_texto = {120.0f, 332.0f, 1040.0f, 150.0f};
+        ui_desenhar_texto_quebrado(
+            &fonte_corpo,
+            "A tela desta fase ainda está em construção (issue #23).\n\n"
+            "Use Avançar para continuar o fluxo. O estado do jogo, os "
+            "suspeitos e o caderno são preservados.",
+            area_texto, 17.0f, 6.0f, COR_PAPEL);
+    }
 }
 
 void telas_iniciar(void) {
@@ -570,15 +641,42 @@ void telas_iniciar(void) {
         .primario = true,
     };
 
-    botao_debate_voltar = (BotaoUI){
-        .area = {64.0f, 620.0f, 240.0f, 56.0f},
-        .rotulo = "VOLTAR AO MENU",
-        .habilitado = true,
-        .primario = false,
-    };
+    canvas = LoadRenderTexture(TELAS_LARGURA, TELAS_ALTURA);
+    canvas_pronto = canvas.id != 0;
+    if (canvas_pronto) {
+        SetTextureFilter(canvas.texture, TEXTURE_FILTER_BILINEAR);
+    } else {
+        TraceLog(LOG_WARNING,
+                 "Interface: canvas virtual indisponivel; desenhando direto.");
+    }
+
+    debate = (TelaDebate){0};
+    configurar_botoes_interludio();
 }
 
 void telas_executar(void) {
+    // O canvas virtual mantém o layout de 1280x720 e o mouse alinhado mesmo
+    // quando a janela é redimensionada ou entra em tela cheia.
+    ui_configurar_canvas(canvas_pronto ? (float)TELAS_LARGURA : 0.0f,
+                         canvas_pronto ? (float)TELAS_ALTURA : 0.0f);
+
+    // O debate lê a própria entrada e devolve a ação de navegação para o
+    // fluxo principal. Isso precisa acontecer antes do desenho para a troca
+    // de tela valer já neste frame.
+    if (tela == TELA_DEBATE) {
+        AcaoDebate acao = tela_debate_atualizar(&debate);
+        if (acao == TELA_DEBATE_ABRIR_CADERNO) {
+            tela_origem_caderno = TELA_DEBATE;
+            tela = TELA_CADERNO;
+            selecionado = 0;
+        } else if (acao == TELA_DEBATE_ENCERRAR) {
+            avancar_fase_jogo(&jogo);
+            configurar_botoes_interludio();
+            tela = TELA_INTERLUDIO;
+            selecionado = 0;
+        }
+    }
+
     BotaoUI *botoes_atuais = NULL;
     int quantidade_botoes = 0;
 
@@ -600,12 +698,18 @@ void telas_executar(void) {
             quantidade_botoes = TOTAL_OPCOES_MANHA;
             break;
         case TELA_DEBATE:
-            botoes_atuais = &botao_debate_voltar;
-            quantidade_botoes = 1;
-            break;
-        case TELA_CADERNO:
+            // Os botões do debate são atualizados em tela_debate_atualizar.
             botoes_atuais = NULL;
             quantidade_botoes = 0;
+            break;
+        case TELA_CADERNO:
+             // O caderno gerencia seus próprios botões.
+            botoes_atuais = NULL;
+            quantidade_botoes = 0;
+            break;
+        case TELA_INTERLUDIO:
+            botoes_atuais = botoes_interludio;
+            quantidade_botoes = 2;
             break;
     }
 
@@ -616,6 +720,11 @@ void telas_executar(void) {
 
     BeginDrawing();
     ClearBackground(COR_CARVAO);
+
+    if (canvas_pronto) {
+        BeginTextureMode(canvas);
+        ClearBackground(COR_CARVAO);
+    }
 
     int acionado = -1;
     switch (tela) {
@@ -657,7 +766,7 @@ void telas_executar(void) {
                  CARTA_LARGURA, CARTA_ALTURA},
             };
 
-            Vector2 mouse = GetMousePosition();
+            Vector2 mouse = ui_mouse_canvas();
             bool clique = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
             if (IsKeyPressed(KEY_LEFT)) {
@@ -735,35 +844,66 @@ void telas_executar(void) {
                 selecionado
             );
 
-            if (acionado == OPCAO_ABRIR_CADERNO) {
-                tela = TELA_CADERNO;
-                selecionado = 0;
-            } else if (acionado == OPCAO_IR_DEBATE) {
+                if (acionado == OPCAO_ABRIR_CADERNO) {
+                    tela_origem_caderno = TELA_MANHA;
+                    tela = TELA_CADERNO;
+                    selecionado = 0;
+                }else if (acionado == OPCAO_IR_DEBATE) {
                 avancar_fase_jogo(&jogo);
 
                 if (jogo.dia.fase_atual == FASE_DEBATE) {
+                    tela_debate_iniciar(&debate, &jogo, &recursos);
                     tela = TELA_DEBATE;
+                    selecionado = 0;
+                } else {
+                    configurar_botoes_interludio();
+                    tela = TELA_INTERLUDIO;
                     selecionado = 0;
                 }
             }
             break;
         case TELA_DEBATE:
-            desenhar_debate();
-            acionado = desenhar_botoes(
-                &fonte_corpo_bold, &botao_debate_voltar, 1, selecionado);
+            tela_debate_desenhar(&debate, &fonte_titulo, &fonte_corpo,
+                                 &fonte_corpo_bold);
+            break;
+
+        case TELA_CADERNO:
+            if (tela_caderno_atualizar_desenhar(&fonte_corpo, jogo.caderno)) {
+                tela = tela_origem_caderno;
+                selecionado = 0;
+            }
+            break;
+
+        case TELA_INTERLUDIO:
+            desenhar_interludio();
+            acionado = desenhar_botoes(&fonte_corpo_bold,
+                                       botoes_interludio, 2, selecionado);
             if (acionado == 0) {
                 liberar_jogo(&jogo);
                 jogo_ativo = false;
                 tela = TELA_MENU;
                 selecionado = 0;
+            } else if (acionado == 1) {
+                avancar_fase_jogo(&jogo);
+                if (jogo.dia.fase_atual == FASE_MANHA) {
+                    tela = TELA_MANHA;
+                } else {
+                    configurar_botoes_interludio();
+                }
+                selecionado = 0;
             }
             break;
-        case TELA_CADERNO:
-            if (tela_caderno_atualizar_desenhar(&fonte_corpo, jogo.caderno)) {
-                tela = TELA_MANHA;
-                selecionado = OPCAO_ABRIR_CADERNO;
-            }
-            break;
+    }
+
+    if (canvas_pronto) {
+        EndTextureMode();
+
+        // RenderTexture é invertida na vertical; por isso a altura negativa.
+        Rectangle origem = {0.0f, 0.0f,
+                            (float)canvas.texture.width,
+                            -(float)canvas.texture.height};
+        DrawTexturePro(canvas.texture, origem, ui_canvas_destino(),
+                       (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
     }
 
     EndDrawing();
@@ -773,6 +913,11 @@ void telas_liberar(void) {
     if (jogo_ativo) {
         liberar_jogo(&jogo);
         jogo_ativo = false;
+    }
+
+    if (canvas_pronto) {
+        UnloadRenderTexture(canvas);
+        canvas_pronto = false;
     }
 
     recursos_descarregar(&recursos);

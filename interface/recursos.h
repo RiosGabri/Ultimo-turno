@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+#include "entidades/personagens.h"
 #include "raylib.h"
 
 /*
@@ -19,6 +20,10 @@ typedef struct {
     Texture2D hercule;
     Texture2D retrato_marple;
     Texture2D retrato_poirot;
+
+    // Sprites dos suspeitos, indexados por ID_GERENTE..ID_VIGIA. Ficam aqui
+    // para a tela de debate não carregar texturas por conta própria.
+    Texture2D retratos_suspeitos[TOTAL_SUSPEITOS];
 } Recursos;
 
 // Procura um caminho relativo na pasta do executável, no diretório atual e
@@ -32,8 +37,8 @@ void recursos_carregar(Recursos *recursos);
 
 void recursos_descarregar(Recursos *recursos);
 
-// Desenha a fábrica em modo cover, cobrindo a tela sem esticar.
-void recursos_desenhar_fundo(const Recursos *recursos);
+// Desenha a fábrica em modo cover. O destino é o canvas virtual da tela.
+void recursos_desenhar_fundo(const Recursos *recursos, Rectangle destino);
 
 // Desenha uma textura em modo cover dentro do retângulo de destino.
 void recursos_desenhar_textura_cover(Texture2D textura, Rectangle destino);

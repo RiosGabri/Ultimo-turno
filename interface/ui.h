@@ -49,6 +49,23 @@ void ui_descarregar_fonte(UIFonte *fonte);
 bool ui_fonte_suporta_acentos(const UIFonte *fonte);
 
 // ---------------------------------------------------------------------------
+// Canvas virtual
+// ---------------------------------------------------------------------------
+// O jogo desenha num canvas virtual e depois o apresenta escalado na janela,
+// centralizado e com letterbox. Textos e layouts acompanham a resolução sem
+// precisar repetir fatores de escala em cada coordenada.
+
+// Registra o tamanho do canvas virtual. Use largura/altura <= 0 para desligar
+// a transformação (desenho direto na janela).
+void ui_configurar_canvas(float largura, float altura);
+
+// Área, em coordenadas da janela, ocupada pelo canvas.
+Rectangle ui_canvas_destino(void);
+
+// Converte a posição atual do mouse da janela para coordenadas do canvas.
+Vector2 ui_mouse_canvas(void);
+
+// ---------------------------------------------------------------------------
 // Texto
 // ---------------------------------------------------------------------------
 // tamanho é a altura desejada em pixels (a fonte é escalada a partir do atlas).
