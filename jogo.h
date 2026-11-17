@@ -8,7 +8,7 @@
 #include "entidades/suspeito.h"
 #include "listas/lista-dupla-circular.h"
 
-#define CREDIBILIDADE_INICIAL 100
+#define CREDIBILIDADE_INICIAL 75
 #define CUSTO_PRENDER_INOCENTE 25
 #define CUSTO_PRENDER_CUMPLICE 15
 
