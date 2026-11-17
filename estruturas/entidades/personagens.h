@@ -1,5 +1,6 @@
 #ifndef PERSONAGENS_H
 #define PERSONAGENS_H
+#include "entidades/aleatorio.h"
 #include "entidades/suspeito.h"
 
 enum Suspeitos {
@@ -24,6 +25,7 @@ typedef struct {
     int id_cumplice;
 } SorteioPapeis;
 
-int sortear_papeis(int *ids, int quantidade, SorteioPapeis *sorteio);
+int sortear_papeis(int *ids, int quantidade, SorteioPapeis *sorteio,
+                   Aleatorio *gerador);
 enum Papel papel_do_suspeito(int id, SorteioPapeis sorteio);
 #endif

@@ -24,7 +24,9 @@ option(ULTIMO_TURNO_BUILD_JOGO "Compila o jogo grafico com a raylib" ON)
 # Fontes compartilhadas
 # ---------------------------------------------------------------------------
 set(ULTIMO_TURNO_ESTRUTURAS
+    estruturas/entidades/aleatorio.c
     estruturas/entidades/caderno.c
+    estruturas/entidades/locais.c
     estruturas/entidades/personagens.c
     estruturas/entidades/suspeito.c
     estruturas/entidades/texto.c
@@ -165,6 +167,11 @@ ultimo_turno_adicionar_teste(teste_texto
     estruturas/entidades/texto.c
 )
 
+ultimo_turno_adicionar_teste(teste_aleatorio
+    test/teste_aleatorio.c
+    estruturas/entidades/aleatorio.c
+)
+
 ultimo_turno_adicionar_teste(teste_dia
     test/teste_dia.c
     dia.c
@@ -172,6 +179,25 @@ ultimo_turno_adicionar_teste(teste_dia
 
 ultimo_turno_adicionar_teste(teste_jogo
     test/teste_jogo.c
+    jogo.c
+    dia.c
+    ${ULTIMO_TURNO_ESTRUTURAS}
+)
+
+ultimo_turno_adicionar_teste(teste_locais
+    test/teste_locais.c
+    estruturas/entidades/locais.c
+)
+
+ultimo_turno_adicionar_teste(teste_agenda
+    test/teste_agenda.c
+    jogo.c
+    dia.c
+    ${ULTIMO_TURNO_ESTRUTURAS}
+)
+
+ultimo_turno_adicionar_teste(teste_debate
+    test/teste_debate.c
     jogo.c
     dia.c
     ${ULTIMO_TURNO_ESTRUTURAS}

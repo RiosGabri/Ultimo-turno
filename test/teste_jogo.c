@@ -152,7 +152,7 @@ static void testar_ciclo_de_debate_e_contradicoes(void) {
         verificar(falante->id != ultimo_falante,
                   "o mesmo suspeito não recebe dois turnos seguidos");
 
-        int id_depoimento = perguntar_sobre(&jogo, ID_GERENTE);
+        int id_depoimento = perguntar_sobre(&jogo, ID_GERENTE, NOITE);
         verificar(id_depoimento > 0, "pergunta registra um depoimento");
 
         ultimo_falante = falante->id;
@@ -196,7 +196,7 @@ static void testar_debate_pula_mortos(void) {
 
     // Com um turno disponível, perguntar sobre um morto é recusado.
     int antes = jogo.caderno->depoimentos.tamanho;
-    verificar(perguntar_sobre(&jogo, ID_VIGIA) == -1,
+    verificar(perguntar_sobre(&jogo, ID_VIGIA, NOITE) == -1,
               "não é possível interrogar sobre um suspeito morto");
     verificar(jogo.caderno->depoimentos.tamanho == antes,
               "pergunta recusada não registra depoimento");
@@ -207,7 +207,7 @@ static void testar_debate_pula_mortos(void) {
         if (suspeito_do_turno(&jogo)->id == ID_VIGIA) {
             viu_morto = 1;
         }
-        verificar(perguntar_sobre(&jogo, ID_GERENTE) > 0,
+        verificar(perguntar_sobre(&jogo, ID_GERENTE, NOITE) > 0,
                   "pergunta registra depoimento");
         turnos++;
     }
@@ -249,6 +249,16 @@ static void testar_dia_completo_ate_a_derrota_por_tempo(void) {
                 const Suspeito *vitima = buscar_suspeito(&jogo, jogo.ultima_vitima);
                 verificar(vitima != NULL && vitima->situacao == MORTO,
                           "a vítima da noite fica morta");
+
+                const char *local_crime = local_do_crime(&jogo, dia);
+                const Pista *pista_do_crime =
+                    jogo.caderno->pistas.fim
+                        ? (const Pista *)jogo.caderno->pistas.fim->dado
+                        : NULL;
+                verificar(local_crime != NULL && pista_do_crime != NULL &&
+                          pista_do_crime->local != NULL &&
+                          strcmp(pista_do_crime->local, local_crime) == 0,
+                          "a pista da noite traz o local real do crime");
             }
 
             avancar_fase_jogo(&jogo); // noite -> manhã seguinte
@@ -335,35 +345,51 @@ static void testar_custo_prisao_inocente(void) {
 
     liberar_jogo(&jogo);
 
-    Jogo quatro_prisoes;
-    verificar(iniciar_jogo_com_semente(&quatro_prisoes, ID_MISS_MARPLE, 77),
-              "partida para quatro prisões inicia");
-    ir_para_julgamento(&quatro_prisoes);
+    Jogo prisoes;
+    verificar(iniciar_jogo_com_semente(&prisoes, ID_MISS_MARPLE, 77),
+              "partida para prisões em sequência inicia");
+    ir_para_julgamento(&prisoes);
 
+    // A credibilidade inicial (75) paga exatamente 3 prisões de inocente.
+    const int max_prisoes = CREDIBILIDADE_INICIAL / CUSTO_PRENDER_INOCENTE;
     int total_presos_inocentes = 0;
     for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
-        const Suspeito *candidato = buscar_suspeito(&quatro_prisoes, id);
+        const Suspeito *candidato = buscar_suspeito(&prisoes, id);
         if (candidato == NULL || candidato->papel != INOCENTE) {
             continue;
         }
+        if (total_presos_inocentes == max_prisoes) {
+            break; // a credibilidade acabou; a próxima prisão deve falhar
+        }
 
-        verificar(prender_suspeito(&quatro_prisoes, id) == 1,
+        verificar(prender_suspeito(&prisoes, id) == 1,
                   "prisão de cada inocente é aceita");
         total_presos_inocentes++;
-        verificar(quatro_prisoes.credibilidade ==
+        verificar(prisoes.credibilidade ==
                       CREDIBILIDADE_INICIAL -
                           total_presos_inocentes * CUSTO_PRENDER_INOCENTE,
                   "cada prisão de inocente reduz a credibilidade em 25");
     }
 
-    verificar(total_presos_inocentes == 4,
-              "há quatro inocentes que podem ser presos");
-    verificar(quatro_prisoes.credibilidade == 0,
-              "quatro prisões de inocentes zeram 100 pontos");
-    verificar(quatro_prisoes.resultado == JOGO_DERROTA_CREDIBILIDADE,
-              "a quarta prisão de inocente causa derrota");
+    verificar(total_presos_inocentes == max_prisoes,
+              "há inocentes suficientes para zerar a credibilidade");
+    verificar(prisoes.credibilidade == 0,
+              "as prisões de inocentes zeram a credibilidade inicial");
+    verificar(prisoes.resultado == JOGO_DERROTA_CREDIBILIDADE,
+              "a última prisão de inocente causa derrota");
 
-    liberar_jogo(&quatro_prisoes);
+    // Com o jogo já encerrado, prender outro inocente não é aceito.
+    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+        const Suspeito *candidato = buscar_suspeito(&prisoes, id);
+        if (candidato != NULL && candidato->papel == INOCENTE &&
+            candidato->situacao == VIVO) {
+            verificar(prender_suspeito(&prisoes, id) == 0,
+                      "não dá para prender depois da derrota");
+            break;
+        }
+    }
+
+    liberar_jogo(&prisoes);
 }
 
 static void testar_derrota_por_credibilidade(void) {
@@ -479,15 +505,15 @@ static void testar_acoes_invalidas(void) {
     verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 5),
               "partida válida inicia");
 
-    verificar(perguntar_sobre(&jogo, ID_GERENTE) == -1,
+    verificar(perguntar_sobre(&jogo, ID_GERENTE, NOITE) == -1,
               "não dá para perguntar fora do debate");
     verificar(prender_suspeito(&jogo, ID_GERENTE) == 0,
               "não dá para prender fora do julgamento");
 
     avancar_fase_jogo(&jogo); // debate
-    verificar(perguntar_sobre(&jogo, 999) == -1,
+    verificar(perguntar_sobre(&jogo, 999, NOITE) == -1,
               "alvo inexistente é recusado");
-    verificar(perguntar_sobre(&jogo, NENHUM) == -1,
+    verificar(perguntar_sobre(&jogo, NENHUM, NOITE) == -1,
               "alvo negativo é recusado");
     verificar(prender_suspeito(&jogo, ID_GERENTE) == 0,
               "não dá para prender durante o debate");
@@ -519,16 +545,18 @@ static void testar_reacoes_confirmam_a_verdade(void) {
 
     avancar_fase_jogo(&jogo); // manhã -> debate
 
-    // Avança até a vez de um dos culpados e pergunta sobre ele mesmo: a
-    // resposta é uma mentira sobre o próprio paradeiro.
+    // Avança até a vez do assassino e pergunta sobre ele mesmo: a resposta é
+    // uma mentira sobre o próprio paradeiro. Miramos explicitamente o
+    // assassino (e não qualquer culpado) porque só ele é confirmado pelo
+    // cúmplice; o cúmplice, ao falar, é discordado pelo assassino.
     int id_depoimento = -1;
     while (suspeito_do_turno(&jogo) != NULL) {
         Suspeito *falante = suspeito_do_turno(&jogo);
-        if (falante->id == assassino || falante->id == cumplice) {
-            id_depoimento = perguntar_sobre(&jogo, falante->id);
+        if (falante->id == assassino) {
+            id_depoimento = perguntar_sobre(&jogo, assassino, NOITE);
             break;
         }
-        perguntar_sobre(&jogo, assassino);
+        perguntar_sobre(&jogo, assassino, NOITE);
     }
 
     verificar(id_depoimento > 0, "culpado depõe sobre si mesmo");

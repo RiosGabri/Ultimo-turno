@@ -1,4 +1,6 @@
 #include "jogo.h"
+#include "entidades/aleatorio.h"
+#include "entidades/locais.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,12 +21,6 @@ static const struct {
     [ID_ENFERMEIRA] = {"Esteves", "Enfermeira"},
     [ID_VIGIA]      = {"Farias",  "Vigia noturno"},
 };
-
-static const char *LOCAIS[] = {
-    "Sala de máquinas", "Gerência", "Linha de produção",
-    "Vestiário", "Enfermaria"
-};
-#define TOTAL_LOCAIS ((int)(sizeof(LOCAIS) / sizeof(LOCAIS[0])))
 
 static const struct {
     const char *local;
@@ -49,42 +45,8 @@ static const struct {
     },
 };
 
-#define LOCAL_FORA_DA_FABRICA "Fora da fábrica"
-
-static const char *const LOCAL_VERDADEIRO[TOTAL_DIAS][TOTAL_SUSPEITOS] = {
-    [0] = {
-        [ID_GERENTE]    = "Gerência",
-        [ID_CAPATAZ]    = "Linha de produção",
-        [ID_ENGENHEIRO] = "Sala de máquinas",
-        [ID_OPERARIO]   = "Vestiário",
-        [ID_ENFERMEIRA] = "Enfermaria",
-        [ID_VIGIA]      = LOCAL_FORA_DA_FABRICA,
-    },
-    [1] = {
-        [ID_GERENTE]    = "Gerência",
-        [ID_CAPATAZ]    = "Linha de produção",
-        [ID_ENGENHEIRO] = "Sala de máquinas",
-        [ID_OPERARIO]   = "Linha de produção",
-        [ID_ENFERMEIRA] = "Enfermaria",
-        [ID_VIGIA]      = "Linha de produção",
-    },
-    [2] = {
-        [ID_GERENTE]    = "Gerência",
-        [ID_CAPATAZ]    = "Linha de produção",
-        [ID_ENGENHEIRO] = "Sala de máquinas",
-        [ID_OPERARIO]   = "Linha de produção",
-        [ID_ENFERMEIRA] = "Enfermaria",
-        [ID_VIGIA]      = "Linha de produção",
-    },
-    [3] = {
-        [ID_GERENTE]    = "Gerência",
-        [ID_CAPATAZ]    = "Linha de produção",
-        [ID_ENGENHEIRO] = "Sala de máquinas",
-        [ID_OPERARIO]   = "Linha de produção",
-        [ID_ENFERMEIRA] = "Enfermaria",
-        [ID_VIGIA]      = "Linha de produção",
-    },
-};
+// A tabela fixa LOCAL_VERDADEIRO foi removida: a agenda secreta é a única
+// fonte de verdade sobre onde cada suspeito está em cada dia e período.
 
 // ---------------------------------------------------------------------------
 // Auxiliares internos
@@ -97,16 +59,13 @@ static Suspeito *suspeito_por_id(const Jogo *jogo, int id) {
 }
 
 const char *local_verdadeiro_do_suspeito(const Jogo *jogo, int id) {
-    if (jogo == NULL || id < 0 || id >= TOTAL_SUSPEITOS) {
+    if (jogo == NULL) {
         return NULL;
     }
 
-    int dia = jogo->dia.dia_atual - 1;
-    if (dia < 0 || dia >= TOTAL_DIAS) {
-        return NULL;
-    }
-
-    return LOCAL_VERDADEIRO[dia][id];
+    // Compatibilidade: o "local verdadeiro" é o local do suspeito na noite
+    // do dia atual, que também é o local do crime quando ele é o assassino.
+    return local_do_suspeito(jogo, id, jogo->dia.dia_atual, NOITE);
 }
 
 const char *revelacao_do_cumplice(const Jogo *jogo) {
@@ -120,39 +79,56 @@ static int esta_interrogado(const Jogo *jogo, int id) {
     return (jogo->interrogados & (1u << id)) != 0;
 }
 
-static const char *preposicao_local(const char *local) {
-    if (local != NULL && strcmp(local, "Vestiário") == 0){
-        return "no";
-    } else{
-        return "na";
+static const char *local_falso(const Jogo *jogo, int dia, enum Periodo periodo, int id_alvo) {
+    const char *verdade = local_do_suspeito(jogo, id_alvo, dia, periodo);
+    if (verdade == NULL) {
+        return NULL;
     }
-}
-static const char *local_falso(int dia, int id_alvo) {
-    const char *verdade = LOCAL_VERDADEIRO[dia - 1][id_alvo];
 
-    for (int i = 0; i < TOTAL_LOCAIS; i ++) {
-        if (strcmp(LOCAIS[i], verdade) == 0) {
-            int deslocamento = 1 + (dia + id_alvo) % (TOTAL_LOCAIS - 1);
-            return LOCAIS[(i + deslocamento) % TOTAL_LOCAIS];
+    int total = total_locais();
+    if (total < 2) {
+        return NULL;
+    }
+
+    int indice_verdade = -1;
+    for (int i = 0; i < total; i++) {
+        const char *nome = nome_local(i);
+        if (nome != NULL && strcmp(nome, verdade) == 0) {
+            indice_verdade = i;
+            break;
         }
     }
-    return LOCAIS[(id_alvo + dia) % TOTAL_LOCAIS];
-}
 
-static void montar_fala(char *destino, size_t tamanho, int sobre_si, const char *nome_alvo, const char *local) {
-    if (strcmp(local, LOCAL_FORA_DA_FABRICA) == 0) {    //se o local da pessoa for fora da fábrica:
-        if (sobre_si) {
-            snprintf(destino, tamanho, "Eu não estava na fábrica na noite anterior.");
-        } else {
-            snprintf(destino, tamanho, "Não vi %s na fábrica na noite anterior.", nome_alvo);
-        }
-        return;
+    if (indice_verdade < 0) {
+        return NULL;
     }
 
+    // O deslocamento fica em 1..total-1, então o local falso nunca é igual ao
+    // verdadeiro. Depende só de (dia, período, alvo): assassino e cúmplice
+    // contam exatamente a mesma versão falsa.
+    int deslocamento = 1 + (dia + (int)periodo + id_alvo) % (total - 1);
+    return nome_local((indice_verdade + deslocamento) % total);
+}
+
+static const char *expressao_periodo(enum Periodo periodo) {
+    switch (periodo) {
+        case MANHA: return "pela manhã";
+        case TARDE: return "à tarde";
+        case NOITE: return "à noite";
+        default:    return "no período";
+    }
+}
+
+static void montar_fala(char *destino, size_t tamanho, int sobre_si,
+                        const char *nome_alvo, const char *local,
+                        enum Periodo periodo) {
     if (sobre_si) {
-        snprintf(destino, tamanho, "Eu estava %s %s na noite anterior.", preposicao_local(local), local);
+        snprintf(destino, tamanho, "Eu estava %s %s %s.",
+                 preposicao_do_local(local), local, expressao_periodo(periodo));
     } else {
-        snprintf(destino, tamanho, "Vi %s %s %s na noite anterior.", nome_alvo, preposicao_local(local), local);
+        snprintf(destino, tamanho, "%s estava %s %s %s.",
+                 nome_alvo, preposicao_do_local(local), local,
+                 expressao_periodo(periodo));
     }
 }
 
@@ -219,24 +195,54 @@ static void realizar_crime_noturno(Jogo *jogo) {
         return; // não há mais inocentes para o assassino atacar
     }
 
-    Suspeito *vitima = candidatos[rand() % total];
+    Suspeito *vitima = candidatos[aleatorio_intervalo(&jogo->aleatorio, total)];
     vitima->situacao = MORTO;
     jogo->ultima_vitima = vitima->id;
+
+    // O local do crime é o local noturno do assassino, já calculado em
+    // gerar_agenda(). Ler a agenda evita uma segunda fonte de verdade.
+    const char *local = local_do_crime(jogo, jogo->dia.dia_atual);
 
     char objeto[128];
     char descricao[256];
     snprintf(objeto, sizeof objeto, "Corpo de %s", vitima->nome);
-    snprintf(descricao, sizeof descricao,
-             "%s foi encontrado morto na madrugada. O assassino continua agindo.",
-             vitima->nome);
+
+    if (local != NULL) {
+        snprintf(descricao, sizeof descricao,
+                 "%s foi encontrado morto na madrugada, %s %s. O assassino continua agindo.",
+                 vitima->nome, preposicao_do_local(local), local);
+    } else {
+        local = "local desconhecido";
+        snprintf(descricao, sizeof descricao,
+                 "%s foi encontrado morto na madrugada. O assassino continua agindo.",
+                 vitima->nome);
+    }
 
     registrar_pista(jogo->caderno, jogo->dia.dia_atual,
-                    "Cena do crime", objeto, descricao, NULL);
+                    (char *)local, objeto, descricao, NULL);
 }
 
 // ---------------------------------------------------------------------------
 // Ciclo de vida
 // ---------------------------------------------------------------------------
+static void gerar_agenda(Jogo *jogo) {
+    for (int d = 0; d < TOTAL_DIAS; d++)
+        for (int p = 0; p < TOTAL_PERIODOS; p++)
+            for (int id = 0; id < TOTAL_SUSPEITOS; id++)
+                jogo->agenda.local[d][p][id] =
+                    (unsigned char)aleatorio_intervalo(&jogo->aleatorio,
+                                                       total_locais());
+
+    for (int d = 0; d < TOTAL_DIAS; d++) {
+        jogo->agenda.local_crime[d] =
+            jogo->agenda.local[d][NOITE][jogo->papeis.id_assassino];
+
+
+        // regra de ouro: pelo menos um inocente no local do crime
+        //garantir_testemunha(jogo, d, &estado);
+    }
+}
+
 int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) {
     if (jogo == NULL || id_detetive < ID_MISS_MARPLE || id_detetive > ID_HERCULE_POIROT) {
         return 0;
@@ -250,7 +256,10 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
     jogo->papeis.id_assassino = NENHUM;
     jogo->papeis.id_cumplice = NENHUM;
 
-    srand(semente);
+    // Um único gerador conduz todos os sorteios da partida: papéis, agenda e
+    // vítima noturna. Assim a mesma semente reproduz o mesmo jogo em qualquer
+    // plataforma.
+    aleatorio_iniciar(&jogo->aleatorio, semente);
 
     jogo->suspeitos = criar_lista_dupla_circular();
     if (jogo->suspeitos == NULL) {
@@ -275,11 +284,16 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
         ids[id] = id;
     }
 
-    if (!sortear_papeis(ids, TOTAL_SUSPEITOS, &jogo->papeis)) {
+    if (!sortear_papeis(ids, TOTAL_SUSPEITOS, &jogo->papeis,
+                        &jogo->aleatorio)) {
         liberar_suspeitos(jogo->suspeitos);
         jogo->suspeitos = NULL;
         return 0;
     }
+
+    memset(jogo->agenda.local, 0, sizeof jogo->agenda.local);
+    memset(jogo->agenda.local_crime, 0, sizeof jogo->agenda.local_crime);
+    gerar_agenda(jogo);
 
     NoListaDuplaCircular *no = jogo->suspeitos->inicio;
     do {
@@ -323,6 +337,7 @@ void liberar_jogo(Jogo *jogo) {
 
     jogo->turno_atual = NULL;
 }
+
 
 // ---------------------------------------------------------------------------
 // Fases
@@ -377,28 +392,68 @@ Suspeito *suspeito_do_turno(const Jogo *jogo) {
     return (Suspeito *)jogo->turno_atual->dado;
 }
 
-static enum TipoReacao reagir(int dia, int id_alvo, const char *local_afirmado, const Suspeito *outro, SorteioPapeis papeis) {
-    int indice = dia - 1;
-    int outro_mentindo = outro->id == papeis.id_assassino || outro->id == papeis.id_cumplice;
-
-    if (outro_mentindo) {
-        if (strcmp(local_afirmado, local_falso(dia, id_alvo)) == 0){
-            return CONCORDA;
-        } else{
-            return DISCORDA;
-        }
+const char *local_do_suspeito(const Jogo *jogo, int id, int dia, enum Periodo periodo) {
+    if (jogo == NULL || id < 0 || id >= TOTAL_SUSPEITOS ||
+        dia < 1 || dia > TOTAL_DIAS ||
+        periodo < MANHA || periodo > NOITE) {
+        return NULL;
     }
 
-    const char *verdade_alvo = LOCAL_VERDADEIRO[indice][id_alvo];
-    const char *verdade_outro = LOCAL_VERDADEIRO[indice][outro->id];
+    unsigned char indice = jogo->agenda.local[dia - 1][periodo][id];
+    return nome_local(indice);
+}
 
+const char *local_do_crime(const Jogo *jogo, int dia) {
+    if (jogo == NULL || dia < 1 || dia > TOTAL_DIAS) {
+        return NULL;
+    }
+
+    unsigned char indice = jogo->agenda.local_crime[dia - 1];
+    return nome_local(indice);
+}
+
+static enum TipoReacao reagir(const Jogo *jogo, int dia, enum Periodo periodo, int id_falante, int id_alvo, const char *local_afirmado, const Suspeito *outro) {
+    if (jogo == NULL || outro == NULL || local_afirmado == NULL) {
+        return NEUTRO;
+    }
+
+    int assassino = jogo->papeis.id_assassino;
+    int cumplice = jogo->papeis.id_cumplice;
+
+    // O assassino discorda de quem fala dele ou do cúmplice e concorda com
+    // quem fala dos outros.
+    if (outro->id == assassino) {
+        if (id_alvo == assassino || id_alvo == cumplice) {
+            return DISCORDA;
+        }
+        return CONCORDA;
+    }
+
+    // O cúmplice concorda sempre com o assassino e discorda de quem aponta
+    // para ele (ou para o assassino); nos demais casos não se manifesta.
+    if (outro->id == cumplice) {
+        if (id_falante == assassino) {
+            return CONCORDA;
+        }
+        if (id_alvo == cumplice || id_alvo == assassino) {
+            return DISCORDA;
+        }
+        return NEUTRO;
+    }
+
+    // Inocente: só opina quando tem como saber.
+    const char *verdade_alvo = local_do_suspeito(jogo, id_alvo, dia, periodo);
+    const char *verdade_outro = local_do_suspeito(jogo, outro->id, dia, periodo);
+    if (verdade_alvo == NULL || verdade_outro == NULL) {
+        return NEUTRO;
+    }
+
+    // Sabe o paradeiro do alvo se é o próprio alvo ou se estava com ele.
     if (outro->id == id_alvo || strcmp(verdade_outro, verdade_alvo) == 0) {
-        if (strcmp(local_afirmado, verdade_alvo) == 0){
-            return CONCORDA;
-        } else{
-            return DISCORDA;
-        }
+        return (strcmp(local_afirmado, verdade_alvo) == 0) ? CONCORDA : DISCORDA;
     }
+
+    // Estava no local afirmado e não viu o alvo lá.
     if (strcmp(verdade_outro, local_afirmado) == 0) {
         return DISCORDA;
     }
@@ -406,7 +461,7 @@ static enum TipoReacao reagir(int dia, int id_alvo, const char *local_afirmado, 
     return NEUTRO;
 }
 
-int perguntar_sobre(Jogo *jogo, int id_alvo) {
+int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo) {
     if (jogo == NULL || jogo->resultado != JOGO_EM_ANDAMENTO ||
         jogo->dia.fase_atual != FASE_DEBATE) {
         return -1;
@@ -418,22 +473,29 @@ int perguntar_sobre(Jogo *jogo, int id_alvo) {
         return -1;
     }
 
-    //os inocentes falam a verdade, enquanto o assassino e cumplice mentem
-    int mentindo = falante->papel == ASSASSINO || falante->papel == CUMPLICE;
+    // Assassino e cúmplice só mentem sobre o período do crime (noite).
+    // Nos demais períodos, todos os suspeitos contam a verdade.
+    int mentindo = (falante->papel == ASSASSINO ||
+                    falante->papel == CUMPLICE) && periodo == NOITE;
     const char *local;
 
-    if(mentindo == 1){
-        local = local_falso(jogo->dia.dia_atual, alvo->id);
-    } else{
-        local = LOCAL_VERDADEIRO[jogo->dia.dia_atual - 1][alvo->id];
+    if (mentindo) {
+        local = local_falso(jogo, jogo->dia.dia_atual, periodo, alvo->id);
+    } else {
+        local = local_do_suspeito(jogo, alvo->id, jogo->dia.dia_atual, periodo);
     }
-    
+
+    if (local == NULL) {
+        return -1;
+    }
+
     char texto[256];
-    montar_fala(texto, sizeof texto, alvo->id == falante->id, alvo->nome, local);
+    montar_fala(texto, sizeof texto, alvo->id == falante->id, alvo->nome,
+                local, periodo);
 
     int id_depoimento = registrar_depoimento(
         jogo->caderno, jogo->dia.dia_atual, falante->id, (char *)local,
-        NOITE, alvo->id, TESTEMUNHO, texto);
+        periodo, alvo->id, TESTEMUNHO, texto);
 
     if (id_depoimento < 0) {
         return -1;
@@ -445,7 +507,7 @@ int perguntar_sobre(Jogo *jogo, int id_alvo) {
         do {
             Suspeito *outro = (Suspeito *)no->dado;
             if (outro != NULL && outro->situacao == VIVO && outro->id != falante->id) {
-                enum TipoReacao reacao = reagir(jogo->dia.dia_atual, alvo->id, local, outro, jogo->papeis);
+                enum TipoReacao reacao = reagir(jogo, jogo->dia.dia_atual, periodo, falante->id, alvo->id, local, outro);
 
                 registrar_reacao(jogo->caderno, jogo->dia.dia_atual,
                                  id_depoimento, outro->nome, reacao);

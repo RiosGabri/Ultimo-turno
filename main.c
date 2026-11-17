@@ -1,7 +1,6 @@
 #include "ui.h"
 
 #include <stdlib.h>
-#include <time.h>
 
 #define LARGURA_TELA 960
 #define ALTURA_TELA 540
@@ -68,8 +67,6 @@ static int atualizar_selecao(const BotaoUI *botoes, int selecionado) {
 }
 
 int main(void) {
-    srand(time(NULL)); // semente para gerar ids aleatórios para depoimentos, pistas e reações
-
     InitWindow(LARGURA_TELA, ALTURA_TELA, TITULO_JOGO);
     SetTargetFPS(60);
 
