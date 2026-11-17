@@ -2,6 +2,7 @@
 #define JOGO_H
 
 #include "dia.h"
+#include "entidades/aleatorio.h"
 #include "entidades/caderno.h"
 #include "entidades/personagens.h"
 #include "entidades/suspeito.h"
@@ -53,6 +54,11 @@ typedef struct {
 
     int ultima_vitima; // id do suspeito morto na última noite, ou NENHUM
     char revelacao_cumplice[256]; // mensagem revelada ao prender o cúmplice
+
+    // Gerador compartilhado dos sorteios da partida (papéis, agenda e vítima
+    // noturna). Usa xorshift32, então a mesma semente dá o mesmo jogo em
+    // qualquer plataforma, independente de rand().
+    Aleatorio aleatorio;
 } Jogo;
 
 // ---------------------------------------------------------------------------

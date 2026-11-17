@@ -195,7 +195,7 @@ static void realizar_crime_noturno(Jogo *jogo) {
         return; // não há mais inocentes para o assassino atacar
     }
 
-    Suspeito *vitima = candidatos[rand() % total];
+    Suspeito *vitima = candidatos[aleatorio_intervalo(&jogo->aleatorio, total)];
     vitima->situacao = MORTO;
     jogo->ultima_vitima = vitima->id;
 
@@ -225,15 +225,13 @@ static void realizar_crime_noturno(Jogo *jogo) {
 // ---------------------------------------------------------------------------
 // Ciclo de vida
 // ---------------------------------------------------------------------------
-static void gerar_agenda(Jogo *jogo, unsigned int semente) {
-    Aleatorio gerador;
-    aleatorio_iniciar(&gerador, semente);
-
+static void gerar_agenda(Jogo *jogo) {
     for (int d = 0; d < TOTAL_DIAS; d++)
         for (int p = 0; p < TOTAL_PERIODOS; p++)
             for (int id = 0; id < TOTAL_SUSPEITOS; id++)
                 jogo->agenda.local[d][p][id] =
-                    (unsigned char)aleatorio_intervalo(&gerador, total_locais());
+                    (unsigned char)aleatorio_intervalo(&jogo->aleatorio,
+                                                       total_locais());
 
     for (int d = 0; d < TOTAL_DIAS; d++) {
         jogo->agenda.local_crime[d] =
@@ -258,7 +256,10 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
     jogo->papeis.id_assassino = NENHUM;
     jogo->papeis.id_cumplice = NENHUM;
 
-    srand(semente);
+    // Um único gerador conduz todos os sorteios da partida: papéis, agenda e
+    // vítima noturna. Assim a mesma semente reproduz o mesmo jogo em qualquer
+    // plataforma.
+    aleatorio_iniciar(&jogo->aleatorio, semente);
 
     jogo->suspeitos = criar_lista_dupla_circular();
     if (jogo->suspeitos == NULL) {
@@ -283,7 +284,8 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
         ids[id] = id;
     }
 
-    if (!sortear_papeis(ids, TOTAL_SUSPEITOS, &jogo->papeis)) {
+    if (!sortear_papeis(ids, TOTAL_SUSPEITOS, &jogo->papeis,
+                        &jogo->aleatorio)) {
         liberar_suspeitos(jogo->suspeitos);
         jogo->suspeitos = NULL;
         return 0;
@@ -291,7 +293,7 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
 
     memset(jogo->agenda.local, 0, sizeof jogo->agenda.local);
     memset(jogo->agenda.local_crime, 0, sizeof jogo->agenda.local_crime);
-    gerar_agenda(jogo, semente);
+    gerar_agenda(jogo);
 
     NoListaDuplaCircular *no = jogo->suspeitos->inicio;
     do {
