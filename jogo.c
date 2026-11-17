@@ -233,6 +233,27 @@ static void realizar_crime_noturno(Jogo *jogo) {
 // ---------------------------------------------------------------------------
 // Ciclo de vida
 // ---------------------------------------------------------------------------
+static void gerar_agenda(Jogo *jogo, unsigned int semente) {
+    unsigned int estado = semente ? semente : 1u;
+
+    for (int d = 0; d < TOTAL_DIAS; d++)
+        for (int p = 0; p < TOTAL_PERIODOS; p++)
+            for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+                estado = proximo_pseudoaleatorio(estado);   // PRNG próprio
+                jogo->agenda.local[d][p][id] =
+                    (unsigned char)(estado % TOTAL_LOCAIS);
+            }
+
+    for (int d = 0; d < TOTAL_DIAS; d++) {
+        // crime = local noturno do assassino (invariante da issue)
+        jogo->agenda.local_crime[d] =
+            jogo->agenda.local[d][NOITE][jogo->papeis.id_assassino];
+
+        // regra de ouro: pelo menos um inocente no local do crime
+        garantir_testemunha(jogo, d, &estado);
+    }
+}
+
 int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) {
     if (jogo == NULL || id_detetive < ID_MISS_MARPLE || id_detetive > ID_HERCULE_POIROT) {
         return 0;
@@ -279,6 +300,7 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
 
     memset(jogo->agenda.local, 0, sizeof jogo->agenda.local);
     memset(jogo->agenda.local_crime, 0, sizeof jogo->agenda.local_crime);
+    gerar_agenda(jogo, semente);
 
     NoListaDuplaCircular *no = jogo->suspeitos->inicio;
     do {
@@ -322,6 +344,7 @@ void liberar_jogo(Jogo *jogo) {
 
     jogo->turno_atual = NULL;
 }
+
 
 // ---------------------------------------------------------------------------
 // Fases
@@ -419,7 +442,7 @@ static enum TipoReacao reagir(int dia, int id_alvo, const char *local_afirmado, 
     return NEUTRO;
 }
 
-int perguntar_sobre(Jogo *jogo, int id_alvo) {
+int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo) {
     if (jogo == NULL || jogo->resultado != JOGO_EM_ANDAMENTO ||
         jogo->dia.fase_atual != FASE_DEBATE) {
         return -1;

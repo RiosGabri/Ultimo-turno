@@ -58,7 +58,7 @@ void liberar_jogo(Jogo *jogo);
 
 const char *local_do_suspeito(const Jogo*, int id, int dia, enum Periodo);
 const char *local_do_crime(const Jogo*, int dia);
-
+static void gerar_agenda(Jogo *jogo, unsigned int semente);
 
 // ---------------------------------------------------------------------------
 // Fases
@@ -72,7 +72,7 @@ void avancar_fase_jogo(Jogo *jogo);
 // ---------------------------------------------------------------------------
 void iniciar_debate(Jogo *jogo);
 Suspeito *suspeito_do_turno(const Jogo *jogo); // NULL quando a volta terminou
-int perguntar_sobre(Jogo *jogo, int id_alvo);  // retorna o id do depoimento ou -1
+int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo);  // retorna o id do depoimento ou -1
 int debate_encerrado(const Jogo *jogo);
 
 // ---------------------------------------------------------------------------
