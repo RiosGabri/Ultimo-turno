@@ -529,13 +529,15 @@ static void testar_reacoes_confirmam_a_verdade(void) {
 
     avancar_fase_jogo(&jogo); // manhã -> debate
 
-    // Avança até a vez de um dos culpados e pergunta sobre ele mesmo: a
-    // resposta é uma mentira sobre o próprio paradeiro.
+    // Avança até a vez do assassino e pergunta sobre ele mesmo: a resposta é
+    // uma mentira sobre o próprio paradeiro. Miramos explicitamente o
+    // assassino (e não qualquer culpado) porque só ele é confirmado pelo
+    // cúmplice; o cúmplice, ao falar, é discordado pelo assassino.
     int id_depoimento = -1;
     while (suspeito_do_turno(&jogo) != NULL) {
         Suspeito *falante = suspeito_do_turno(&jogo);
-        if (falante->id == assassino || falante->id == cumplice) {
-            id_depoimento = perguntar_sobre(&jogo, falante->id, NOITE);
+        if (falante->id == assassino) {
+            id_depoimento = perguntar_sobre(&jogo, assassino, NOITE);
             break;
         }
         perguntar_sobre(&jogo, assassino, NOITE);
