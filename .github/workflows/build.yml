@@ -74,8 +74,11 @@ jobs:
       - name: Configurar (com raylib)
         run: cmake -S . -B build    # sem o OFF: liga o alvo gráfico
 
-      - name: Compilar o jogo gráfico
-        run: cmake --build build --config Release --target jogo
+      - name: Compilar
+        run: cmake --build build --config Release
+
+      - name: Rodar os testes (inclui fonte e acentos)
+        run: ctest --test-dir build -C Release --output-on-failure
 
       - name: Empacotar
         shell: bash

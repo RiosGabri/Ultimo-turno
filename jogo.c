@@ -171,6 +171,10 @@ static void registrar_pista_do_dia(Jogo *jogo) {
 static void realizar_crime_noturno(Jogo *jogo) {
     jogo->ultima_vitima = NENHUM;
 
+    if (jogo->dia.dia_atual == 1) {
+        return;
+    }
+
     Suspeito *candidatos[TOTAL_SUSPEITOS];
     int total = 0;
 
@@ -574,6 +578,75 @@ int prender_suspeito(Jogo *jogo, int id) {
     }
 
     return 1;
+}
+
+// ---------------------------------------------------------------------------
+// Pontuação e final
+// ---------------------------------------------------------------------------
+int calcular_pontuacao(int dias_usados, int credibilidade_restante,
+                       int contradicoes_encontradas) {
+    if (dias_usados < 1) {
+        dias_usados = 1;
+    } else if (dias_usados > TOTAL_DIAS) {
+        dias_usados = TOTAL_DIAS;
+    }
+
+    if (credibilidade_restante < 0) {
+        credibilidade_restante = 0;
+    }
+
+    if (contradicoes_encontradas < 0) {
+        contradicoes_encontradas = 0;
+    }
+
+    int dias_restantes = TOTAL_DIAS - dias_usados;
+
+    return dias_restantes * PONTOS_POR_DIA_RESTANTE +
+           credibilidade_restante * PONTOS_POR_CREDIBILIDADE +
+           contradicoes_encontradas * PONTOS_POR_CONTRADICAO;
+}
+
+int pontuacao_do_jogo(const Jogo *jogo) {
+    if (jogo == NULL) {
+        return 0;
+    }
+
+    int contradicoes = (jogo->caderno != NULL) ? jogo->caderno->contradicoes.tamanho : 0;
+    int pontos = calcular_pontuacao(jogo->dia.dia_atual, jogo->credibilidade, contradicoes);
+
+    if (jogo->resultado == JOGO_VITORIA) {
+        pontos += PONTOS_VITORIA;
+    }
+
+    return pontos;
+}
+
+const char *texto_final(const Jogo *jogo) {
+    if (jogo == NULL) {
+        return "";
+    }
+
+    switch (jogo->resultado) {
+        case JOGO_VITORIA:
+            return "O caso está encerrado. A prisão do assassino devolve a calma às oficinas\n"
+                   "e encerra os boatos que tomavam conta da fábrica. Quem matou Chaplin\n"
+                   "finalmente responde pelo crime, e o caderno, cheio de depoimentos e\n"
+                   "contradições, prova que a investigação não foi em vão.";
+
+        case JOGO_DERROTA_CREDIBILIDADE:
+            return "A confiança no detetive se esgotou. Com a credibilidade em zero, as\n"
+                   "autoridades retiram o caso de suas mãos e as portas da delegacia se\n"
+                   "fecham. O assassino continua solto entre os trabalhadores e ninguém\n"
+                   "mais ousa contar o que viu naquela noite.";
+
+        case JOGO_DERROTA_TEMPO:
+            return "Os dias acabaram. Com o prazo encerrado e sem provas para sustentar uma\n"
+                   "acusação, o caso de Chaplin é arquivado. O assassino atravessa mais um\n"
+                   "turno na fábrica e o silêncio volta à sala de máquinas.";
+
+        default:
+            return "";
+    }
 }
 
 // ---------------------------------------------------------------------------

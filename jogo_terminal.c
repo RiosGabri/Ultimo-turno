@@ -74,6 +74,7 @@ static void mostrar_cabecalho(const Jogo *jogo) {
     printf(" Dia %d/%d  |  Fase: %-11s |  Credibilidade: %d\n",
            jogo->dia.dia_atual, TOTAL_DIAS, nome_fase(jogo->dia.fase_atual),
            jogo->credibilidade);
+    printf(" Pontuação: %d\n", pontuacao_do_jogo(jogo));
     printf("============================================================\n");
 }
 
@@ -644,14 +645,27 @@ static void mostrar_resultado(const Jogo *jogo) {
             printf(" A investigação terminou.\n");
             break;
     }
+    printf("============================================================\n");
+
+    // Texto narrativo do final (vitória, derrota por credibilidade ou por tempo).
+    const char *final = texto_final(jogo);
+    if (final != NULL && final[0] != '\0') {
+        printf("\n%s\n", final);
+    }
 
     const Suspeito *assassino = buscar_suspeito(jogo, jogo->papeis.id_assassino);
     const Suspeito *cumplice = buscar_suspeito(jogo, jogo->papeis.id_cumplice);
+    int contradicoes = (jogo->caderno != NULL) ? jogo->caderno->contradicoes.tamanho : 0;
 
+    printf("\n------------------------------------------------------------\n");
     printf(" Assassino: %s\n", (assassino != NULL) ? assassino->nome : "?");
     if (cumplice != NULL) {
         printf(" Cúmplice: %s\n", cumplice->nome);
     }
+    printf(" Dias usados: %d/%d\n", jogo->dia.dia_atual, TOTAL_DIAS);
+    printf(" Credibilidade restante: %d\n", jogo->credibilidade);
+    printf(" Contradições encontradas: %d\n", contradicoes);
+    printf(" PONTUAÇÃO FINAL: %d\n", pontuacao_do_jogo(jogo));
     printf("============================================================\n");
 }
 
