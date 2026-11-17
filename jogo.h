@@ -2,6 +2,7 @@
 #define JOGO_H
 
 #include "dia.h"
+#include "entidades/aleatorio.h"
 #include "entidades/caderno.h"
 #include "entidades/personagens.h"
 #include "entidades/suspeito.h"
@@ -24,6 +25,14 @@ typedef enum {
     JOGO_DERROTA_TEMPO
 } ResultadoJogo;
 
+#define TOTAL_PERIODOS 3
+typedef struct {
+    //[dia][período][suspeito] -> índice na tabela de locais
+    //unsigned char armazena valores nao negativos de 0 a 255
+    unsigned char local[TOTAL_DIAS][TOTAL_PERIODOS][TOTAL_SUSPEITOS];
+    unsigned char local_crime[TOTAL_DIAS]; // índice na tabela de locais
+}Agenda;
+
 /*
  * Estado completo de uma partida. O motor não depende de interface:
  * a UI de terminal (e, depois, a da raylib) só lê este estado e chama
@@ -35,6 +44,7 @@ typedef struct {
     ListaDuplaCircular *suspeitos;
     SorteioPapeis papeis;
     Caderno *caderno;
+    Agenda agenda;
     int credibilidade;
     ResultadoJogo resultado;
 
@@ -44,6 +54,11 @@ typedef struct {
 
     int ultima_vitima; // id do suspeito morto na última noite, ou NENHUM
     char revelacao_cumplice[256]; // mensagem revelada ao prender o cúmplice
+
+    // Gerador compartilhado dos sorteios da partida (papéis, agenda e vítima
+    // noturna). Usa xorshift32, então a mesma semente dá o mesmo jogo em
+    // qualquer plataforma, independente de rand().
+    Aleatorio aleatorio;
 } Jogo;
 
 // ---------------------------------------------------------------------------
@@ -52,6 +67,9 @@ typedef struct {
 int iniciar_jogo(Jogo *jogo, int id_detetive);
 int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente);
 void liberar_jogo(Jogo *jogo);
+
+const char *local_do_suspeito(const Jogo*, int id, int dia, enum Periodo);
+const char *local_do_crime(const Jogo*, int dia);
 
 // ---------------------------------------------------------------------------
 // Fases
@@ -65,7 +83,7 @@ void avancar_fase_jogo(Jogo *jogo);
 // ---------------------------------------------------------------------------
 void iniciar_debate(Jogo *jogo);
 Suspeito *suspeito_do_turno(const Jogo *jogo); // NULL quando a volta terminou
-int perguntar_sobre(Jogo *jogo, int id_alvo);  // retorna o id do depoimento ou -1
+int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo);  // retorna o id do depoimento ou -1
 int debate_encerrado(const Jogo *jogo);
 
 // ---------------------------------------------------------------------------
