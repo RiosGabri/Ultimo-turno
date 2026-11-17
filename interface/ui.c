@@ -692,7 +692,7 @@ bool ui_desenhar_botao(const UIFonte *fonte, BotaoUI *botao, bool focado) {
 
     EstadoBotao estado = ui_atualizar_botao(botao, focado, &entrada);
 
-    Color fundo = botao->primario ? COR_OXIDO : COR_FUMACA;
+    Color fundo = botao->primario ? COR_TIJOLO : COR_FUMACA;
     Color borda = botao->primario ? COR_TIJOLO : COR_POEIRA;
     Color texto = COR_OSSO;
 
@@ -710,7 +710,7 @@ bool ui_desenhar_botao(const UIFonte *fonte, BotaoUI *botao, bool focado) {
             break;
 
         case BOTAO_HOVER:
-            fundo = botao->primario ? COR_TIJOLO : COR_CARVAO;
+            fundo = botao->primario ? COR_OXIDO : COR_CARVAO;
             borda = COR_OSSO;
             break;
 
