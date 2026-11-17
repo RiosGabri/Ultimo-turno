@@ -1138,6 +1138,57 @@ static void testar_ordenacao_casos_limite(void) {
     }
 }
 
+static void testar_filtro_depoimentos_sobre_suspeito(void) {
+    Caderno *caderno = criar_caderno_exemplo();
+    verificar(caderno != NULL, "caderno de exemplo para o filtro deve alocar");
+    if (caderno == NULL) {
+        return;
+    }
+
+    const int sobre_engenheiro[] = {1, 2, 5};
+    const int sobre_operaria[] = {3};
+    const int sobre_gerente[] = {4};
+
+    Lista *resultado = depoimentos_sobre_suspeito(caderno, ID_ENGENHEIRO);
+    verificar_resultado(resultado, sobre_engenheiro, 3,
+                        "depoimentos sobre o engenheiro");
+    verificar(resultado != NULL && resultado->inicio != NULL &&
+              resultado->inicio->dado == buscar_depoimento_por_id(caderno, 1),
+              "resultado do filtro aponta para o depoimento original");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(caderno, ID_OPERARIA);
+    verificar_resultado(resultado, sobre_operaria, 1,
+                        "depoimentos sobre a operaria");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(caderno, ID_GERENTE);
+    verificar_resultado(resultado, sobre_gerente, 1,
+                        "depoimentos sobre o gerente");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(caderno, ID_VIGIA);
+    verificar_resultado(resultado, NULL, 0,
+                        "depoimentos sobre o vigia sao vazios");
+    verificar(resultado != NULL && resultado->inicio == NULL,
+              "resultado vazio nao tem inicio");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(caderno, 99);
+    verificar_resultado(resultado, NULL, 0,
+                        "depoimentos sobre suspeito inexistente sao vazios");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(NULL, ID_ENGENHEIRO);
+    verificar_resultado(resultado, NULL, 0,
+                        "depoimentos com caderno NULL sao vazios");
+    liberar_resultado_filtro(resultado);
+
+    verificar(caderno->depoimentos.tamanho == 5,
+              "consultas de depoimentos nao alteram o caderno");
+    liberar_caderno(caderno);
+}
+
 static void testar_ordenacao_de_pistas(void) {
     Caderno *caderno = inicializar_caderno(ID_POIROT);
     verificar(caderno != NULL, "inicializar_caderno deve alocar");
@@ -1193,6 +1244,7 @@ int main(void) {
     testar_comparacao_direta();
     testar_tabela_de_filtros();
     testar_atalhos();
+    testar_filtro_depoimentos_sobre_suspeito();
     testar_resultado_nao_copia_e_nao_libera_depoimentos();
     testar_reacao_vinculada_ao_depoimento();
     testar_pista();
