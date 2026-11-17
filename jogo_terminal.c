@@ -455,7 +455,8 @@ static void jogar_debate(Jogo *jogo) {
         case 1: {
             int alvo = escolher_alvo(jogo);
             if (alvo >= 0) {
-                int id_depoimento = perguntar_sobre(jogo, alvo);
+                // TODO(issue 13, etapa 6): deixar o jogador escolher o período.
+                int id_depoimento = perguntar_sobre(jogo, alvo, NOITE);
                 if (id_depoimento > 0) {
                     mostrar_depoimento(jogo, id_depoimento);
                     pausar();

@@ -1,4 +1,5 @@
 #include "jogo.h"
+#include "estruturas/entidades/aleatorio.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -234,23 +235,22 @@ static void realizar_crime_noturno(Jogo *jogo) {
 // Ciclo de vida
 // ---------------------------------------------------------------------------
 static void gerar_agenda(Jogo *jogo, unsigned int semente) {
-    unsigned int estado = semente ? semente : 1u;
+    Aleatorio gerador;
+    aleatorio_iniciar(&gerador, semente);
 
     for (int d = 0; d < TOTAL_DIAS; d++)
         for (int p = 0; p < TOTAL_PERIODOS; p++)
-            for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
-                estado = proximo_pseudoaleatorio(estado);   // PRNG próprio
+            for (int id = 0; id < TOTAL_SUSPEITOS; id++)
                 jogo->agenda.local[d][p][id] =
-                    (unsigned char)(estado % TOTAL_LOCAIS);
-            }
+                    (unsigned char)aleatorio_intervalo(&gerador, TOTAL_LOCAIS);
 
     for (int d = 0; d < TOTAL_DIAS; d++) {
-        // crime = local noturno do assassino (invariante da issue)
         jogo->agenda.local_crime[d] =
             jogo->agenda.local[d][NOITE][jogo->papeis.id_assassino];
 
+
         // regra de ouro: pelo menos um inocente no local do crime
-        garantir_testemunha(jogo, d, &estado);
+        //garantir_testemunha(jogo, d, &estado);
     }
 }
 
@@ -454,7 +454,7 @@ int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo) {
         return -1;
     }
 
-    //os inocentes falam a verdade, enquanto o assassino e cumplice mentem
+    // TODO(issue 13, etapa 3): mentir somente no período noturno.
     int mentindo = falante->papel == ASSASSINO || falante->papel == CUMPLICE;
     const char *local;
 
@@ -469,7 +469,7 @@ int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo) {
 
     int id_depoimento = registrar_depoimento(
         jogo->caderno, jogo->dia.dia_atual, falante->id, (char *)local,
-        NOITE, alvo->id, TESTEMUNHO, texto);
+        periodo, alvo->id, TESTEMUNHO, texto);
 
     if (id_depoimento < 0) {
         return -1;

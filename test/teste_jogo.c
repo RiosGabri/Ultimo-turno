@@ -152,7 +152,7 @@ static void testar_ciclo_de_debate_e_contradicoes(void) {
         verificar(falante->id != ultimo_falante,
                   "o mesmo suspeito não recebe dois turnos seguidos");
 
-        int id_depoimento = perguntar_sobre(&jogo, ID_GERENTE);
+        int id_depoimento = perguntar_sobre(&jogo, ID_GERENTE, NOITE);
         verificar(id_depoimento > 0, "pergunta registra um depoimento");
 
         ultimo_falante = falante->id;
@@ -196,7 +196,7 @@ static void testar_debate_pula_mortos(void) {
 
     // Com um turno disponível, perguntar sobre um morto é recusado.
     int antes = jogo.caderno->depoimentos.tamanho;
-    verificar(perguntar_sobre(&jogo, ID_VIGIA) == -1,
+    verificar(perguntar_sobre(&jogo, ID_VIGIA, NOITE) == -1,
               "não é possível interrogar sobre um suspeito morto");
     verificar(jogo.caderno->depoimentos.tamanho == antes,
               "pergunta recusada não registra depoimento");
@@ -207,7 +207,7 @@ static void testar_debate_pula_mortos(void) {
         if (suspeito_do_turno(&jogo)->id == ID_VIGIA) {
             viu_morto = 1;
         }
-        verificar(perguntar_sobre(&jogo, ID_GERENTE) > 0,
+        verificar(perguntar_sobre(&jogo, ID_GERENTE, NOITE) > 0,
                   "pergunta registra depoimento");
         turnos++;
     }
@@ -442,15 +442,15 @@ static void testar_acoes_invalidas(void) {
     verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 5),
               "partida válida inicia");
 
-    verificar(perguntar_sobre(&jogo, ID_GERENTE) == -1,
+    verificar(perguntar_sobre(&jogo, ID_GERENTE, NOITE) == -1,
               "não dá para perguntar fora do debate");
     verificar(prender_suspeito(&jogo, ID_GERENTE) == 0,
               "não dá para prender fora do julgamento");
 
     avancar_fase_jogo(&jogo); // debate
-    verificar(perguntar_sobre(&jogo, 999) == -1,
+    verificar(perguntar_sobre(&jogo, 999, NOITE) == -1,
               "alvo inexistente é recusado");
-    verificar(perguntar_sobre(&jogo, NENHUM) == -1,
+    verificar(perguntar_sobre(&jogo, NENHUM, NOITE) == -1,
               "alvo negativo é recusado");
     verificar(prender_suspeito(&jogo, ID_GERENTE) == 0,
               "não dá para prender durante o debate");
@@ -488,10 +488,10 @@ static void testar_reacoes_confirmam_a_verdade(void) {
     while (suspeito_do_turno(&jogo) != NULL) {
         Suspeito *falante = suspeito_do_turno(&jogo);
         if (falante->id == assassino || falante->id == cumplice) {
-            id_depoimento = perguntar_sobre(&jogo, falante->id);
+            id_depoimento = perguntar_sobre(&jogo, falante->id, NOITE);
             break;
         }
-        perguntar_sobre(&jogo, assassino);
+        perguntar_sobre(&jogo, assassino, NOITE);
     }
 
     verificar(id_depoimento > 0, "culpado depõe sobre si mesmo");

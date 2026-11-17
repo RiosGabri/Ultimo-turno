@@ -58,7 +58,6 @@ void liberar_jogo(Jogo *jogo);
 
 const char *local_do_suspeito(const Jogo*, int id, int dia, enum Periodo);
 const char *local_do_crime(const Jogo*, int dia);
-static void gerar_agenda(Jogo *jogo, unsigned int semente);
 
 // ---------------------------------------------------------------------------
 // Fases
