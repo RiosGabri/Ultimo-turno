@@ -965,6 +965,110 @@ static void testar_ordenacao_por_criterios(void) {
     }
 }
 
+static int coletar_pistas(const Caderno *caderno, Pista *destino[], int maximo) {
+    if (caderno == NULL || destino == NULL || maximo <= 0) {
+        return 0;
+    }
+
+    int quantidade = 0;
+    for (NoListaDupla *no = caderno->pistas.inicio;
+         no != NULL && quantidade < maximo;
+         no = no->prox) {
+        destino[quantidade++] = (Pista *)no->dado;
+    }
+    return quantidade;
+}
+
+static int mesma_colecao_de_pistas(Pista *a[], int n, Pista *b[], int m) {
+    if (a == NULL || b == NULL || n != m) {
+        return 0;
+    }
+
+    for (int i = 0; i < n; i++) {
+        int ocorrencias = 0;
+        for (int j = 0; j < m; j++) {
+            if (a[i] == b[j]) {
+                ocorrencias++;
+            }
+        }
+        if (ocorrencias != 1) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+static void testar_ordenacao_preserva_itens(void) {
+    CriterioOrdenacao criterios[] = {
+        ORDENAR_POR_LOCAL,
+        ORDENAR_POR_OBJETO,
+        ORDENAR_POR_DIA_RECENTE
+    };
+
+    for (int i = 0; i < 3; i++) {
+        Caderno *caderno = criar_caderno_ordenacao();
+        verificar(caderno != NULL, "caderno de preservacao das pistas deve alocar");
+        if (caderno == NULL) {
+            continue;
+        }
+
+        Pista *antes[8];
+        int total_antes = coletar_pistas(caderno, antes, 8);
+        verificar(total_antes == 4, "coleta quatro pistas antes da ordenacao");
+
+        int trocas = ordenar_pistas(caderno, criterios[i]);
+        verificar(trocas > 0, "ordenacao de preservacao deve realizar trocas");
+
+        Pista *depois[8];
+        int total_depois = coletar_pistas(caderno, depois, 8);
+        verificar(total_depois == total_antes,
+                  "ordenacao preserva a quantidade de pistas");
+        verificar(mesma_colecao_de_pistas(antes, total_antes, depois, total_depois),
+                  "ordenacao preserva os mesmos ponteiros de pista");
+        verificar(caderno->pistas.tamanho == total_depois,
+                  "tamanho da secao bate com a quantidade de nos");
+        verificar_secao_pistas_integra(caderno);
+
+        liberar_caderno(caderno);
+    }
+}
+
+static void testar_ordenacao_chaves_repetidas(void) {
+    Caderno *caderno = inicializar_caderno(ID_POIROT);
+    verificar(caderno != NULL, "caderno de chaves repetidas deve alocar");
+    if (caderno == NULL) {
+        return;
+    }
+
+    registrar_pista(caderno, 3, "Gerencia", "Chave", "Chave na gerencia.", NULL);
+    registrar_pista(caderno, 1, "Fundicao", "Luva", "Primeira luva.", NULL);
+    registrar_pista(caderno, 2, "Fundicao", "Luva", "Segunda luva.", NULL);
+
+    verificar(caderno->pistas.tamanho == 3,
+              "caderno de chaves repetidas tem tres pistas");
+    if (caderno->pistas.tamanho != 3) {
+        liberar_caderno(caderno);
+        return;
+    }
+
+    Pista *gerencia = (Pista *)caderno->pistas.inicio->dado;
+    Pista *primeira_luva = (Pista *)caderno->pistas.inicio->prox->dado;
+    Pista *segunda_luva = (Pista *)caderno->pistas.fim->dado;
+
+    int trocas = ordenar_pistas(caderno, ORDENAR_POR_LOCAL);
+    verificar(trocas > 0, "ordenar chaves repetidas deve realizar trocas");
+    verificar(caderno->pistas.tamanho == 3,
+              "ordenar chaves repetidas preserva o tamanho");
+    verificar(caderno->pistas.inicio->dado == primeira_luva &&
+              caderno->pistas.inicio->prox->dado == segunda_luva &&
+              caderno->pistas.fim->dado == gerencia,
+              "chaves repetidas mantem a ordem estavel e nao duplicam");
+    verificar_secao_pistas_integra(caderno);
+
+    liberar_caderno(caderno);
+}
+
 static void testar_ordenacao_de_pistas(void) {
     Caderno *caderno = inicializar_caderno(ID_POIROT);
     verificar(caderno != NULL, "inicializar_caderno deve alocar");
@@ -1037,6 +1141,8 @@ int main(void) {
     testar_navegacao_por_secao();
     testar_ordenacao_de_pistas();
     testar_ordenacao_por_criterios();
+    testar_ordenacao_preserva_itens();
+    testar_ordenacao_chaves_repetidas();
 
     if (falhas == 0) {
         printf("OK: todos os testes do caderno passaram\n");
