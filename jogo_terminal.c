@@ -69,6 +69,25 @@ static const char *nome_periodo(enum Periodo periodo) {
     }
 }
 
+static void mostrar_suspeitos_relacionados(const Jogo *jogo, const Pista *pista) {
+    if (pista == NULL || pista->suspeitos_relacionados == NULL ||
+        pista->suspeitos_relacionados->inicio == NULL) {
+        return;
+    }
+
+    printf("  Relacionados: ");
+    int primeiro = 1;
+    for (const NoListaDupla *no = pista->suspeitos_relacionados->inicio;
+         no != NULL; no = no->prox) {
+        if (!primeiro) {
+            printf(", ");
+        }
+        printf("%s", nome_suspeito(jogo, no->id));
+        primeiro = 0;
+    }
+    printf("\n");
+}
+
 static void mostrar_cabecalho(const Jogo *jogo) {
     printf("\n============================================================\n");
     printf(" Dia %d/%d  |  Fase: %-11s |  Credibilidade: %d\n",
@@ -88,7 +107,7 @@ static void listar_vivos(const Jogo *jogo) {
         const Suspeito *suspeito = (const Suspeito *)no->dado;
         if (suspeito != NULL && suspeito->situacao == VIVO) {
             // A interface usa 1..6; o 0 fica reservado para cancelar/não prender.
-            printf("  %d - %s (%s)\n", suspeito->id + 1, suspeito->nome, suspeito->cargo);
+            printf("  %d - %s\n", suspeito->id + 1, suspeito->nome);
         }
         no = no->prox;
     } while (no != jogo->suspeitos->inicio);
@@ -105,10 +124,7 @@ static void listar_todos_suspeitos(const Jogo *jogo) {
         const Suspeito *suspeito = (const Suspeito *)no->dado;
 
         if (suspeito != NULL) {
-            printf("  %d - %s (%s)\n",
-                   suspeito->id + 1,
-                   suspeito->nome,
-                   suspeito->cargo);
+            printf("  %d - %s\n", suspeito->id + 1, suspeito->nome);
         }
 
         no = no->prox;
@@ -175,6 +191,7 @@ static void exibir_item_atual(const Jogo *jogo) {
             printf("  Pista #%d — dia %d, %s\n", no->id, pista->dia, pista->local);
             printf("  Objeto: %s\n", pista->objeto);
             printf("  %s\n", pista->descricao);
+            mostrar_suspeitos_relacionados(jogo, pista);
             break;
         }
         case SECAO_REACOES: {
@@ -473,7 +490,7 @@ static void jogar_debate(Jogo *jogo) {
         return;
     }
 
-    printf("\nDEBATE — vez de %s (%s).\n", falante->nome, falante->cargo);
+    printf("\nDEBATE — vez de %s.\n", falante->nome);
     printf("  [1] Interrogar\n");
     printf("  [2] Abrir caderno\n");
     printf("  [3] Encerrar debate\n> ");

@@ -123,6 +123,7 @@ void registrar_pista(Caderno *caderno, int dia, char* local, char* objeto, char*
     //nó do novo depoimento que fica na seção de depoimentos do caderno
     NoListaDupla *nova_pista = malloc(sizeof(NoListaDupla));
     if (nova_pista == NULL) {
+        liberar_lista_dupla(suspeitos_relacionados);
         return; // Falha ao alocar memória
     }
 
@@ -130,6 +131,7 @@ void registrar_pista(Caderno *caderno, int dia, char* local, char* objeto, char*
     Pista *pista = malloc(sizeof(Pista));
     if (pista == NULL) {
         free(nova_pista);
+        liberar_lista_dupla(suspeitos_relacionados);
         return; // Falha ao alocar memória
     }
     pista->dia = dia;
@@ -144,6 +146,7 @@ void registrar_pista(Caderno *caderno, int dia, char* local, char* objeto, char*
         free(pista->descricao);
         free(pista);
         free(nova_pista);
+        liberar_lista_dupla(suspeitos_relacionados);
         return; // Falha ao copiar os textos
     }
 
@@ -162,6 +165,18 @@ void registrar_pista(Caderno *caderno, int dia, char* local, char* objeto, char*
     caderno->pistas.fim = nova_pista;
     caderno->pistas.tamanho++;
 }
+int pista_tem_suspeito_relacionado(const Pista *pista, int id_suspeito) {
+    if (pista == NULL || pista->suspeitos_relacionados == NULL) {
+        return 0;
+    }
+    for (const NoListaDupla *no = pista->suspeitos_relacionados->inicio; no != NULL; no = no->prox) {
+        if (no->id == id_suspeito) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void registrar_reacao(Caderno *caderno, int dia, int id_depoimento, char* quem_reagiu, enum TipoReacao tipo_reacao) {
     //nó da nova reação que fica na seção de reações do caderno
     NoListaDupla *nova_reacao = malloc(sizeof(NoListaDupla));
