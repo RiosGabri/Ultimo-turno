@@ -157,7 +157,10 @@ A versão de terminal não depende da raylib. No Windows, ela ajusta a página d
 - **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 25 de credibilidade; prender o cúmplice custa 15 e revela o local verdadeiro do assassino na noite do crime.
 - **Noite:** a primeira noite passa sem mortes; nas seguintes, o assassino pode atacar um inocente e o caso continua no dia seguinte.
 
-O menu gráfico ainda é um protótipo:
+O menu gráfico permite iniciar uma partida, escolher Miss Marple ou Hercule
+Poirot e sair. Depois da escolha, a tela mostra a detetive, a fase inicial e a
+pista do dia; as interações completas das fases continuam disponíveis no
+terminal:
 
 ```sh
 make
@@ -166,10 +169,9 @@ make
 
 O menu carrega `assets/fontes/DejaVuSans.ttf` com `LoadFontEx` e todos os
 caracteres do português (ASCII, Latin-1, Latin Extended-A e pontuação
-tipográfica). A linha **Acentos: á ç ã é ô — ação, café, pão, avô** na tela
-serve como teste visual; se a fonte não for encontrada, o jogo avisa no log e
-usa a fonte padrão da raylib, que não tem acentos. Os auxiliares de fonte,
-texto, painéis, ícones geométricos e botões ficam em `interface/ui.c` e
+tipográfica). Se a fonte não for encontrada, o jogo avisa no log e usa a fonte
+padrão da raylib, que não tem acentos. Os auxiliares de fonte, texto, painéis,
+ícones geométricos e botões ficam em `interface/ui.c` e
 `interface/ui.h`; para textos longos,
 `ui_quebrar_texto` calcula o layout (respeitando `\n` e dividindo palavras
 maiores que a largura) e `ui_desenhar_texto_quebrado` desenha o resultado.
