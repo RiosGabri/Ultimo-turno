@@ -35,6 +35,7 @@ typedef struct {
     // Debate: cursor da lista dupla circular e bitmap de quem já falou.
     NoListaDuplaCircular *turno_atual;
     unsigned int interrogados;
+	int proximo_inicio_debate; // id do suspeito que deve abrir o próximo debate
 
     int ultima_vitima; // id do suspeito morto na última noite, ou NENHUM
     char revelacao_cumplice[256]; // mensagem revelada ao prender o cúmplice
@@ -45,6 +46,8 @@ typedef struct {
 // ---------------------------------------------------------------------------
 int iniciar_jogo(Jogo *jogo, int id_detetive);
 int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente);
+static NoListaDuplaCircular *no_por_id(const Jogo *jogo, int id);
+static NoListaDuplaCircular *primeiro_vivo_a_partir(const Jogo *jogo, NoListaDuplaCircular *comeco);
 void liberar_jogo(Jogo *jogo);
 
 // ---------------------------------------------------------------------------
