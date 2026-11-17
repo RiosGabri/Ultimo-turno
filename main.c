@@ -16,6 +16,7 @@
 
 typedef enum {
     TELA_MENU,
+    TELA_HISTORIA,
     TELA_DETETIVE,
     TELA_PARTIDA
 } Tela;
@@ -105,6 +106,76 @@ static const char *nome_detetive(int id) {
         case ID_HERCULE_POIROT: return "Hercule Poirot";
         default: return "Detetive desconhecida";
     }
+}
+
+static void desenhar_fundo_historia(const Recursos *recursos) {
+    if (recursos->fundo_historia.id != 0) {
+        float escala = (float)ALTURA_TELA /
+                       (float)recursos->fundo_historia.height;
+        float largura = recursos->fundo_historia.width * escala;
+        Rectangle origem = {0.0f, 0.0f,
+                            (float)recursos->fundo_historia.width,
+                            (float)recursos->fundo_historia.height};
+        Rectangle destino = {LARGURA_TELA - largura, 0.0f, largura,
+                             (float)ALTURA_TELA};
+        DrawTexturePro(recursos->fundo_historia, origem, destino,
+                       (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+    } else {
+        recursos_desenhar_fundo(recursos);
+    }
+
+    DrawRectangleGradientH(0, 0, 900, ALTURA_TELA,
+                           (Color){18, 18, 17, 238},
+                           (Color){18, 18, 17, 0});
+    DrawRectangle(0, 0, LARGURA_TELA, ALTURA_TELA,
+                  (Color){10, 10, 9, 20});
+}
+
+static void desenhar_historia(const UIFonte *fonte_titulo,
+                              const UIFonte *fonte_corpo,
+                              const UIFonte *fonte_corpo_bold,
+                              const Recursos *recursos) {
+    desenhar_fundo_historia(recursos);
+
+    DrawRectangle(96, 68, 28, 2, COR_TIJOLO);
+    ui_desenhar_texto(fonte_corpo_bold, "PRÓLOGO",
+                      (Vector2){96.0f, 80.0f}, 13.0f, COR_TIJOLO);
+    ui_desenhar_texto(fonte_titulo, "A FÁBRICA",
+                      (Vector2){96.0f, 105.0f}, 68.0f, COR_OSSO);
+
+    Rectangle area = {96.0f, 0.0f, 820.0f, 0.0f};
+    float y = 210.0f;
+
+    area.y = y;
+    float altura = ui_desenhar_texto_quebrado(
+        fonte_titulo,
+        "Na década de 1930, a fábrica acorda antes do sol.",
+        area, 30.0f, 6.0f, COR_OSSO);
+    y += altura + 22.0f;
+
+    area.y = y;
+    altura = ui_desenhar_texto_quebrado(
+        fonte_corpo,
+        "O apito marca o turno, as máquinas cobrem as conversas e ninguém "
+        "olha duas vezes para o chão.",
+        area, 20.0f, 7.0f, COR_PAPEL);
+    y += altura + 16.0f;
+
+    area.y = y;
+    altura = ui_desenhar_texto_quebrado(
+        fonte_corpo,
+        "Ao fim do expediente, Chaplin é encontrado morto na sala de "
+        "máquinas. A polícia não quer escândalo. Os operários não querem "
+        "falar.",
+        area, 20.0f, 7.0f, COR_PAPEL);
+    y += altura + 28.0f;
+
+    DrawRectangle(96, (int)y + 2, 3, 26, COR_TIJOLO);
+    Rectangle final_area = {112.0f, y, 800.0f, 0.0f};
+    ui_desenhar_texto_quebrado(
+        fonte_corpo_bold,
+        "Você tem quatro dias para descobrir quem mentiu.",
+        final_area, 20.0f, 5.0f, COR_OSSO);
 }
 
 static EntradaBotao ler_entrada_botao(void) {
@@ -197,9 +268,16 @@ static void desenhar_titulo_centralizado(const UIFonte *fonte,
     ui_desenhar_texto_centralizado(fonte, texto, area, tamanho, cor);
 }
 
-static void desenhar_fundo_com_vinheta(const Recursos *recursos,
-                                       unsigned char intensidade) {
-    recursos_desenhar_fundo(recursos);
+static void desenhar_fundo_textura_com_vinheta(Texture2D textura,
+                                               unsigned char intensidade) {
+    if (textura.id != 0) {
+        Rectangle tela = {0.0f, 0.0f, (float)LARGURA_TELA,
+                          (float)ALTURA_TELA};
+        recursos_desenhar_textura_cover(textura, tela);
+    } else {
+        ClearBackground(COR_CARVAO);
+    }
+
     DrawRectangle(0, 0, LARGURA_TELA, ALTURA_TELA,
                   (Color){18, 18, 17, intensidade});
 }
@@ -261,6 +339,7 @@ int main(void) {
 
     BotaoUI botoes_menu[TOTAL_OPCOES_MENU];
     BotaoUI botoes_detetive[TOTAL_OPCOES_DETETIVE];
+    BotaoUI botao_avancar_historia;
     BotaoUI botao_voltar_partida;
 
     inicializar_botoes(botoes_menu, ROTULOS_MENU, TOTAL_OPCOES_MENU,
@@ -272,6 +351,13 @@ int main(void) {
     inicializar_botoes(botoes_detetive, ROTULOS_DETETIVE,
                        TOTAL_OPCOES_DETETIVE,
                        (LARGURA_TELA - LARGURA_BOTAO) / 2.0f, 300.0f);
+
+    botao_avancar_historia = (BotaoUI){
+        .area = {1016.0f, 616.0f, 200.0f, 56.0f},
+        .rotulo = "AVANÇAR >",
+        .habilitado = true,
+        .primario = true,
+    };
 
     botao_voltar_partida = (BotaoUI){
         .area = {(LARGURA_TELA - LARGURA_BOTAO) / 2.0f, 590.0f,
@@ -296,6 +382,10 @@ int main(void) {
                 botoes_atuais = botoes_menu;
                 quantidade_botoes = TOTAL_OPCOES_MENU;
                 break;
+            case TELA_HISTORIA:
+                botoes_atuais = &botao_avancar_historia;
+                quantidade_botoes = 1;
+                break;
             case TELA_DETETIVE:
                 botoes_atuais = botoes_detetive;
                 quantidade_botoes = TOTAL_OPCOES_DETETIVE;
@@ -318,15 +408,27 @@ int main(void) {
                 acionado = desenhar_menu_acoes(
                     &fonte_corpo_bold, botoes_menu, selecionado);
                 if (acionado == OPCAO_INICIAR) {
-                    tela = TELA_DETETIVE;
+                    tela = TELA_HISTORIA;
                     selecionado = 0;
                 } else if (acionado == OPCAO_SAIR) {
                     fechar = true;
                 }
                 break;
 
+            case TELA_HISTORIA:
+                desenhar_historia(&fonte_titulo, &fonte_corpo,
+                                  &fonte_corpo_bold, &recursos);
+                acionado = desenhar_botoes(
+                    &fonte_corpo_bold, &botao_avancar_historia, 1, selecionado);
+                if (acionado == 0) {
+                    tela = TELA_DETETIVE;
+                    selecionado = 0;
+                }
+                break;
+
             case TELA_DETETIVE: {
-                desenhar_fundo_com_vinheta(&recursos, 218);
+                desenhar_fundo_textura_com_vinheta(recursos.fundo_detetives,
+                                                   205);
                 desenhar_titulo_centralizado(
                     &fonte_titulo, "ESCOLHA SEU DETETIVE", 74.0f,
                     TAMANHO_TITULO_TELA, COR_OSSO);
@@ -341,7 +443,7 @@ int main(void) {
                     TOTAL_OPCOES_DETETIVE, selecionado);
 
                 if (acionado == OPCAO_VOLTAR) {
-                    tela = TELA_MENU;
+                    tela = TELA_HISTORIA;
                     selecionado = 0;
                 } else if (acionado == OPCAO_MISS_MARPLE ||
                            acionado == OPCAO_HERCULE_POIROT) {
@@ -371,7 +473,7 @@ int main(void) {
             }
 
             case TELA_PARTIDA: {
-                desenhar_fundo_com_vinheta(&recursos, 232);
+                desenhar_fundo_textura_com_vinheta(recursos.fabrica, 232);
                 desenhar_titulo_centralizado(
                     &fonte_titulo, "INVESTIGAÇÃO INICIADA", 64.0f,
                     TAMANHO_TITULO_TELA, COR_OSSO);
