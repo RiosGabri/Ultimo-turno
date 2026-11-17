@@ -8,8 +8,14 @@
 #include "listas/lista-dupla-circular.h"
 
 #define CREDIBILIDADE_INICIAL 100
-#define CUSTO_PRENDER_INOCENTE 30
+#define CUSTO_PRENDER_INOCENTE 25
 #define CUSTO_PRENDER_CUMPLICE 15
+
+// Pesos da pontuação da partida.
+#define PONTOS_VITORIA 3000           // bônus por fechar o caso
+#define PONTOS_POR_DIA_RESTANTE 200   // cada dia ainda não usado
+#define PONTOS_POR_CREDIBILIDADE 10   // cada ponto de credibilidade restante
+#define PONTOS_POR_CONTRADICAO 50     // cada contradição registrada no caderno
 
 typedef enum {
     JOGO_EM_ANDAMENTO,
@@ -75,8 +81,25 @@ int debate_encerrado(const Jogo *jogo);
 // ---------------------------------------------------------------------------
 // Prende um suspeito vivo durante o julgamento. Retorna 1 se a ação foi aceita.
 // Prender o assassino encerra o jogo em vitória; prender o cúmplice custa 15
-// e revela uma informação; prender um inocente custa 30.
+// e revela uma informação; prender um inocente custa 25.
 int prender_suspeito(Jogo *jogo, int id);
+
+// ---------------------------------------------------------------------------
+// Pontuação e final
+// ---------------------------------------------------------------------------
+// Pontuação pelos três critérios da partida: dias usados, credibilidade
+// restante e contradições encontradas. Fora da faixa válida, cada valor é
+// limitado antes do cálculo (o bônus de vitória entra em pontuacao_do_jogo).
+int calcular_pontuacao(int dias_usados, int credibilidade_restante,
+                       int contradicoes_encontradas);
+
+// Pontuação da partida atual: o cálculo acima mais PONTOS_VITORIA quando o
+// jogo terminou em vitória. Retorna 0 para jogo NULL.
+int pontuacao_do_jogo(const Jogo *jogo);
+
+// Texto narrativo do final: vitória, derrota por credibilidade ou derrota por
+// tempo. String vazia se o jogo ainda está em andamento ou se for inválido.
+const char *texto_final(const Jogo *jogo);
 
 // ---------------------------------------------------------------------------
 // Consultas usadas pela interface

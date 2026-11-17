@@ -6,7 +6,7 @@ Jogo de investigação (*whodunit*) em linguagem C, feito para a atividade prát
 
 Um operário de *Tempos Modernos*, Chaplin, é encontrado morto ao fim do turno na fábrica. O jogador conduz a investigação como **Hercule Poirot** ou **Miss Marple** e tem **4 dias** para descobrir o culpado entre os suspeitos.
 
-O assassino está entre os suspeitos e continua agindo à noite. Todo dia há um debate: o jogador interroga, os outros suspeitos reagem, e ele decide se prende alguém. Prender um inocente custa credibilidade. Chegar ao dia 4 sem prender o culpado é game over.
+O assassino está entre os suspeitos e age nas noites seguintes à primeira, que passa sem mortes. Todo dia há um debate: o jogador interroga, os outros suspeitos reagem, e ele decide se prende alguém. Prender um inocente custa credibilidade. Chegar ao dia 4 sem prender o culpado é game over.
 
 ## Objetivo
 
@@ -16,10 +16,11 @@ Descobrir quem matou Chaplin, usando o caderno de pistas e depoimentos, antes qu
 
 - **Duração:** 4 dias.
 - **Suspeitos:** 6 no início (exemplo: Gerente, Capataz, Engenheiro, Operária, Enfermeiro e Vigia noturno), com 1 assassino e, possivelmente, 1 cúmplice.
-- **Cada dia tem 4 fases:** Manhã (resumo e pista), Debate, Julgamento e Noite.
+- **Cada dia tem 4 fases:** Manhã (resumo e pista), Debate, Julgamento e Noite. A primeira noite passa sem mortes.
 - **Debate:** os turnos seguem uma volta completa na lista de suspeitos vivos. O jogador pergunta, o suspeito responde e os demais reagem com "Concordo" ou "Discordo".
 - **Credibilidade:** começa em 100. Prender o inocente custa pontos, e chegar a 0 é game over.
 - **Cúmplice:** se existir, prendê-lo não vence; custa 15 de credibilidade e revela uma pista verdadeira sobre o assassino.
+- **Pontuação:** cada dia ainda não usado vale 200 pontos, cada ponto de credibilidade restante vale 10 e cada contradição encontrada no caderno vale 50; fechar o caso em vitória soma 3000. O total aparece no cabeçalho do terminal durante a partida e na tela final, junto com o texto do desfecho.
 - **Caderno:** registra depoimentos, pistas e reações, e destaca contradições.
 
 ## Estruturas de dados e algoritmo de ordenação
@@ -78,6 +79,7 @@ Outros comandos:
 
 ```sh
 make test        # testes das estruturas, do dia e do jogo
+make test-ui     # fonte .ttf com acentos e auxiliares de interface (raylib)
 make valgrind    # testes com verificação de memória
 make clean       # remove a pasta build/
 make distclean   # remove build/ e os artefatos compilados da raylib
@@ -152,8 +154,8 @@ A versão de terminal não depende da raylib. No Windows, ela ajusta a página d
 
 - **Manhã:** uma pista nova entra no caderno.
 - **Debate:** cada suspeito vivo fala uma vez. Escolha sobre quem perguntar; os outros reagem.
-- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 30 de credibilidade; prender o cúmplice custa 15 e revela o local verdadeiro do assassino na noite do crime.
-- **Noite:** o assassino ataca um inocente e o caso continua no dia seguinte.
+- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 25 de credibilidade; prender o cúmplice custa 15 e revela o local verdadeiro do assassino na noite do crime.
+- **Noite:** a primeira noite passa sem mortes; nas seguintes, o assassino pode atacar um inocente e o caso continua no dia seguinte.
 
 O menu gráfico ainda é um protótipo:
 
@@ -161,6 +163,24 @@ O menu gráfico ainda é um protótipo:
 make
 ./build/jogo
 ```
+
+O menu carrega `assets/fontes/DejaVuSans.ttf` com `LoadFontEx` e todos os
+caracteres do português (ASCII, Latin-1, Latin Extended-A e pontuação
+tipográfica). A linha **Acentos: á ç ã é ô — ação, café, pão, avô** na tela
+serve como teste visual; se a fonte não for encontrada, o jogo avisa no log e
+usa a fonte padrão da raylib, que não tem acentos. Os auxiliares de fonte,
+texto, painéis, ícones geométricos e botões ficam em `interface/ui.c` e
+`interface/ui.h`; para textos longos,
+`ui_quebrar_texto` calcula o layout (respeitando `\n` e dividindo palavras
+maiores que a largura) e `ui_desenhar_texto_quebrado` desenha o resultado.
+`ui_desenhar_painel_texto` aplica a quebra ao espaço interno e recorta o texto
+à altura do painel. `ui_desenhar_icone` desenha concordância, discordância,
+neutralidade e alerta com formas, sem depender de glifos especiais.
+
+Os botões são reutilizáveis (`BotaoUI` + `ui_desenhar_botao`): o mouse
+funciona com hover e clique (apertar e soltar dentro do botão) e o teclado
+usa as setas ou Tab/Shift+Tab para mudar o foco e Enter/Espaço para acionar.
+`ui_navegar_botoes` já pula botões desabilitados.
 
 ## Estrutura do projeto
 

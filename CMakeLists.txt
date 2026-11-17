@@ -36,6 +36,7 @@ set(ULTIMO_TURNO_ESTRUTURAS
 set(ULTIMO_TURNO_INCLUDES
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/estruturas
+    ${CMAKE_CURRENT_SOURCE_DIR}/interface
 )
 
 set(ULTIMO_TURNO_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets")
@@ -82,6 +83,7 @@ if(ULTIMO_TURNO_BUILD_JOGO)
 
     add_executable(jogo
         main.c
+        interface/ui.c
         jogo.c
         dia.c
         ${ULTIMO_TURNO_ESTRUTURAS}
@@ -181,5 +183,21 @@ ultimo_turno_adicionar_teste(teste_roda_debate
     dia.c
     ${ULTIMO_TURNO_ESTRUTURAS}
 )
+
+# O teste da interface usa a raylib para ler o .ttf e conferir os glifos, mas
+# não abre janela; por isso roda mesmo sem display, desde que a raylib exista.
+# O diretório de trabalho é a raiz do repositório para achar assets/fontes/.
+if(ULTIMO_TURNO_BUILD_JOGO)
+    ultimo_turno_adicionar_teste(teste_ui
+        test/teste_ui.c
+        interface/ui.c
+    )
+    target_link_libraries(teste_ui PRIVATE raylib)
+    if(UNIX)
+        target_link_libraries(teste_ui PRIVATE m)
+    endif()
+    set_tests_properties(teste_ui PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
 
 
