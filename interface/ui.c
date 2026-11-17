@@ -229,6 +229,106 @@ void ui_desenhar_texto_centralizado(const UIFonte *fonte, const char *texto,
     ui_desenhar_texto(fonte, texto, posicao, tamanho, cor);
 }
 
+void ui_desenhar_icone(UIIcone icone, Vector2 centro, float tamanho, Color cor) {
+    if (tamanho <= 0.0f ||
+        (icone != UI_ICONE_CONCORDA && icone != UI_ICONE_DISCORDA &&
+         icone != UI_ICONE_NEUTRO && icone != UI_ICONE_ALERTA)) {
+        return;
+    }
+
+    float raio = tamanho * 0.43f;
+    float espessura = tamanho * 0.075f;
+    if (espessura < 1.0f) {
+        espessura = 1.0f;
+    }
+
+    if (icone == UI_ICONE_ALERTA) {
+        Vector2 topo = {centro.x, centro.y - raio};
+        Vector2 base_esquerda = {centro.x - raio, centro.y + raio * 0.72f};
+        Vector2 base_direita = {centro.x + raio, centro.y + raio * 0.72f};
+        DrawLineEx(topo, base_esquerda, espessura, cor);
+        DrawLineEx(base_esquerda, base_direita, espessura, cor);
+        DrawLineEx(base_direita, topo, espessura, cor);
+        DrawLineEx((Vector2){centro.x, centro.y - raio * 0.38f},
+                   (Vector2){centro.x, centro.y + raio * 0.24f}, espessura,
+                   cor);
+        DrawCircleV((Vector2){centro.x, centro.y + raio * 0.52f},
+                    espessura * 0.65f, cor);
+        return;
+    }
+
+    DrawCircleLines((int)centro.x, (int)centro.y, raio, cor);
+
+    switch (icone) {
+        case UI_ICONE_CONCORDA:
+            DrawLineEx((Vector2){centro.x - raio * 0.52f,
+                                 centro.y + raio * 0.02f},
+                       (Vector2){centro.x - raio * 0.12f,
+                                 centro.y + raio * 0.42f},
+                       espessura, cor);
+            DrawLineEx((Vector2){centro.x - raio * 0.12f,
+                                 centro.y + raio * 0.42f},
+                       (Vector2){centro.x + raio * 0.56f,
+                                 centro.y - raio * 0.40f},
+                       espessura, cor);
+            break;
+        case UI_ICONE_DISCORDA:
+            DrawLineEx((Vector2){centro.x - raio * 0.38f,
+                                 centro.y - raio * 0.38f},
+                       (Vector2){centro.x + raio * 0.38f,
+                                 centro.y + raio * 0.38f},
+                       espessura, cor);
+            DrawLineEx((Vector2){centro.x + raio * 0.38f,
+                                 centro.y - raio * 0.38f},
+                       (Vector2){centro.x - raio * 0.38f,
+                                 centro.y + raio * 0.38f},
+                       espessura, cor);
+            break;
+        case UI_ICONE_NEUTRO:
+            DrawCircleV((Vector2){centro.x - raio * 0.32f,
+                                  centro.y - raio * 0.16f},
+                        espessura * 0.55f, cor);
+            DrawCircleV((Vector2){centro.x + raio * 0.32f,
+                                  centro.y - raio * 0.16f},
+                        espessura * 0.55f, cor);
+            DrawLineEx((Vector2){centro.x - raio * 0.38f,
+                                 centro.y + raio * 0.28f},
+                       (Vector2){centro.x + raio * 0.38f,
+                                 centro.y + raio * 0.28f},
+                       espessura, cor);
+            break;
+        default:
+            return;
+    }
+}
+
+float ui_desenhar_painel_texto(const UIFonte *fonte, Rectangle area,
+                               const char *texto, float tamanho_texto,
+                               Color fundo, Color borda, Color cor_texto) {
+    const float padding = 14.0f;
+    DrawRectangleRec(area, fundo);
+    DrawRectangleLinesEx(area, 2.0f, borda);
+
+    float largura_interna = area.width - 2.0f * padding;
+    float altura_interna = area.height - 2.0f * padding;
+    if (texto == NULL || largura_interna <= 0.0f || altura_interna <= 0.0f) {
+        return 0.0f;
+    }
+
+    LayoutTexto layout = ui_quebrar_texto(fonte, texto, largura_interna,
+                                          tamanho_texto, 0.0f);
+    BeginScissorMode((int)(area.x + padding), (int)(area.y + padding),
+                     (int)largura_interna, (int)altura_interna);
+    ui_desenhar_layout_texto(fonte, &layout,
+                             (Vector2){area.x + padding, area.y + padding},
+                             cor_texto);
+    EndScissorMode();
+
+    float altura = layout.altura;
+    ui_liberar_layout_texto(&layout);
+    return altura;
+}
+
 // Largura de avanço de um único codepoint, já escalada para o tamanho pedido.
 static float avanco_codepoint(const Font *fonte, int codepoint, float escala) {
     int indice = GetGlyphIndex(*fonte, codepoint);

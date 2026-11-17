@@ -312,6 +312,54 @@ static void testar_altura_sem_desenhar(void) {
     ui_liberar_layout_texto(&so_espacos);
 }
 
+static int eh_continuacao_utf8(unsigned char byte) {
+    return (byte & 0xC0) == 0x80;
+}
+
+static void testar_texto_longo_em_portugues(void) {
+    UIFonte fonte = criar_fonte_teste();
+    const char *texto =
+        "A investigação exige atenção: a operação ocorreu à noite, próximo "
+        "à fábrica. O depoimento do vigia não explica a contradição.";
+    LayoutTexto layout =
+        ui_quebrar_texto(&fonte, texto, 232.0f, 10.0f, 3.0f);
+
+    verificar(layout.quantidade > 1,
+              "o texto longo em português deve quebrar em várias linhas");
+    verificar_linhas_dentro_da_largura(&layout, 232.0f);
+
+    char reconstruido[256] = {0};
+    size_t comprimento = 0;
+    for (int i = 0; i < layout.quantidade; i++) {
+        const LinhaTexto *linha = &layout.linhas[i];
+        const unsigned char *inicio = (const unsigned char *)linha->inicio;
+        const unsigned char *fim = inicio + linha->comprimento;
+        verificar(!eh_continuacao_utf8(*inicio),
+                  "cada linha deve começar em um limite de caractere UTF-8");
+        verificar(*fim == '\0' || !eh_continuacao_utf8(*fim),
+                  "cada linha deve terminar em um limite de caractere UTF-8");
+
+        for (int j = 0; j < linha->comprimento; j++) {
+            if (linha->inicio[j] != ' ') {
+                reconstruido[comprimento++] = linha->inicio[j];
+            }
+        }
+    }
+
+    char esperado[256] = {0};
+    size_t tamanho_esperado = 0;
+    for (const char *p = texto; *p != '\0'; p++) {
+        if (*p != ' ') {
+            esperado[tamanho_esperado++] = *p;
+        }
+    }
+    verificar(strcmp(reconstruido, esperado) == 0,
+              "a quebra deve preservar os acentos e não perder caracteres");
+    verificar(layout.altura > 10.0f,
+              "o texto quebrado deve ter altura suficiente para várias linhas");
+    ui_liberar_layout_texto(&layout);
+}
+
 // ---------------------------------------------------------------------------
 // Botões (lógica pura, sem janela)
 // ---------------------------------------------------------------------------
@@ -441,6 +489,7 @@ int main(void) {
     testar_quebra_com_newline();
     testar_quebra_de_palavra_longa();
     testar_altura_sem_desenhar();
+    testar_texto_longo_em_portugues();
     testar_botao_com_mouse();
     testar_botao_com_teclado();
     testar_botao_desabilitado();

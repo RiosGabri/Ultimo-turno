@@ -36,6 +36,7 @@ set(ULTIMO_TURNO_ESTRUTURAS
 set(ULTIMO_TURNO_INCLUDES
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/estruturas
+    ${CMAKE_CURRENT_SOURCE_DIR}/interface
 )
 
 set(ULTIMO_TURNO_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets")
@@ -82,7 +83,7 @@ if(ULTIMO_TURNO_BUILD_JOGO)
 
     add_executable(jogo
         main.c
-        ui.c
+        interface/ui.c
         jogo.c
         dia.c
         ${ULTIMO_TURNO_ESTRUTURAS}
@@ -182,7 +183,7 @@ ultimo_turno_adicionar_teste(teste_jogo
 if(ULTIMO_TURNO_BUILD_JOGO)
     ultimo_turno_adicionar_teste(teste_ui
         test/teste_ui.c
-        ui.c
+        interface/ui.c
     )
     target_link_libraries(teste_ui PRIVATE raylib)
     if(UNIX)

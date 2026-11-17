@@ -61,6 +61,23 @@ void ui_desenhar_texto(const UIFonte *fonte, const char *texto, Vector2 posicao,
 void ui_desenhar_texto_centralizado(const UIFonte *fonte, const char *texto,
                                     Rectangle area, float tamanho, Color cor);
 
+typedef enum {
+    UI_ICONE_CONCORDA,
+    UI_ICONE_DISCORDA,
+    UI_ICONE_NEUTRO,
+    UI_ICONE_ALERTA
+} UIIcone;
+
+// Desenha o ícone centralizado em `centro`; `tamanho` é a largura/altura.
+// Os símbolos são desenhados com formas e não dependem de glifos especiais.
+void ui_desenhar_icone(UIIcone icone, Vector2 centro, float tamanho, Color cor);
+
+// Desenha um painel e o texto quebrado em seu interior. O texto é recortado à
+// área interna se exceder a altura disponível. Devolve a altura calculada.
+float ui_desenhar_painel_texto(const UIFonte *fonte, Rectangle area,
+                               const char *texto, float tamanho_texto,
+                               Color fundo, Color borda, Color cor_texto);
+
 // ---------------------------------------------------------------------------
 // Quebra de linha
 // ---------------------------------------------------------------------------
