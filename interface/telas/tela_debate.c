@@ -497,10 +497,11 @@ static void desenhar_cabecalho(const TelaDebate *tela,
                       (Vector2){MARGEM, 38.0f}, 34.0f, COR_OSSO);
 
     char subtitulo[96];
-    snprintf(subtitulo, sizeof subtitulo, "DIA %d DE %d",
-             jogo->dia.dia_atual, TOTAL_DIAS);
+    snprintf(subtitulo, sizeof subtitulo, "DIA %d/%d — %s",
+             jogo->dia.dia_atual, TOTAL_DIAS,
+             nome_fase(jogo->dia.fase_atual));
     ui_desenhar_texto(fonte_corpo, subtitulo,
-                      (Vector2){MARGEM, 76.0f}, 11.5f, COR_POEIRA);
+                      (Vector2){MARGEM, 74.0f}, 11.5f, COR_POEIRA);
 
     // Bloco da vez: nome grande e cargo/estado em Courier.
     texto_direita(fonte_corpo_bold, rotulo_vez, 1080.0f, 24.0f, 10.5f,
