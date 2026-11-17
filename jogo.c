@@ -1,5 +1,6 @@
 #include "jogo.h"
-#include "estruturas/entidades/aleatorio.h"
+#include "entidades/aleatorio.h"
+#include "entidades/locais.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,12 +21,6 @@ static const struct {
     [ID_ENFERMEIRA] = {"Esteves", "Enfermeira"},
     [ID_VIGIA]      = {"Farias",  "Vigia noturno"},
 };
-
-static const char *LOCAIS[] = {
-    "Sala de máquinas", "Gerência", "Linha de produção",
-    "Vestiário", "Enfermaria"
-};
-#define TOTAL_LOCAIS ((int)(sizeof(LOCAIS) / sizeof(LOCAIS[0])))
 
 static const struct {
     const char *local;
@@ -84,32 +79,35 @@ static int esta_interrogado(const Jogo *jogo, int id) {
     return (jogo->interrogados & (1u << id)) != 0;
 }
 
-static const char *preposicao_local(const char *local) {
-    if (local != NULL && strcmp(local, "Vestiário") == 0){
-        return "no";
-    } else{
-        return "na";
-    }
-}
 static const char *local_falso(const Jogo *jogo, int dia, enum Periodo periodo, int id_alvo) {
     const char *verdade = local_do_suspeito(jogo, id_alvo, dia, periodo);
     if (verdade == NULL) {
         return NULL;
     }
 
-    int indice_verdade = 0;
-    for (int i = 0; i < TOTAL_LOCAIS; i++) {
-        if (strcmp(LOCAIS[i], verdade) == 0) {
+    int total = total_locais();
+    if (total < 2) {
+        return NULL;
+    }
+
+    int indice_verdade = -1;
+    for (int i = 0; i < total; i++) {
+        const char *nome = nome_local(i);
+        if (nome != NULL && strcmp(nome, verdade) == 0) {
             indice_verdade = i;
             break;
         }
     }
 
-    // O deslocamento fica em 1..TOTAL_LOCAIS-1, então o local falso nunca é
-    // igual ao verdadeiro. Depende só de (dia, período, alvo): assassino e
-    // cúmplice contam exatamente a mesma versão falsa.
-    int deslocamento = 1 + (dia + (int)periodo + id_alvo) % (TOTAL_LOCAIS - 1);
-    return LOCAIS[(indice_verdade + deslocamento) % TOTAL_LOCAIS];
+    if (indice_verdade < 0) {
+        return NULL;
+    }
+
+    // O deslocamento fica em 1..total-1, então o local falso nunca é igual ao
+    // verdadeiro. Depende só de (dia, período, alvo): assassino e cúmplice
+    // contam exatamente a mesma versão falsa.
+    int deslocamento = 1 + (dia + (int)periodo + id_alvo) % (total - 1);
+    return nome_local((indice_verdade + deslocamento) % total);
 }
 
 static const char *expressao_periodo(enum Periodo periodo) {
@@ -126,10 +124,10 @@ static void montar_fala(char *destino, size_t tamanho, int sobre_si,
                         enum Periodo periodo) {
     if (sobre_si) {
         snprintf(destino, tamanho, "Eu estava %s %s %s.",
-                 preposicao_local(local), local, expressao_periodo(periodo));
+                 preposicao_do_local(local), local, expressao_periodo(periodo));
     } else {
         snprintf(destino, tamanho, "%s estava %s %s %s.",
-                 nome_alvo, preposicao_local(local), local,
+                 nome_alvo, preposicao_do_local(local), local,
                  expressao_periodo(periodo));
     }
 }
@@ -208,7 +206,7 @@ static void realizar_crime_noturno(Jogo *jogo) {
     if (local != NULL) {
         snprintf(descricao, sizeof descricao,
                  "%s foi encontrado morto na madrugada, %s %s. O assassino continua agindo.",
-                 vitima->nome, preposicao_local(local), local);
+                 vitima->nome, preposicao_do_local(local), local);
     } else {
         local = "local desconhecido";
         snprintf(descricao, sizeof descricao,
@@ -231,7 +229,7 @@ static void gerar_agenda(Jogo *jogo, unsigned int semente) {
         for (int p = 0; p < TOTAL_PERIODOS; p++)
             for (int id = 0; id < TOTAL_SUSPEITOS; id++)
                 jogo->agenda.local[d][p][id] =
-                    (unsigned char)aleatorio_intervalo(&gerador, TOTAL_LOCAIS);
+                    (unsigned char)aleatorio_intervalo(&gerador, total_locais());
 
     for (int d = 0; d < TOTAL_DIAS; d++) {
         jogo->agenda.local_crime[d] =
@@ -396,11 +394,7 @@ const char *local_do_suspeito(const Jogo *jogo, int id, int dia, enum Periodo pe
     }
 
     unsigned char indice = jogo->agenda.local[dia - 1][periodo][id];
-    if (indice >= TOTAL_LOCAIS) {
-        return NULL;
-    }
-
-    return LOCAIS[indice];
+    return nome_local(indice);
 }
 
 const char *local_do_crime(const Jogo *jogo, int dia) {
@@ -409,11 +403,7 @@ const char *local_do_crime(const Jogo *jogo, int dia) {
     }
 
     unsigned char indice = jogo->agenda.local_crime[dia - 1];
-    if (indice >= TOTAL_LOCAIS) {
-        return NULL;
-    }
-
-    return LOCAIS[indice];
+    return nome_local(indice);
 }
 
 static enum TipoReacao reagir(const Jogo *jogo, int dia, enum Periodo periodo, int id_falante, int id_alvo, const char *local_afirmado, const Suspeito *outro) {
