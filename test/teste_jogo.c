@@ -584,63 +584,126 @@ static void testar_acoes_invalidas(void) {
     liberar_jogo(&jogo);
 }
 
-static void testar_reacoes_confirmam_a_verdade(void) {
-    Jogo jogo;
-    verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 42),
-              "partida inicia");
+static enum TipoReacao reacao_esperada(const Jogo *jogo, const Depoimento *dep,
+                                       const Suspeito *outro) {
+    int assassino = jogo->papeis.id_assassino;
+    int cumplice = jogo->papeis.id_cumplice;
 
-    int assassino = jogo.papeis.id_assassino;
-    int cumplice = jogo.papeis.id_cumplice;
-
-    avancar_fase_jogo(&jogo); // manhã -> debate
-
-    // Avança até a vez de um dos culpados e pergunta sobre ele mesmo: a
-    // resposta é uma mentira sobre o próprio paradeiro.
-    int id_depoimento = -1;
-    while (suspeito_do_turno(&jogo) != NULL) {
-        Suspeito *falante = suspeito_do_turno(&jogo);
-        if (falante->id == assassino || falante->id == cumplice) {
-            id_depoimento = perguntar_sobre(&jogo, falante->id, NOITE);
-            break;
-        }
-        perguntar_sobre(&jogo, assassino, NOITE);
+    // Assassino: discorda de quem fala dele ou do cúmplice; concorda nos demais.
+    if (outro->id == assassino) {
+        return (dep->id_assunto == assassino || dep->id_assunto == cumplice)
+            ? DISCORDA
+            : CONCORDA;
     }
 
-    verificar(id_depoimento > 0, "culpado depõe sobre si mesmo");
-
-    int confirmacoes_culpadas = 0;
-    int confirmacoes_inocentes = 0;
-    for (NoListaDupla *no = jogo.caderno->reacoes.inicio;
-         no != NULL && id_depoimento > 0; no = no->prox) {
-        const Reacao *reacao = (const Reacao *)no->dado;
-        if (reacao == NULL || reacao->id_depoimento != id_depoimento ||
-            reacao->tipo_reacao != CONCORDA) {
-            continue;
+    // Cúmplice: concorda sempre com o assassino; discorda quando apontam para
+    // ele ou para o assassino; nos demais casos fica neutro.
+    if (outro->id == cumplice) {
+        if (dep->id_falante == assassino) {
+            return CONCORDA;
         }
+        if (dep->id_assunto == cumplice || dep->id_assunto == assassino) {
+            return DISCORDA;
+        }
+        return NEUTRO;
+    }
 
-        int culpado = 0;
-        for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
-            const Suspeito *suspeito = buscar_suspeito(&jogo, id);
-            if (suspeito != NULL &&
-                strcmp(suspeito->nome, reacao->quem_reagiu) == 0) {
-                culpado = (id == assassino || id == cumplice);
+    // Inocente: só opina quando tem como saber.
+    const char *verdade_alvo =
+        local_do_suspeito(jogo, dep->id_assunto, dep->dia, dep->periodo);
+    const char *verdade_outro =
+        local_do_suspeito(jogo, outro->id, dep->dia, dep->periodo);
+    if (verdade_alvo == NULL || verdade_outro == NULL) {
+        return NEUTRO;
+    }
+
+    if (outro->id == dep->id_assunto ||
+        strcmp(verdade_outro, verdade_alvo) == 0) {
+        return (strcmp(dep->local, verdade_alvo) == 0) ? CONCORDA : DISCORDA;
+    }
+    if (strcmp(verdade_outro, dep->local) == 0) {
+        return DISCORDA;
+    }
+    return NEUTRO;
+}
+
+static void testar_reacoes_seguem_conhecimento(void) {
+    int viu_concorda = 0;
+    int viu_discorda = 0;
+    int viu_neutro = 0;
+    int reacoes_conferidas = 0;
+
+    // 200 sementes cobrem sozinhas as combinações de papéis (quem é assassino,
+    // cúmplice, alvo e falante) e os três tipos de reação.
+    for (unsigned int semente = 1; semente <= 200; semente++) {
+        Jogo jogo;
+        verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, semente),
+                  "partida inicia");
+
+        avancar_fase_jogo(&jogo); // manhã -> debate
+
+        for (int turno = 0; turno < TOTAL_SUSPEITOS; turno++) {
+            if (suspeito_do_turno(&jogo) == NULL) {
                 break;
+            }
+
+            int id_depoimento = perguntar_sobre(&jogo, ID_GERENTE, NOITE);
+            verificar(id_depoimento > 0, "pergunta registra depoimento");
+            if (id_depoimento <= 0) {
+                continue;
+            }
+
+            Depoimento *dep =
+                buscar_depoimento_por_id(jogo.caderno, id_depoimento);
+            verificar(dep != NULL, "depoimento pode ser consultado");
+            if (dep == NULL) {
+                continue;
+            }
+
+            for (NoListaDupla *no = jogo.caderno->reacoes.inicio;
+                 no != NULL; no = no->prox) {
+                const Reacao *reacao = (const Reacao *)no->dado;
+                if (reacao == NULL || reacao->id_depoimento != id_depoimento) {
+                    continue;
+                }
+
+                const Suspeito *outro = NULL;
+                for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+                    const Suspeito *suspeito = buscar_suspeito(&jogo, id);
+                    if (suspeito != NULL &&
+                        strcmp(suspeito->nome, reacao->quem_reagiu) == 0) {
+                        outro = suspeito;
+                        break;
+                    }
+                }
+
+                verificar(outro != NULL, "quem reagiu é um suspeito conhecido");
+                if (outro == NULL) {
+                    continue;
+                }
+
+                enum TipoReacao esperada = reacao_esperada(&jogo, dep, outro);
+                verificar(reacao->tipo_reacao == esperada,
+                          "reação corresponde à regra de conhecimento");
+                reacoes_conferidas++;
+
+                if (reacao->tipo_reacao == CONCORDA) {
+                    viu_concorda = 1;
+                } else if (reacao->tipo_reacao == DISCORDA) {
+                    viu_discorda = 1;
+                } else if (reacao->tipo_reacao == NEUTRO) {
+                    viu_neutro = 1;
+                }
             }
         }
 
-        if (culpado) {
-            confirmacoes_culpadas++;
-        } else {
-            confirmacoes_inocentes++;
-        }
+        liberar_jogo(&jogo);
     }
 
-    verificar(confirmacoes_culpadas == 1,
-              "o outro culpado confirma a versão combinada");
-    verificar(confirmacoes_inocentes == 0,
-              "nenhum inocente confirma a mentira");
-
-    liberar_jogo(&jogo);
+    verificar(reacoes_conferidas > 0, "reações foram conferidas");
+    verificar(viu_concorda, "CONCORDA é gerado");
+    verificar(viu_discorda, "DISCORDA é gerado");
+    verificar(viu_neutro, "NEUTRO é gerado quando falta conhecimento");
 }
 
 int main(void) {
@@ -650,7 +713,7 @@ int main(void) {
     testar_agenda_reprodutivel();
     testar_sorteio_reprodutivel();
     testar_ciclo_de_debate_e_contradicoes();
-    testar_reacoes_confirmam_a_verdade();
+    testar_reacoes_seguem_conhecimento();
     testar_debate_pula_mortos();
     testar_dia_completo_ate_a_derrota_por_tempo();
     testar_vitoria_ao_prender_assassino();

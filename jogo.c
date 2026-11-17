@@ -402,33 +402,48 @@ const char *local_do_crime(const Jogo *jogo, int dia) {
     return LOCAIS[indice];
 }
 
-static enum TipoReacao reagir(const Jogo *jogo, int dia, enum Periodo periodo,
-                              int id_alvo, const char *local_afirmado,
-                              const Suspeito *outro) {
+static enum TipoReacao reagir(const Jogo *jogo, int dia, enum Periodo periodo, int id_falante, int id_alvo, const char *local_afirmado, const Suspeito *outro) {
     if (jogo == NULL || outro == NULL || local_afirmado == NULL) {
         return NEUTRO;
     }
 
-    int outro_mentindo = outro->id == jogo->papeis.id_assassino ||
-                         outro->id == jogo->papeis.id_cumplice;
+    int assassino = jogo->papeis.id_assassino;
+    int cumplice = jogo->papeis.id_cumplice;
 
-    if (outro_mentindo) {
-        const char *mentira = local_falso(jogo, dia, periodo, id_alvo);
-        if (mentira == NULL) {
-            return NEUTRO;
+    // O assassino discorda de quem fala dele ou do cúmplice e concorda com
+    // quem fala dos outros.
+    if (outro->id == assassino) {
+        if (id_alvo == assassino || id_alvo == cumplice) {
+            return DISCORDA;
         }
-        return (strcmp(local_afirmado, mentira) == 0) ? CONCORDA : DISCORDA;
+        return CONCORDA;
     }
 
+    // O cúmplice concorda sempre com o assassino e discorda de quem aponta
+    // para ele (ou para o assassino); nos demais casos não se manifesta.
+    if (outro->id == cumplice) {
+        if (id_falante == assassino) {
+            return CONCORDA;
+        }
+        if (id_alvo == cumplice || id_alvo == assassino) {
+            return DISCORDA;
+        }
+        return NEUTRO;
+    }
+
+    // Inocente: só opina quando tem como saber.
     const char *verdade_alvo = local_do_suspeito(jogo, id_alvo, dia, periodo);
     const char *verdade_outro = local_do_suspeito(jogo, outro->id, dia, periodo);
     if (verdade_alvo == NULL || verdade_outro == NULL) {
         return NEUTRO;
     }
 
+    // Sabe o paradeiro do alvo se é o próprio alvo ou se estava com ele.
     if (outro->id == id_alvo || strcmp(verdade_outro, verdade_alvo) == 0) {
         return (strcmp(local_afirmado, verdade_alvo) == 0) ? CONCORDA : DISCORDA;
     }
+
+    // Estava no local afirmado e não viu o alvo lá.
     if (strcmp(verdade_outro, local_afirmado) == 0) {
         return DISCORDA;
     }
@@ -479,8 +494,7 @@ int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo) {
         do {
             Suspeito *outro = (Suspeito *)no->dado;
             if (outro != NULL && outro->situacao == VIVO && outro->id != falante->id) {
-                enum TipoReacao reacao = reagir(jogo, jogo->dia.dia_atual,
-                                                periodo, alvo->id, local, outro);
+                enum TipoReacao reacao = reagir(jogo, jogo->dia.dia_atual, periodo, falante->id, alvo->id, local, outro);
 
                 registrar_reacao(jogo->caderno, jogo->dia.dia_atual,
                                  id_depoimento, outro->nome, reacao);
