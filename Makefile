@@ -49,6 +49,9 @@ TESTE_TEXTO_SRC := $(TEST_DIR)/teste_texto.c
 TESTE_ALEATORIO_SRC := $(TEST_DIR)/teste_aleatorio.c
 TESTE_DIA_SRC := $(TEST_DIR)/teste_dia.c
 TESTE_JOGO_SRC := $(TEST_DIR)/teste_jogo.c
+TESTE_LOCAIS_SRC := $(TEST_DIR)/teste_locais.c
+TESTE_AGENDA_SRC := $(TEST_DIR)/teste_agenda.c
+TESTE_DEBATE_SRC := $(TEST_DIR)/teste_debate.c
 
 TESTE_LISTA_SIMPLES_IMPL := $(ESTRUTURAS_DIR)/listas/lista-simples.c
 TESTE_LISTA_DUPLA_IMPL := $(ESTRUTURAS_DIR)/listas/lista-dupla.c
@@ -70,6 +73,11 @@ TESTE_ALEATORIO_IMPL := $(ESTRUTURAS_DIR)/entidades/aleatorio.c
 TESTE_DIA_IMPL := dia.c
 # O motor do jogo usa dia, caderno, personagens e as três listas.
 TESTE_JOGO_IMPL := jogo.c dia.c $(wildcard $(ESTRUTURAS_DIR)/*/*.c)
+# Agenda e debate exercitam o motor do jogo inteiro.
+TESTE_AGENDA_IMPL := $(TESTE_JOGO_IMPL)
+TESTE_DEBATE_IMPL := $(TESTE_JOGO_IMPL)
+# Tabela de locais usada pelo motor.
+TESTE_LOCAIS_IMPL := $(ESTRUTURAS_DIR)/entidades/locais.c
 
 # Só entram no alvo test os arquivos de teste existentes e não vazios.
 # Assim o Makefile continua válido enquanto os testes novos são escritos.
@@ -100,6 +108,15 @@ TESTE_BINS += $(BUILD)/teste_dia
 endif
 ifneq ($(strip $(shell test -s $(TESTE_JOGO_SRC) && echo 1)),)
 TESTE_BINS += $(BUILD)/teste_jogo
+endif
+ifneq ($(strip $(shell test -s $(TESTE_LOCAIS_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_locais
+endif
+ifneq ($(strip $(shell test -s $(TESTE_AGENDA_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_agenda
+endif
+ifneq ($(strip $(shell test -s $(TESTE_DEBATE_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_debate
 endif
 
 .PHONY: all jogo terminal run test valgrind submodules raylib clean distclean FORCE
@@ -193,6 +210,19 @@ $(BUILD)/teste_dia: $(TESTE_DIA_SRC) $(TESTE_DIA_IMPL) dia.h
 $(BUILD)/teste_jogo: $(TESTE_JOGO_SRC) $(TESTE_JOGO_IMPL) $(CABECALHOS)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $(TESTE_JOGO_SRC) $(TESTE_JOGO_IMPL) -o $@
+
+$(BUILD)/teste_locais: $(TESTE_LOCAIS_SRC) $(TESTE_LOCAIS_IMPL) \
+		$(ESTRUTURAS_DIR)/entidades/locais.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(TESTE_LOCAIS_IMPL) -o $@
+
+$(BUILD)/teste_agenda: $(TESTE_AGENDA_SRC) $(TESTE_AGENDA_IMPL) $(CABECALHOS)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $(TESTE_AGENDA_SRC) $(TESTE_AGENDA_IMPL) -o $@
+
+$(BUILD)/teste_debate: $(TESTE_DEBATE_SRC) $(TESTE_DEBATE_IMPL) $(CABECALHOS)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $(TESTE_DEBATE_SRC) $(TESTE_DEBATE_IMPL) -o $@
 
 test: $(TESTE_BINS)
 	@status=0; \
