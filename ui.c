@@ -7,6 +7,7 @@
 
 static const Color COR_FUNDO_BOTAO = {45, 45, 60, 255};
 static const Color COR_FUNDO_BOTAO_DESTACADO = {80, 80, 110, 255};
+static const Color COR_FUNDO_BOTAO_PRESSIONADO = {32, 32, 48, 255};
 static const Color COR_FUNDO_BOTAO_DESABILITADO = {35, 35, 42, 255};
 static const Color COR_BORDA_BOTAO = {120, 120, 140, 255};
 static const Color COR_BORDA_BOTAO_DESTACADA = {245, 245, 245, 255};
@@ -533,38 +534,98 @@ float ui_medir_altura_texto_quebrado(const UIFonte *fonte, const char *texto,
 // ---------------------------------------------------------------------------
 // Botões
 // ---------------------------------------------------------------------------
-bool ui_desenhar_botao(const UIFonte *fonte, const BotaoUI *botao,
-                       bool destacado) {
+EstadoBotao ui_atualizar_botao(BotaoUI *botao, bool focado,
+                               const EntradaBotao *entrada) {
+    if (botao == NULL) {
+        return BOTAO_DESABILITADO;
+    }
+
+    if (!botao->habilitado) {
+        botao->pressionado = false;
+        return BOTAO_DESABILITADO;
+    }
+
+    bool dentro = false;
+
+    if (entrada != NULL) {
+        dentro = CheckCollisionPointRec(entrada->mouse, botao->area);
+
+        if (entrada->apertou && dentro) {
+            botao->pressionado = true;
+        }
+
+        if (entrada->soltou) {
+            bool acionou = botao->pressionado && dentro;
+            botao->pressionado = false;
+            if (acionou) {
+                return BOTAO_ACIONADO;
+            }
+        }
+
+        if (focado && entrada->confirmar) {
+            botao->pressionado = false;
+            return BOTAO_ACIONADO;
+        }
+
+        if (botao->pressionado && entrada->pressionado && dentro) {
+            return BOTAO_PRESSIONADO;
+        }
+
+        // Se o botão do mouse não está mais pressionado, não guarde um estado
+        // antigo (evita acionar num clique que começou em outro lugar).
+        if (!entrada->apertou && !entrada->pressionado) {
+            botao->pressionado = false;
+        }
+    }
+
+    if (focado || dentro) {
+        return BOTAO_HOVER;
+    }
+
+    return BOTAO_NORMAL;
+}
+
+bool ui_desenhar_botao(const UIFonte *fonte, BotaoUI *botao, bool focado) {
     if (botao == NULL || botao->rotulo == NULL) {
         return false;
     }
 
-    Vector2 mouse = GetMousePosition();
-    bool sob_mouse = CheckCollisionPointRec(mouse, botao->area);
-    bool ativo = botao->habilitado && (destacado || sob_mouse);
-    bool acionado = false;
+    EntradaBotao entrada = {
+        .mouse = GetMousePosition(),
+        .apertou = IsMouseButtonPressed(MOUSE_BUTTON_LEFT),
+        .pressionado = IsMouseButtonDown(MOUSE_BUTTON_LEFT),
+        .soltou = IsMouseButtonReleased(MOUSE_BUTTON_LEFT),
+        .confirmar = IsKeyPressed(KEY_ENTER) ||
+                     IsKeyPressed(KEY_KP_ENTER) ||
+                     IsKeyPressed(KEY_SPACE),
+    };
 
-    if (botao->habilitado) {
-        if (sob_mouse && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-            acionado = true;
-        }
-        if (destacado && (IsKeyPressed(KEY_ENTER) ||
-                          IsKeyPressed(KEY_KP_ENTER) ||
-                          IsKeyPressed(KEY_SPACE))) {
-            acionado = true;
-        }
-    }
+    EstadoBotao estado = ui_atualizar_botao(botao, focado, &entrada);
 
     Color fundo = COR_FUNDO_BOTAO;
     Color borda = COR_BORDA_BOTAO;
     Color texto = COR_TEXTO_BOTAO;
 
-    if (!botao->habilitado) {
-        fundo = COR_FUNDO_BOTAO_DESABILITADO;
-        texto = COR_TEXTO_BOTAO_DESABILITADO;
-    } else if (ativo) {
-        fundo = COR_FUNDO_BOTAO_DESTACADO;
-        borda = COR_BORDA_BOTAO_DESTACADA;
+    switch (estado) {
+        case BOTAO_DESABILITADO:
+            fundo = COR_FUNDO_BOTAO_DESABILITADO;
+            texto = COR_TEXTO_BOTAO_DESABILITADO;
+            break;
+
+        case BOTAO_ACIONADO:
+        case BOTAO_PRESSIONADO:
+            fundo = COR_FUNDO_BOTAO_PRESSIONADO;
+            borda = COR_BORDA_BOTAO_DESTACADA;
+            break;
+
+        case BOTAO_HOVER:
+            fundo = COR_FUNDO_BOTAO_DESTACADO;
+            borda = COR_BORDA_BOTAO_DESTACADA;
+            break;
+
+        case BOTAO_NORMAL:
+        default:
+            break;
     }
 
     DrawRectangleRec(botao->area, fundo);
@@ -578,5 +639,34 @@ bool ui_desenhar_botao(const UIFonte *fonte, const BotaoUI *botao,
     ui_desenhar_texto_centralizado(fonte, botao->rotulo, botao->area,
                                    tamanho_texto, texto);
 
-    return acionado;
+    return estado == BOTAO_ACIONADO;
+}
+
+int ui_navegar_botoes(const BotaoUI *botoes, int quantidade, int focado,
+                      int passo) {
+    if (botoes == NULL || quantidade <= 0) {
+        return -1;
+    }
+
+    int direcao = (passo >= 0) ? 1 : -1;
+    int atual = focado;
+
+    if (atual < 0 || atual >= quantidade) {
+        atual = (direcao > 0) ? -1 : quantidade;
+    }
+
+    for (int i = 0; i < quantidade; i++) {
+        atual += direcao;
+        if (atual < 0) {
+            atual = quantidade - 1;
+        } else if (atual >= quantidade) {
+            atual = 0;
+        }
+
+        if (botoes[atual].habilitado) {
+            return atual;
+        }
+    }
+
+    return -1;
 }

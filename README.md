@@ -173,6 +173,11 @@ texto e botões ficam em `ui.c`/`ui.h`; para textos longos,
 `ui_quebrar_texto` calcula o layout (respeitando `\n` e dividindo palavras
 maiores que a largura) e `ui_desenhar_texto_quebrado` desenha o resultado.
 
+Os botões são reutilizáveis (`BotaoUI` + `ui_desenhar_botao`): o mouse
+funciona com hover e clique (apertar e soltar dentro do botão) e o teclado
+usa as setas ou Tab/Shift+Tab para mudar o foco e Enter/Espaço para acionar.
+`ui_navegar_botoes` já pula botões desabilitados.
+
 ## Estrutura do projeto
 
 Em breve.

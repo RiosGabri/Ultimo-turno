@@ -113,12 +113,40 @@ typedef struct {
     Rectangle area;
     const char *rotulo;
     bool habilitado;
+    bool pressionado; // estado interno; inicialize com false/zero
 } BotaoUI;
 
-// Desenha o botão e devolve true quando ele foi acionado. O acionamento pode
-// ser um clique do mouse dentro da área ou Enter/Espaço quando o botão está
-// destacado (seleção por teclado).
-bool ui_desenhar_botao(const UIFonte *fonte, const BotaoUI *botao,
-                       bool destacado);
+// Entrada já lida da raylib. Separada para a lógica poder ser testada sem
+// abrir janela.
+typedef struct {
+    Vector2 mouse;      // posição do mouse
+    bool apertou;       // botão esquerdo pressionado neste frame
+    bool pressionado;   // botão esquerdo continua pressionado
+    bool soltou;        // botão esquerdo solto neste frame
+    bool confirmar;     // Enter/Espaço (ativação por teclado)
+} EntradaBotao;
+
+typedef enum {
+    BOTAO_NORMAL,
+    BOTAO_HOVER,       // mouse em cima ou foco de teclado
+    BOTAO_PRESSIONADO, // mouse apertado dentro do botão
+    BOTAO_ACIONADO,    // clique concluído ou confirmação pelo teclado
+    BOTAO_DESABILITADO
+} EstadoBotao;
+
+// Atualiza o estado interno do botão e devolve o estado visual/ação.
+// O clique só conta se o mouse tiver sido apertado dentro do botão e solto
+// ainda dentro. Enter/Espaço aciona quando `focado` é true.
+EstadoBotao ui_atualizar_botao(BotaoUI *botao, bool focado,
+                               const EntradaBotao *entrada);
+
+// Desenha o botão e devolve true quando ele foi acionado.
+bool ui_desenhar_botao(const UIFonte *fonte, BotaoUI *botao, bool focado);
+
+// Navegação por teclado: devolve o próximo botão habilitado, dando a volta no
+// fim. `passo` positivo avança (baixo/Tab) e negativo volta (cima/Shift+Tab).
+// Retorna -1 se não houver botão habilitado.
+int ui_navegar_botoes(const BotaoUI *botoes, int quantidade, int focado,
+                      int passo);
 
 #endif

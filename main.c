@@ -40,19 +40,25 @@ static Rectangle obter_retangulo_botao(int indice) {
     return (Rectangle){x, y, LARGURA_BOTAO, ALTURA_BOTAO};
 }
 
-static int atualizar_selecao(int selecionado) {
-    if (IsKeyPressed(KEY_DOWN)) {
-        selecionado = (selecionado + 1) % TOTAL_BOTOES;
+static int atualizar_selecao(const BotaoUI *botoes, int selecionado) {
+    bool shift = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+
+    if (IsKeyPressed(KEY_DOWN) || (IsKeyPressed(KEY_TAB) && !shift)) {
+        selecionado =
+            ui_navegar_botoes(botoes, TOTAL_BOTOES, selecionado, 1);
     }
-    if (IsKeyPressed(KEY_UP)) {
-        selecionado = (selecionado <= 0) ? TOTAL_BOTOES - 1 : selecionado - 1;
+    if (IsKeyPressed(KEY_UP) || (IsKeyPressed(KEY_TAB) && shift)) {
+        selecionado =
+            ui_navegar_botoes(botoes, TOTAL_BOTOES, selecionado, -1);
     }
 
     Vector2 movimento = GetMouseDelta();
-    if (movimento.x != 0.0f || movimento.y != 0.0f) {
+    if (movimento.x != 0.0f || movimento.y != 0.0f ||
+        IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         Vector2 mouse = GetMousePosition();
         for (int i = 0; i < TOTAL_BOTOES; i++) {
-            if (CheckCollisionPointRec(mouse, obter_retangulo_botao(i))) {
+            if (botoes[i].habilitado &&
+                CheckCollisionPointRec(mouse, botoes[i].area)) {
                 selecionado = i;
             }
         }
@@ -82,11 +88,11 @@ int main(void) {
         };
     }
 
-    int selecionado = -1;
+    int selecionado = 0;
     bool fechar = false;
 
     while (!WindowShouldClose() && !fechar) {
-        selecionado = atualizar_selecao(selecionado);
+        selecionado = atualizar_selecao(botoes, selecionado);
 
         BeginDrawing();
         ClearBackground((Color){20, 20, 28, 255});

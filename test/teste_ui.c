@@ -312,6 +312,126 @@ static void testar_altura_sem_desenhar(void) {
     ui_liberar_layout_texto(&so_espacos);
 }
 
+// ---------------------------------------------------------------------------
+// Botões (lógica pura, sem janela)
+// ---------------------------------------------------------------------------
+static BotaoUI criar_botao(bool habilitado) {
+    BotaoUI botao = {
+        .area = {10.0f, 10.0f, 100.0f, 40.0f},
+        .rotulo = "Ok",
+        .habilitado = habilitado,
+        .pressionado = false,
+    };
+    return botao;
+}
+
+static void testar_botao_com_mouse(void) {
+    BotaoUI botao = criar_botao(true);
+
+    EntradaBotao apertando = {
+        .mouse = {50.0f, 30.0f},
+        .apertou = true,
+        .pressionado = true,
+    };
+    verificar(ui_atualizar_botao(&botao, false, &apertando) ==
+                  BOTAO_PRESSIONADO,
+              "mouse apertado dentro deve deixar o botão pressionado");
+    verificar(botao.pressionado,
+              "o estado interno deve registrar o pressionamento");
+
+    EntradaBotao soltando = {
+        .mouse = {50.0f, 30.0f},
+        .soltou = true,
+    };
+    verificar(ui_atualizar_botao(&botao, false, &soltando) == BOTAO_ACIONADO,
+              "soltar o mouse dentro deve acionar o botão");
+    verificar(!botao.pressionado,
+              "o pressionamento deve ser limpo depois do clique");
+
+    EntradaBotao fora = {
+        .mouse = {0.0f, 0.0f},
+        .apertou = true,
+        .pressionado = true,
+    };
+    verificar(ui_atualizar_botao(&botao, false, &fora) == BOTAO_NORMAL,
+              "apertar fora do botão não deve destacá-lo");
+
+    EntradaBotao solto_dentro = {
+        .mouse = {50.0f, 30.0f},
+        .soltou = true,
+    };
+    verificar(ui_atualizar_botao(&botao, false, &solto_dentro) == BOTAO_HOVER,
+              "soltar dentro sem ter apertado dentro não deve acionar");
+}
+
+static void testar_botao_com_teclado(void) {
+    BotaoUI botao = criar_botao(true);
+
+    EntradaBotao tecla = {
+        .mouse = {0.0f, 0.0f},
+        .confirmar = true,
+    };
+    verificar(ui_atualizar_botao(&botao, true, &tecla) == BOTAO_ACIONADO,
+              "Enter/Espaço deve acionar o botão focado");
+    verificar(!botao.pressionado,
+              "a tecla não deve deixar o botão preso em pressionado");
+
+    verificar(ui_atualizar_botao(&botao, false, &tecla) == BOTAO_NORMAL,
+              "a tecla não deve acionar um botão sem foco");
+
+    EntradaBotao sem_entrada = {0};
+    verificar(ui_atualizar_botao(&botao, true, &sem_entrada) == BOTAO_HOVER,
+              "o foco de teclado deve destacar o botão");
+}
+
+static void testar_botao_desabilitado(void) {
+    BotaoUI botao = criar_botao(false);
+
+    EntradaBotao clique = {
+        .mouse = {50.0f, 30.0f},
+        .apertou = true,
+        .pressionado = true,
+        .soltou = true,
+        .confirmar = true,
+    };
+    verificar(ui_atualizar_botao(&botao, true, &clique) ==
+                  BOTAO_DESABILITADO,
+              "botão desabilitado deve ignorar mouse e teclado");
+    verificar(!botao.pressionado,
+              "botão desabilitado não deve guardar pressionamento");
+}
+
+static void testar_navegacao_de_botoes(void) {
+    BotaoUI botoes[4] = {
+        {.habilitado = true},
+        {.habilitado = false},
+        {.habilitado = true},
+        {.habilitado = false},
+    };
+
+    verificar(ui_navegar_botoes(botoes, 4, -1, 1) == 0,
+              "sem foco, avançar deve ir para o primeiro habilitado");
+    verificar(ui_navegar_botoes(botoes, 4, 0, 1) == 2,
+              "avançar deve pular botões desabilitados");
+    verificar(ui_navegar_botoes(botoes, 4, 2, 1) == 0,
+              "avançar no último deve dar a volta");
+    verificar(ui_navegar_botoes(botoes, 4, 0, -1) == 2,
+              "voltar deve pular desabilitados e dar a volta");
+    verificar(ui_navegar_botoes(botoes, 4, 2, -1) == 0,
+              "voltar do primeiro habilitado deve chegar ao último");
+    verificar(ui_navegar_botoes(botoes, 0, 0, 1) == -1,
+              "lista vazia não deve ter próximo botão");
+    verificar(ui_navegar_botoes(NULL, 4, 0, 1) == -1,
+              "lista nula não deve ter próximo botão");
+
+    BotaoUI todos_desabilitados[2] = {
+        {.habilitado = false},
+        {.habilitado = false},
+    };
+    verificar(ui_navegar_botoes(todos_desabilitados, 2, 0, 1) == -1,
+              "sem botões habilitados não deve haver próximo");
+}
+
 int main(void) {
     testar_codepoints_do_portugues();
     testar_arquivo_da_fonte();
@@ -321,6 +441,10 @@ int main(void) {
     testar_quebra_com_newline();
     testar_quebra_de_palavra_longa();
     testar_altura_sem_desenhar();
+    testar_botao_com_mouse();
+    testar_botao_com_teclado();
+    testar_botao_desabilitado();
+    testar_navegacao_de_botoes();
 
     if (falhas == 0) {
         printf("OK: todos os testes de interface passaram\n");
