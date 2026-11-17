@@ -1,7 +1,16 @@
 #ifndef TELA_DEBATE_H
 #define TELA_DEBATE_H
+
+#include <stdbool.h>
+
+#include "interface/recursos.h"
 #include "interface/ui.h"
 #include "jogo.h"
+
+/*
+ * Tela do debate: escolha do alvo, período, depoimento, reações e aviso de
+ * nova contradição. O estado transitório fica aqui; o motor continua em Jogo.
+ */
 
 typedef enum {
     DEBATE_ESCOLHENDO_ALVO,
@@ -17,33 +26,37 @@ typedef enum {
 
 typedef struct {
     Jogo *jogo;
+    const Recursos *recursos;
 
     EtapaDebate etapa;
     int id_alvo;
     int id_depoimento;
 
-    // Controle do aviso de nova contradição.
-    int contradicoes_antes;
+    // Aviso de nova contradição: tempo restante em segundos.
     float tempo_alerta;
 
     // Navegação por teclado/mouse.
     int botao_focado;
-    bool interrogar_pressionado;
 
     // Estado visual dos botões (BotaoUI).
     BotaoUI botao_interrogar;
     BotaoUI botao_caderno;
     BotaoUI botao_encerrar;
+    BotaoUI botao_voltar_periodo;
     BotaoUI botoes_alvo[TOTAL_SUSPEITOS];
     BotaoUI botoes_periodo[TOTAL_PERIODOS];
-
-    // Assets provisórios (fundo e retratos). id == 0 means unavailable.
-    Texture2D fundo;
-    Texture2D retratos[TOTAL_SUSPEITOS];
 } TelaDebate;
 
-void tela_debate_iniciar(TelaDebate *tela, Jogo *jogo);
-void tela_debate_liberar(TelaDebate *tela);
+// `recursos` é emprestado e deve continuar vivo enquanto a tela existir.
+void tela_debate_iniciar(TelaDebate *tela, Jogo *jogo,
+                         const Recursos *recursos);
+
 AcaoDebate tela_debate_atualizar(TelaDebate *tela);
-void tela_debate_desenhar(const TelaDebate *tela, const UIFonte *fonte);
+
+// Os textos usam três fontes: títulos (Playfair), corpo e etiquetas (Courier).
+void tela_debate_desenhar(const TelaDebate *tela,
+                          const UIFonte *fonte_titulo,
+                          const UIFonte *fonte_corpo,
+                          const UIFonte *fonte_corpo_bold);
+
 #endif

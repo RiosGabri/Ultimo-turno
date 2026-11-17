@@ -58,6 +58,15 @@ const char *recursos_caminho(const char *relativo, char *destino,
     return NULL;
 }
 
+static const char *CAMINHOS_SUSPEITOS[TOTAL_SUSPEITOS] = {
+    [ID_GERENTE]    = "assets/image/gerente.png",
+    [ID_CAPATAZ]    = "assets/image/capataz.png",
+    [ID_ENGENHEIRO] = "assets/image/engenheiro.png",
+    [ID_OPERARIO]   = "assets/image/operario.png",
+    [ID_ENFERMEIRA] = "assets/image/enfermeira.png",
+    [ID_VIGIA]      = "assets/image/vigia.png",
+};
+
 void recursos_carregar(Recursos *recursos) {
     if (recursos == NULL) {
         return;
@@ -74,6 +83,11 @@ void recursos_carregar(Recursos *recursos) {
         carregar_textura("assets/image/selecao-marple.png");
     recursos->retrato_poirot =
         carregar_textura("assets/image/selecao-poirot.png");
+
+    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+        recursos->retratos_suspeitos[id] =
+            carregar_textura(CAMINHOS_SUSPEITOS[id]);
+    }
 }
 
 void recursos_descarregar(Recursos *recursos) {
@@ -116,6 +130,13 @@ void recursos_descarregar(Recursos *recursos) {
     if (recursos->retrato_poirot.id != 0) {
         UnloadTexture(recursos->retrato_poirot);
         recursos->retrato_poirot = (Texture2D){0};
+    }
+
+    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+        if (recursos->retratos_suspeitos[id].id != 0) {
+            UnloadTexture(recursos->retratos_suspeitos[id]);
+            recursos->retratos_suspeitos[id] = (Texture2D){0};
+        }
     }
 }
 

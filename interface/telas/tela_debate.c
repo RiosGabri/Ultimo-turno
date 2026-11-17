@@ -1,40 +1,37 @@
 #include "interface/telas/tela_debate.h"
-#include "interface/ui.h"
-#include "raylib.h"
 
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "interface/paleta.h"
+#include "interface/recursos.h"
+#include "interface/ui.h"
+#include "raylib.h"
+
 /*
- * Tela do debate — versão provisória/template.
+ * Tela do debate no padrão visual da main: 1280×720, paleta noir industrial,
+ * Playfair Display nos títulos e Courier Prime no corpo.
  *
- * O cenário segue o rascunho do time: uma mesa redonda no centro, os suspeitos
- * ao redor dela e o detetive em primeira pessoa (não desenhado). O triângulo
- * vermelho indica o alvo selecionado. Os sprites e o fundo são placeholders:
- * se os arquivos não existirem, a tela cai em formas desenhadas.
+ * O cenário mantém o rascunho do time: uma mesa no centro, os suspeitos ao
+ * redor e o detetive em primeira pessoa (não desenhado). O triângulo vermelho
+ * marca o alvo da vez. Quando um sprite não está disponível, a tela cai em
+ * uma silhueta desenhada com a inicial do suspeito.
  */
 
-#define LARGURA_TELA 960.0f
-#define ALTURA_TELA 540.0f
-#define ALTURA_CABECALHO 76.0f
-#define ALTURA_BARRA_ACOES 58.0f
-
-#define DEBATE_FUNDO "assets/image/fabrica.png"
-
-static const char *RETRATOS[TOTAL_SUSPEITOS] = {
-    [ID_GERENTE]    = "assets/image/gerente.png",
-    [ID_CAPATAZ]    = "assets/image/capataz.png",
-    [ID_ENGENHEIRO] = "assets/image/engenheiro.png",
-    [ID_OPERARIO]   = "assets/image/operario.png",
-    [ID_ENFERMEIRA] = "assets/image/enfermeira.png",
-    [ID_VIGIA]      = "assets/image/vigia.png",
-};
+#define LARGURA_TELA 1280.0f
+#define ALTURA_TELA 720.0f
+#define ALTURA_CABECALHO 96.0f
+#define ALTURA_BARRA_ACOES 84.0f
+#define TOPO_BARRA_ACOES (ALTURA_TELA - ALTURA_BARRA_ACOES)
+#define MARGEM 96.0f
+#define LARGURA_CONTEUDO (LARGURA_TELA - MARGEM * 2.0f)
 
 static const char *ROTULOS_PERIODO[TOTAL_PERIODOS] = {
-    [MANHA] = "Manhã",
-    [TARDE] = "Tarde",
-    [NOITE] = "Noite",
+    [MANHA] = "MANHÃ",
+    [TARDE] = "TARDE",
+    [NOITE] = "NOITE",
 };
 
 static const char *TEXTO_SELECIONE =
@@ -44,136 +41,55 @@ static const char *TEXTO_SEM_TURNOS =
 static const char *TEXTO_NOVA_CONTRADICAO =
     "Nova contradição registrada no caderno!";
 static const char *TEXTO_RODA_ENCERRADA =
-    "Todos os vivos falaram. Encerre o debate para ir à noite.";
-
-static const Color COR_PAINEL = {18, 18, 28, 235};
-static const Color COR_BORDA = {100, 100, 128, 255};
-static const Color COR_TEXTO_SUAVE = {190, 190, 205, 255};
-static const Color COR_DESTAQUE = {245, 205, 70, 255};
-static const Color COR_ALERTA = {240, 90, 90, 255};
-static const Color COR_CONCORDA = {120, 220, 150, 255};
-static const Color COR_DISCORDA = {235, 105, 105, 255};
-static const Color COR_NEUTRO = {175, 175, 195, 255};
+    "A roda terminou. Encerre o debate para seguir.";
+static const char *TEXTO_DEPOIMENTO_VAZIO = "Depoimento sem texto.";
+static const char *TEXTO_SEM_REACOES = "Ninguém reagiu.";
 
 // ---------------------------------------------------------------------------
-// Assets
+// Consultas do estado
 // ---------------------------------------------------------------------------
-static Texture2D carregar_textura(const char *caminho) {
-    if (caminho == NULL) {
-        return (Texture2D){0};
-    }
-
-    if (FileExists(caminho)) {
-        return LoadTexture(caminho);
-    }
-
-    const char *pasta = GetApplicationDirectory();
-    char tentativa[1024];
-
-    if (pasta != NULL) {
-        snprintf(tentativa, sizeof tentativa, "%s%s", pasta, caminho);
-        if (FileExists(tentativa)) {
-            return LoadTexture(tentativa);
-        }
-    }
-
-    snprintf(tentativa, sizeof tentativa, "../%s", caminho);
-    if (FileExists(tentativa)) {
-        return LoadTexture(tentativa);
-    }
-
-    snprintf(tentativa, sizeof tentativa, "../../%s", caminho);
-    if (FileExists(tentativa)) {
-        return LoadTexture(tentativa);
-    }
-
-    return (Texture2D){0};
-}
-
-void tela_debate_liberar(TelaDebate *tela) {
-    if (tela == NULL) {
-        return;
-    }
-
-    if (tela->fundo.id != 0) {
-        UnloadTexture(tela->fundo);
-        tela->fundo = (Texture2D){0};
-    }
-
-    for (int i = 0; i < TOTAL_SUSPEITOS; i++) {
-        if (tela->retratos[i].id != 0) {
-            UnloadTexture(tela->retratos[i]);
-            tela->retratos[i] = (Texture2D){0};
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Layout
-// ---------------------------------------------------------------------------
-// Assentos fixos: os suspeitos formam um arco em volta da mesa. "base" é o
-// ponto em que os pés tocam o chão; como a mesa é desenhada depois, ela
-// esconde as pernas de quem está do outro lado dela.
-typedef struct {
-    Vector2 base;
-    float altura;
-} AssentoSuspeito;
-
-static const AssentoSuspeito ASSENTOS[TOTAL_SUSPEITOS] = {
-    [ID_GERENTE]    = {{96.0f, 396.0f}, 196.0f},  // frente esquerda
-    [ID_CAPATAZ]    = {{224.0f, 372.0f}, 168.0f},
-    [ID_ENGENHEIRO] = {{384.0f, 350.0f}, 152.0f}, // fundo esquerda
-    [ID_OPERARIO]   = {{576.0f, 350.0f}, 152.0f}, // fundo direita
-    [ID_ENFERMEIRA] = {{736.0f, 372.0f}, 168.0f},
-    [ID_VIGIA]      = {{874.0f, 396.0f}, 196.0f}, // frente direita
-};
-
 static bool assento_valido(int id) {
     return id >= 0 && id < TOTAL_SUSPEITOS;
 }
 
-static Vector2 posicao_suspeito(int id) {
-    if (!assento_valido(id)) {
-        return (Vector2){LARGURA_TELA / 2.0f, 372.0f};
+static Texture2D textura_suspeito(const TelaDebate *tela, int id) {
+    if (tela == NULL || tela->recursos == NULL || !assento_valido(id)) {
+        return (Texture2D){0};
     }
-    return ASSENTOS[id].base;
+    return tela->recursos->retratos_suspeitos[id];
 }
 
-static float altura_suspeito(int id) {
-    if (!assento_valido(id)) {
-        return 152.0f;
+static const char *nome_de(const Suspeito *suspeito) {
+    if (suspeito == NULL) {
+        return "desconhecido";
     }
-    return ASSENTOS[id].altura;
+    if (suspeito->nome != NULL && suspeito->nome[0] != '\0') {
+        return suspeito->nome;
+    }
+    if (suspeito->cargo != NULL && suspeito->cargo[0] != '\0') {
+        return suspeito->cargo;
+    }
+    return "desconhecido";
 }
 
-static float largura_suspeito(const TelaDebate *tela, int id) {
-    float altura = altura_suspeito(id);
-    float aspecto = 0.78f;
-
-    if (tela != NULL && assento_valido(id) &&
-        tela->retratos[id].id != 0 && tela->retratos[id].height > 0) {
-        aspecto = (float)tela->retratos[id].width /
-                  (float)tela->retratos[id].height;
+static const char *cargo_de(const Suspeito *suspeito) {
+    if (suspeito == NULL) {
+        return "";
     }
-
-    return altura * aspecto;
+    if (suspeito->cargo != NULL && suspeito->cargo[0] != '\0') {
+        return suspeito->cargo;
+    }
+    return "";
 }
 
-static Rectangle area_suspeito(const TelaDebate *tela, int id) {
-    Vector2 base = posicao_suspeito(id);
-    float altura = altura_suspeito(id);
-    float largura = largura_suspeito(tela, id);
-
-    if (largura < 96.0f) {
-        largura = 96.0f;
+// Evita repetir a mesma palavra quando nome e cargo coincidem (a main passou
+// a usar apenas o cargo como nome dos suspeitos).
+static const char *cargo_para_exibir(const Suspeito *suspeito) {
+    const char *cargo = cargo_de(suspeito);
+    if (cargo[0] == '\0' || strcmp(cargo, nome_de(suspeito)) == 0) {
+        return "";
     }
-
-    return (Rectangle){
-        base.x - largura / 2.0f,
-        base.y - altura - 46.0f, // margem para o triângulo de seleção
-        largura,
-        altura + 52.0f
-    };
+    return cargo;
 }
 
 static const Suspeito *suspeito_vivo(const Jogo *jogo, int id) {
@@ -194,7 +110,8 @@ static int primeiro_vivo(const Jogo *jogo) {
 }
 
 static int alvo_indicado(const TelaDebate *tela) {
-    if (tela == NULL || tela->etapa == DEBATE_MOSTRANDO_DEPOIMENTO ||
+    if (tela == NULL ||
+        tela->etapa == DEBATE_MOSTRANDO_DEPOIMENTO ||
         debate_encerrado(tela->jogo)) {
         return -1;
     }
@@ -215,9 +132,8 @@ static const char *nome_periodo(enum Periodo periodo) {
     }
 }
 
-static const char *nome_suspeito(const Jogo *jogo, int id) {
-    const Suspeito *suspeito = buscar_suspeito(jogo, id);
-    return (suspeito != NULL) ? suspeito->nome : "desconhecido";
+static const char *nome_por_id(const Jogo *jogo, int id) {
+    return nome_de(buscar_suspeito(jogo, id));
 }
 
 static UIIcone icone_da_reacao(enum TipoReacao tipo) {
@@ -228,73 +144,150 @@ static UIIcone icone_da_reacao(enum TipoReacao tipo) {
     }
 }
 
+static const char *rotulo_da_reacao(enum TipoReacao tipo) {
+    switch (tipo) {
+        case CONCORDA: return "CONCORDA";
+        case DISCORDA: return "DISCORDA";
+        default:       return "NEUTRO";
+    }
+}
+
 static Color cor_da_reacao(enum TipoReacao tipo) {
     switch (tipo) {
-        case CONCORDA: return COR_CONCORDA;
-        case DISCORDA: return COR_DISCORDA;
-        default:       return COR_NEUTRO;
+        case CONCORDA: return COR_OSSO;
+        case DISCORDA: return COR_TIJOLO;
+        default:       return COR_POEIRA;
     }
 }
 
 // ---------------------------------------------------------------------------
-// Desenho do cenário
+// Layout do cenário
+// ---------------------------------------------------------------------------
+// "base" é o ponto em que os pés tocam o chão. A mesa é desenhada depois para
+// esconder as pernas de quem está do outro lado dela.
+typedef struct {
+    Vector2 base;
+    float altura;
+} AssentoSuspeito;
+
+static const AssentoSuspeito ASSENTOS[TOTAL_SUSPEITOS] = {
+    [ID_GERENTE]    = {{170.0f, 578.0f}, 320.0f}, // frente esquerda
+    [ID_CAPATAZ]    = {{340.0f, 540.0f}, 280.0f},
+    [ID_ENGENHEIRO] = {{520.0f, 505.0f}, 250.0f}, // fundo esquerda
+    [ID_OPERARIO]   = {{760.0f, 505.0f}, 250.0f}, // fundo direita
+    [ID_ENFERMEIRA] = {{940.0f, 540.0f}, 280.0f},
+    [ID_VIGIA]      = {{1110.0f, 578.0f}, 320.0f}, // frente direita
+};
+
+static Vector2 posicao_suspeito(int id) {
+    if (!assento_valido(id)) {
+        return (Vector2){LARGURA_TELA / 2.0f, 520.0f};
+    }
+    return ASSENTOS[id].base;
+}
+
+static float altura_suspeito(int id) {
+    if (!assento_valido(id)) {
+        return 250.0f;
+    }
+    return ASSENTOS[id].altura;
+}
+
+static float largura_suspeito(const TelaDebate *tela, int id) {
+    float altura = altura_suspeito(id);
+    float aspecto = 0.80f;
+
+    Texture2D textura = textura_suspeito(tela, id);
+    if (textura.id != 0 && textura.height > 0) {
+        aspecto = (float)textura.width / (float)textura.height;
+    }
+
+    return altura * aspecto;
+}
+
+// A área clicável inclui a placa de nome acima da cabeça. Assim o jogador não
+// precisa acertar exatamente o sprite.
+static Rectangle area_suspeito(const TelaDebate *tela, int id) {
+    Vector2 base = posicao_suspeito(id);
+    float altura = altura_suspeito(id);
+    float largura = fmaxf(largura_suspeito(tela, id), 110.0f);
+
+    return (Rectangle){
+        base.x - largura / 2.0f - 10.0f,
+        base.y - altura - 84.0f,
+        largura + 20.0f,
+        altura + 92.0f,
+    };
+}
+
+static float topo_suspeito(int id) {
+    return posicao_suspeito(id).y - altura_suspeito(id);
+}
+
+// ---------------------------------------------------------------------------
+// Pequenos auxiliares de desenho
+// ---------------------------------------------------------------------------
+static void texto_direita(const UIFonte *fonte, const char *texto,
+                          float direita, float y, float tamanho, Color cor) {
+    if (texto == NULL) {
+        return;
+    }
+    Vector2 medida = ui_medir_texto(fonte, texto, tamanho);
+    ui_desenhar_texto(fonte, texto, (Vector2){direita - medida.x, y},
+                      tamanho, cor);
+}
+
+static void desenhar_rotulo(const UIFonte *fonte, const char *texto,
+                            Vector2 posicao, Color cor) {
+    ui_desenhar_texto(fonte, texto, posicao, 10.5f, cor);
+}
+
+// ---------------------------------------------------------------------------
+// Cenário
 // ---------------------------------------------------------------------------
 static void desenhar_fundo(const TelaDebate *tela) {
-    DrawRectangle(0, 0, (int)LARGURA_TELA, (int)ALTURA_TELA,
-                  (Color){20, 20, 28, 255});
-
-    if (tela->fundo.id != 0) {
-        float largura = LARGURA_TELA;
-        float altura = ALTURA_TELA;
-        float escala_x = LARGURA_TELA / (float)tela->fundo.width;
-        float escala_y = ALTURA_TELA / (float)tela->fundo.height;
-        float escala = (escala_x > escala_y) ? escala_x : escala_y;
-
-        largura = (float)tela->fundo.width * escala;
-        altura = (float)tela->fundo.height * escala;
-
-        Rectangle origem = {0.0f, 0.0f,
-                            (float)tela->fundo.width,
-                            (float)tela->fundo.height};
-        Rectangle destino = {
-            (LARGURA_TELA - largura) / 2.0f,
-            (ALTURA_TELA - altura) / 2.0f,
-            largura,
-            altura
-        };
-        DrawTexturePro(tela->fundo, origem, destino, (Vector2){0.0f, 0.0f},
-                       0.0f, (Color){135, 135, 150, 255});
+    if (tela->recursos != NULL && tela->recursos->fabrica.id != 0) {
+        Rectangle area = {0.0f, 0.0f, LARGURA_TELA, ALTURA_TELA};
+        recursos_desenhar_textura_cover(tela->recursos->fabrica, area);
+    } else {
+        ClearBackground(COR_CARVAO);
     }
 
-    // Escurece o cenário para dar o clima de interrogação e destacar a mesa.
+    // Escurece o cenário para o clima de interrogação e para o texto respirar.
     DrawRectangle(0, 0, (int)LARGURA_TELA, (int)ALTURA_TELA,
-                  (Color){8, 10, 18, 155});
+                  (Color){27, 27, 24, 140});
+    DrawRectangleGradientV(0, 0, (int)LARGURA_TELA, 150,
+                           (Color){27, 27, 24, 175},
+                           (Color){27, 27, 24, 0});
+    DrawRectangleGradientV(0, 560, (int)LARGURA_TELA, 160,
+                           (Color){27, 27, 24, 0},
+                           (Color){27, 27, 24, 185});
 }
 
-static void desenhar_corpo_suspeito(const TelaDebate *tela, int id) {
+static void desenhar_corpo_suspeito(const TelaDebate *tela, int id,
+                                    const UIFonte *fonte_titulo) {
     const Suspeito *suspeito = buscar_suspeito(tela->jogo, id);
     if (suspeito == NULL) {
         return;
     }
 
-    Vector2 posicao = posicao_suspeito(id);
+    Vector2 base = posicao_suspeito(id);
     float altura = altura_suspeito(id);
-    float base = posicao.y;
-    Texture2D textura = tela->retratos[id];
+    Texture2D textura = textura_suspeito(tela, id);
 
-    if (textura.id != 0) {
+    if (textura.id != 0 && textura.height > 0) {
         float largura = altura * (float)textura.width /
                         (float)textura.height;
-        Rectangle origem = {0.0f, 0.0f,
-                            (float)textura.width, (float)textura.height};
-        Rectangle destino = {posicao.x - largura / 2.0f, base - altura,
+        Rectangle origem = {0.0f, 0.0f, (float)textura.width,
+                            (float)textura.height};
+        Rectangle destino = {base.x - largura / 2.0f, base.y - altura,
                              largura, altura};
 
         Color tonalidade = WHITE;
         if (suspeito->situacao == MORTO) {
-            tonalidade = (Color){70, 70, 82, 190};
+            tonalidade = (Color){115, 109, 101, 200};
         } else if (suspeito->situacao == PRESO) {
-            tonalidade = (Color){110, 110, 128, 210};
+            tonalidade = (Color){140, 133, 123, 220};
         }
 
         DrawTexturePro(textura, origem, destino, (Vector2){0.0f, 0.0f},
@@ -302,44 +295,61 @@ static void desenhar_corpo_suspeito(const TelaDebate *tela, int id) {
         return;
     }
 
-    // Placeholder quando o sprite ainda não está disponível.
-    Rectangle corpo = {posicao.x - 36.0f, base - altura, 72.0f, altura};
-    Color fundo = (Color){55, 55, 72, 255};
-    Color borda = (Color){120, 120, 145, 255};
+    // Silhueta de emergência quando o sprite ainda não está disponível.
+    float largura = fmaxf(altura * 0.34f, 84.0f);
+    Rectangle corpo = {base.x - largura / 2.0f, base.y - altura, largura,
+                       altura};
+    Color fundo = COR_FUMACA;
+    Color borda = COR_POEIRA;
 
     if (suspeito->situacao == MORTO) {
-        fundo = (Color){35, 35, 42, 255};
-        borda = (Color){85, 85, 95, 255};
+        fundo = COR_TINTA;
+        borda = (Color){90, 86, 79, 255};
     } else if (suspeito->situacao == PRESO) {
-        fundo = (Color){45, 45, 55, 255};
-        borda = (Color){100, 100, 120, 255};
+        fundo = (Color){52, 51, 46, 255};
+        borda = COR_POEIRA;
     }
 
     DrawRectangleRec(corpo, fundo);
-    DrawRectangleLinesEx(corpo, 2.0f, borda);
+    DrawRectangleLinesEx(corpo, 1.0f, borda);
 
     char inicial[2] = {
-        (suspeito->nome != NULL && suspeito->nome[0] != '\0')
-            ? suspeito->nome[0]
-            : '?',
-        '\0'
+        nome_de(suspeito)[0],
+        '\0',
     };
-    Rectangle area_inicial = {corpo.x, corpo.y, corpo.width, corpo.height};
-    ui_desenhar_texto_centralizado(NULL, inicial, area_inicial, 34.0f,
-                                   (Color){220, 220, 235, 255});
+    ui_desenhar_texto_centralizado(fonte_titulo, inicial, corpo, 44.0f,
+                                   COR_OSSO);
 }
 
 static void desenhar_mesa(void) {
-    DrawEllipse((int)(LARGURA_TELA / 2.0f) + 6, 416, 320, 102,
-                (Color){0, 0, 0, 105});
-    DrawEllipse((int)(LARGURA_TELA / 2.0f), 408, 320, 102,
-                (Color){28, 63, 44, 255});
-    DrawEllipseLines((int)(LARGURA_TELA / 2.0f), 408, 320, 102,
-                     (Color){78, 175, 112, 255});
-    DrawEllipse((int)(LARGURA_TELA / 2.0f), 402, 280, 80,
-                (Color){22, 52, 37, 255});
-    DrawEllipseLines((int)(LARGURA_TELA / 2.0f), 402, 280, 80,
-                     (Color){56, 128, 84, 180});
+    float centro_x = LARGURA_TELA / 2.0f;
+    float centro_y = 568.0f;
+
+    DrawEllipse((int)centro_x + 8, (int)centro_y + 12, 456.0f, 132.0f,
+                COR_SOMBRA);
+    DrawEllipse((int)centro_x, (int)centro_y, 450.0f, 128.0f, COR_FUMACA);
+    DrawEllipseLines((int)centro_x, (int)centro_y, 450.0f, 128.0f,
+                     COR_POEIRA);
+    DrawEllipse((int)centro_x, (int)centro_y - 8, 408.0f, 104.0f, COR_TINTA);
+    DrawEllipseLines((int)centro_x, (int)centro_y - 8, 408.0f, 104.0f,
+                     (Color){138, 129, 117, 120});
+}
+
+// Processo em cima da mesa: um detalhe de arquivo de caso, sem competir com
+// os retratos.
+static void desenhar_dossie(void) {
+    Rectangle pasta = {540.0f, 512.0f, 200.0f, 112.0f};
+    DrawRectangleRec(pasta, COR_PAPEL);
+    DrawRectangleLinesEx(pasta, 1.0f, COR_POEIRA);
+
+    Rectangle aba = {540.0f, 500.0f, 92.0f, 14.0f};
+    DrawRectangleRec(aba, COR_TIJOLO);
+
+    for (int i = 0; i < 4; i++) {
+        DrawRectangle(560, 536 + i * 17, 160, 1,
+                      (Color){27, 27, 24, 90});
+    }
+    DrawRectangle(560, 598, 62, 4, COR_TIJOLO);
 }
 
 static void desenhar_situacao_suspeito(const TelaDebate *tela, int id) {
@@ -348,85 +358,121 @@ static void desenhar_situacao_suspeito(const TelaDebate *tela, int id) {
         return;
     }
 
-    Vector2 posicao = posicao_suspeito(id);
-    float altura = altura_suspeito(id);
-    float base = posicao.y;
-    float topo = base - altura;
+    Vector2 base = posicao_suspeito(id);
+    float topo = topo_suspeito(id);
+    float raio = 19.0f;
+    Vector2 centro = {base.x, topo + altura_suspeito(id) * 0.22f};
 
-    Color cor = (suspeito->situacao == MORTO)
-                    ? (Color){220, 65, 65, 235}
-                    : (Color){150, 150, 175, 235};
-    float raio = 22.0f;
-    Vector2 centro = {posicao.x, topo + altura * 0.28f};
+    Color cor = (suspeito->situacao == MORTO) ? COR_TIJOLO : COR_POEIRA;
 
     DrawLineEx((Vector2){centro.x - raio, centro.y - raio},
-               (Vector2){centro.x + raio, centro.y + raio}, 4.0f, cor);
+               (Vector2){centro.x + raio, centro.y + raio}, 3.0f, cor);
     DrawLineEx((Vector2){centro.x + raio, centro.y - raio},
-               (Vector2){centro.x - raio, centro.y + raio}, 4.0f, cor);
-
-    const char *rotulo = (suspeito->situacao == MORTO) ? "MORTO" : "PRESO";
-    Rectangle area = {posicao.x - 60.0f, topo - 24.0f, 120.0f, 20.0f};
-    ui_desenhar_texto_centralizado(NULL, rotulo, area, 15.0f, cor);
+               (Vector2){centro.x - raio, centro.y + raio}, 3.0f, cor);
 }
 
-static void desenhar_indicador(const TelaDebate *tela,
-                               const UIFonte *fonte, int id) {
+static void desenhar_placa(const TelaDebate *tela, const UIFonte *fonte_corpo,
+                           const UIFonte *fonte_corpo_bold, int id) {
     const Suspeito *suspeito = buscar_suspeito(tela->jogo, id);
     if (suspeito == NULL) {
         return;
     }
 
-    Vector2 posicao = posicao_suspeito(id);
-    float altura = altura_suspeito(id);
-    float topo = posicao.y - altura;
+    const char *nome = nome_de(suspeito);
+    char linha2[64];
+    bool tem_linha2 = false;
 
-    float ponta = topo - 6.0f;
-    float base_triangulo = topo - 38.0f;
-
-    DrawTriangle((Vector2){posicao.x, ponta - 6.0f},
-                 (Vector2){posicao.x - 11.0f, base_triangulo},
-                 (Vector2){posicao.x + 11.0f, base_triangulo},
-                 (Color){220, 40, 40, 90});
-    DrawTriangleLines((Vector2){posicao.x, ponta},
-                      (Vector2){posicao.x - 17.0f, base_triangulo},
-                      (Vector2){posicao.x + 17.0f, base_triangulo},
-                      (Color){235, 45, 45, 255});
-
-    char rotulo[128];
-    snprintf(rotulo, sizeof rotulo, "%s — %s",
-             (suspeito->nome != NULL) ? suspeito->nome : "?",
-             (suspeito->cargo != NULL) ? suspeito->cargo : "?");
-
-    Vector2 medida = ui_medir_texto(fonte, rotulo, 15.0f);
-    float largura_placa = medida.x + 20.0f;
-    float x_placa = posicao.x - largura_placa / 2.0f;
-
-    // Mantém a placa dentro da tela quando o alvo está nas pontas.
-    if (x_placa < 8.0f) {
-        x_placa = 8.0f;
-    }
-    if (x_placa + largura_placa > LARGURA_TELA - 8.0f) {
-        x_placa = LARGURA_TELA - 8.0f - largura_placa;
+    if (suspeito->situacao == MORTO) {
+        snprintf(linha2, sizeof linha2, "MORTO");
+        tem_linha2 = true;
+    } else if (suspeito->situacao == PRESO) {
+        snprintf(linha2, sizeof linha2, "PRESO");
+        tem_linha2 = true;
+    } else {
+        const char *cargo = cargo_para_exibir(suspeito);
+        if (cargo[0] != '\0') {
+            snprintf(linha2, sizeof linha2, "%s", cargo);
+            tem_linha2 = true;
+        }
     }
 
-    Rectangle placa = {
-        x_placa,
-        base_triangulo - 30.0f,
-        largura_placa,
-        24.0f
-    };
+    float largura_nome =
+        ui_medir_texto(fonte_corpo_bold, nome, 13.0f).x;
+    float largura_linha2 =
+        tem_linha2 ? ui_medir_texto(fonte_corpo, linha2, 10.0f).x : 0.0f;
+    float largura = fmaxf(152.0f,
+                          fmaxf(largura_nome, largura_linha2) + 28.0f);
+    float x = posicao_suspeito(id).x - largura / 2.0f;
+    float y = topo_suspeito(id) - 78.0f;
 
-    DrawRectangleRec(placa, (Color){16, 16, 24, 225});
-    DrawRectangleLinesEx(placa, 1.0f, (Color){235, 45, 45, 255});
-    ui_desenhar_texto_centralizado(fonte, rotulo, placa, 15.0f, RAYWHITE);
+    // Mantém a placa dentro da tela nos assentos das pontas.
+    x = fmaxf(x, 8.0f);
+    x = fminf(x, LARGURA_TELA - 8.0f - largura);
+
+    bool selecionado = (id == alvo_indicado(tela));
+    Color borda = selecionado ? COR_TIJOLO
+                              : (suspeito->situacao == VIVO ? COR_POEIRA
+                                                            : COR_FUMACA);
+
+    Rectangle placa = {x, y, largura, 38.0f};
+    DrawRectangleRec(placa, (Color){27, 27, 24, 236});
+    DrawRectangleLinesEx(placa, selecionado ? 2.0f : 1.0f, borda);
+
+    if (selecionado) {
+        DrawRectangle((int)placa.x, (int)placa.y, 4, (int)placa.height,
+                      COR_TIJOLO);
+    }
+
+    Color cor_nome = (suspeito->situacao == VIVO) ? COR_OSSO : COR_POEIRA;
+    Color cor_linha2 = (suspeito->situacao == MORTO)
+                           ? COR_TIJOLO
+                           : (suspeito->situacao == PRESO ? COR_POEIRA
+                                                         : COR_POEIRA);
+
+    if (tem_linha2) {
+        ui_desenhar_texto_centralizado(
+            fonte_corpo_bold, nome,
+            (Rectangle){placa.x, placa.y + 3.0f, placa.width, 20.0f},
+            13.0f, cor_nome);
+        ui_desenhar_texto_centralizado(
+            fonte_corpo, linha2,
+            (Rectangle){placa.x, placa.y + 21.0f, placa.width, 14.0f},
+            10.0f, cor_linha2);
+    } else {
+        ui_desenhar_texto_centralizado(fonte_corpo_bold, nome, placa, 13.0f,
+                                       cor_nome);
+    }
 }
 
+static void desenhar_indicador(int id) {
+    if (!assento_valido(id)) {
+        return;
+    }
+
+    float x = posicao_suspeito(id).x;
+    float topo = topo_suspeito(id);
+    float ponta = topo - 6.0f;
+    float base_triangulo = topo - 44.0f;
+
+    DrawTriangle((Vector2){x, ponta - 8.0f},
+                 (Vector2){x - 13.0f, base_triangulo},
+                 (Vector2){x + 13.0f, base_triangulo},
+                 (Color){194, 59, 34, 85});
+    DrawTriangleLines((Vector2){x, ponta},
+                      (Vector2){x - 18.0f, base_triangulo},
+                      (Vector2){x + 18.0f, base_triangulo},
+                      COR_TIJOLO);
+}
+
+// ---------------------------------------------------------------------------
+// Cabeçalho
+// ---------------------------------------------------------------------------
 static void desenhar_cabecalho(const TelaDebate *tela,
-                               const UIFonte *fonte) {
+                               const UIFonte *fonte_titulo,
+                               const UIFonte *fonte_corpo,
+                               const UIFonte *fonte_corpo_bold) {
     const Jogo *jogo = tela->jogo;
 
-    // Durante o depoimento o painel está na frente; o cabeçalho passa a
-    // mostrar quem está falando, e não o próximo da roda.
     const Depoimento *depoimento = NULL;
     if (tela->etapa == DEBATE_MOSTRANDO_DEPOIMENTO &&
         jogo->caderno != NULL) {
@@ -437,106 +483,150 @@ static void desenhar_cabecalho(const TelaDebate *tela,
     const Suspeito *falante = (depoimento != NULL)
                                   ? buscar_suspeito(jogo, depoimento->id_falante)
                                   : suspeito_do_turno(jogo);
+    const char *rotulo_vez = (depoimento != NULL) ? "FALANDO" : "VEZ DE";
 
     DrawRectangle(0, 0, (int)LARGURA_TELA, (int)ALTURA_CABECALHO,
-                  (Color){10, 10, 16, 225});
-    DrawRectangle(0, (int)ALTURA_CABECALHO - 2, (int)LARGURA_TELA, 2,
-                  (Color){86, 86, 112, 220});
+                  (Color){27, 27, 24, 238});
+    DrawRectangle(0, (int)ALTURA_CABECALHO - 1, (int)LARGURA_TELA, 1,
+                  (Color){138, 129, 117, 130});
 
-    ui_desenhar_texto(fonte, "DEBATE", (Vector2){24.0f, 10.0f}, 32.0f,
-                      RAYWHITE);
+    DrawRectangle((int)MARGEM, 18, 28, 2, COR_TIJOLO);
+    desenhar_rotulo(fonte_corpo_bold, "INTERROGATÓRIO",
+                    (Vector2){MARGEM, 26.0f}, COR_TIJOLO);
+    ui_desenhar_texto(fonte_titulo, "DEBATE",
+                      (Vector2){MARGEM, 38.0f}, 34.0f, COR_OSSO);
 
     char subtitulo[96];
-    snprintf(subtitulo, sizeof subtitulo, "Dia %d — %s",
-             jogo->dia.dia_atual, nome_fase(jogo->dia.fase_atual));
-    ui_desenhar_texto(fonte, subtitulo, (Vector2){24.0f, 48.0f}, 17.0f,
-                      COR_TEXTO_SUAVE);
+    snprintf(subtitulo, sizeof subtitulo, "DIA %d DE %d",
+             jogo->dia.dia_atual, TOTAL_DIAS);
+    ui_desenhar_texto(fonte_corpo, subtitulo,
+                      (Vector2){MARGEM, 76.0f}, 11.5f, COR_POEIRA);
 
-    char vez[160];
-    if (falante != NULL) {
-        snprintf(vez, sizeof vez, "%s %s — %s",
-                 (depoimento != NULL) ? "Falando:" : "Vez de",
-                 (falante->nome != NULL) ? falante->nome : "?",
-                 (falante->cargo != NULL) ? falante->cargo : "?");
-    } else {
-        snprintf(vez, sizeof vez, "%s", TEXTO_SEM_TURNOS);
+    // Bloco da vez: nome grande e cargo/estado em Courier.
+    texto_direita(fonte_corpo_bold, rotulo_vez, 1080.0f, 24.0f, 10.5f,
+                  COR_POEIRA);
+    texto_direita(fonte_titulo,
+                  (falante != NULL) ? nome_de(falante) : "—",
+                  1080.0f, 38.0f, 23.0f, COR_OSSO);
+
+    const char *cargo = (falante != NULL) ? cargo_para_exibir(falante) : "";
+    if (cargo[0] == '\0') {
+        cargo = (falante != NULL)
+                    ? "SUSPEITO"
+                    : (debate_encerrado(jogo) ? "RODA ENCERRADA"
+                                              : "AGUARDANDO");
     }
+    texto_direita(fonte_corpo, cargo, 1080.0f, 68.0f, 11.5f, COR_POEIRA);
 
-    Vector2 medida = ui_medir_texto(fonte, vez, 16.0f);
-    ui_desenhar_texto(fonte, vez,
-                      (Vector2){LARGURA_TELA - 24.0f - medida.x, 16.0f},
-                      16.0f, RAYWHITE);
+    DrawRectangle(1104, 24, 1, 52, (Color){138, 129, 117, 90});
 
-    char credibilidade[64];
-    snprintf(credibilidade, sizeof credibilidade, "Credibilidade: %d",
-             jogo->credibilidade);
-    medida = ui_medir_texto(fonte, credibilidade, 15.0f);
-    ui_desenhar_texto(fonte, credibilidade,
-                      (Vector2){LARGURA_TELA - 24.0f - medida.x, 44.0f},
-                      15.0f, COR_TEXTO_SUAVE);
+    char credibilidade[32];
+    snprintf(credibilidade, sizeof credibilidade, "%d", jogo->credibilidade);
+    texto_direita(fonte_corpo_bold, "CREDIBILIDADE", 1184.0f, 24.0f, 10.5f,
+                  COR_POEIRA);
+    texto_direita(fonte_titulo, credibilidade, 1184.0f, 38.0f, 24.0f,
+                  COR_OSSO);
+    texto_direita(fonte_corpo, "DE 100", 1184.0f, 68.0f, 11.5f, COR_POEIRA);
 }
 
+// ---------------------------------------------------------------------------
+// Etapas
+// ---------------------------------------------------------------------------
 static void desenhar_prompt(const TelaDebate *tela,
-                            const UIFonte *fonte) {
+                            const UIFonte *fonte_corpo,
+                            const UIFonte *fonte_corpo_bold) {
     int id = alvo_indicado(tela);
     bool tem_turno = suspeito_do_turno(tela->jogo) != NULL;
 
-    const char *texto = TEXTO_SELECIONE;
-    Color cor = COR_DESTAQUE;
+    char texto[192];
+    const char *dica = "SETAS  ALVO     ENTER  CONFIRMAR";
 
     if (debate_encerrado(tela->jogo)) {
-        texto = TEXTO_RODA_ENCERRADA;
-        cor = COR_DESTAQUE;
+        snprintf(texto, sizeof texto, "%s", TEXTO_RODA_ENCERRADA);
+        dica = "ENTER  ENCERRAR";
     } else if (!tem_turno) {
-        texto = TEXTO_SEM_TURNOS;
-        cor = COR_TEXTO_SUAVE;
+        snprintf(texto, sizeof texto, "%s", TEXTO_SEM_TURNOS);
+        dica = "ENCERRE O DEBATE";
+    } else if (tela->etapa == DEBATE_ESCOLHENDO_PERIODO) {
+        snprintf(texto, sizeof texto, "Em qual período interrogar %s?",
+                 nome_por_id(tela->jogo, id));
+        dica = "ESC  VOLTAR";
+    } else {
+        snprintf(texto, sizeof texto, "%s", TEXTO_SELECIONE);
     }
 
-    Vector2 medida = ui_medir_texto(fonte, texto, 18.0f);
-    Rectangle faixa = {
-        (LARGURA_TELA - medida.x) / 2.0f - 16.0f,
-        434.0f,
-        medida.x + 32.0f,
-        28.0f
-    };
-    DrawRectangleRec(faixa, (Color){10, 10, 16, 210});
-    ui_desenhar_texto_centralizado(fonte, texto, faixa, 18.0f, cor);
+    Rectangle painel = {MARGEM, 106.0f, LARGURA_CONTEUDO, 64.0f};
+    DrawRectangleRec(painel, (Color){27, 27, 24, 232});
+    DrawRectangleLinesEx(painel, 1.0f, (Color){138, 129, 117, 120});
+    DrawRectangle((int)painel.x, (int)painel.y, 3, (int)painel.height,
+                  COR_TIJOLO);
 
-    if (tem_turno && id >= 0) {
+    desenhar_rotulo(fonte_corpo_bold, "PRÓXIMO PASSO",
+                    (Vector2){painel.x + 22.0f, painel.y + 10.0f}, COR_TIJOLO);
+    ui_desenhar_texto(fonte_corpo, texto,
+                      (Vector2){painel.x + 22.0f, painel.y + 28.0f},
+                      17.0f, COR_OSSO);
+    texto_direita(fonte_corpo, dica, painel.x + painel.width - 20.0f,
+                  painel.y + 28.0f, 10.5f, COR_POEIRA);
+
+    // Reforça o alvo atual no canto do painel, sem depender só da placa.
+    if (tem_turno && id >= 0 &&
+        tela->etapa == DEBATE_ESCOLHENDO_ALVO) {
         const Suspeito *alvo = buscar_suspeito(tela->jogo, id);
         if (alvo != NULL) {
-            char rotulo[128];
-            snprintf(rotulo, sizeof rotulo, "Alvo: %s (%s)",
-                     (alvo->nome != NULL) ? alvo->nome : "?",
-                     (alvo->cargo != NULL) ? alvo->cargo : "?");
-            Vector2 alvo_medida = ui_medir_texto(fonte, rotulo, 15.0f);
-            ui_desenhar_texto(
-                fonte, rotulo,
-                (Vector2){(LARGURA_TELA - alvo_medida.x) / 2.0f, 412.0f},
-                15.0f, (Color){190, 205, 235, 255});
+            char resumo[128];
+            const char *cargo = cargo_para_exibir(alvo);
+            if (cargo[0] != '\0') {
+                snprintf(resumo, sizeof resumo, "ALVO: %s · %s",
+                         nome_de(alvo), cargo);
+            } else {
+                snprintf(resumo, sizeof resumo, "ALVO: %s", nome_de(alvo));
+            }
+            texto_direita(fonte_corpo_bold, resumo,
+                          painel.x + painel.width - 20.0f,
+                          painel.y + 10.0f, 10.5f, COR_POEIRA);
         }
     }
 }
 
 static void desenhar_periodo(const TelaDebate *tela,
-                             const UIFonte *fonte) {
-    Rectangle painel = {276.0f, 392.0f, 408.0f, 84.0f};
-    DrawRectangleRec(painel, COR_PAINEL);
-    DrawRectangleLinesEx(painel, 2.0f, COR_BORDA);
+                             const UIFonte *fonte_titulo,
+                             const UIFonte *fonte_corpo,
+                             const UIFonte *fonte_corpo_bold) {
+    DrawRectangle(0, (int)ALTURA_CABECALHO, (int)LARGURA_TELA,
+                  (int)(TOPO_BARRA_ACOES - ALTURA_CABECALHO),
+                  (Color){27, 27, 24, 170});
 
-    Rectangle titulo = {painel.x, painel.y + 5.0f, painel.width, 22.0f};
-    ui_desenhar_texto_centralizado(fonte, "Em qual período interrogar?",
-                                   titulo, 16.0f, RAYWHITE);
+    Rectangle painel = {400.0f, 286.0f, 480.0f, 160.0f};
+    DrawRectangleRec(painel, (Color){27, 27, 24, 246});
+    DrawRectangleLinesEx(painel, 1.0f, COR_POEIRA);
+    DrawRectangle((int)painel.x, (int)painel.y, (int)painel.width, 3,
+                  COR_TIJOLO);
+
+    desenhar_rotulo(fonte_corpo_bold, "PERÍODO",
+                    (Vector2){painel.x + 24.0f, painel.y + 18.0f},
+                    COR_TIJOLO);
+    ui_desenhar_texto(fonte_titulo, "Em qual período?",
+                      (Vector2){painel.x + 24.0f, painel.y + 32.0f},
+                      22.0f, COR_OSSO);
+    ui_desenhar_texto(fonte_corpo, "A escolha vale só para esta pergunta.",
+                      (Vector2){painel.x + 24.0f, painel.y + 64.0f},
+                      11.0f, COR_POEIRA);
 
     for (int i = 0; i < TOTAL_PERIODOS; i++) {
-        ui_desenhar_botao(fonte,
+        ui_desenhar_botao(fonte_corpo_bold,
                           (BotaoUI *)&tela->botoes_periodo[i],
                           tela->botao_focado == i);
     }
+
+    ui_desenhar_botao(fonte_corpo_bold,
+                      (BotaoUI *)&tela->botao_voltar_periodo, false);
 }
 
 static void desenhar_depoimento(const TelaDebate *tela,
-                                const UIFonte *fonte) {
+                                const UIFonte *fonte_titulo,
+                                const UIFonte *fonte_corpo,
+                                const UIFonte *fonte_corpo_bold) {
     if (tela->jogo->caderno == NULL || tela->id_depoimento <= 0) {
         return;
     }
@@ -547,44 +637,84 @@ static void desenhar_depoimento(const TelaDebate *tela,
         return;
     }
 
-    Rectangle painel = {96.0f, 88.0f, 768.0f, 376.0f};
-    DrawRectangleRec(painel, (Color){16, 16, 26, 242});
-    DrawRectangleLinesEx(painel, 2.0f, COR_BORDA);
+    DrawRectangle(0, (int)ALTURA_CABECALHO, (int)LARGURA_TELA,
+                  (int)(TOPO_BARRA_ACOES - ALTURA_CABECALHO),
+                  (Color){27, 27, 24, 185});
 
-    char titulo[192];
-    snprintf(titulo, sizeof titulo, "Depoimento de %s",
-             nome_suspeito(tela->jogo, depoimento->id_falante));
-    ui_desenhar_texto(fonte, titulo, (Vector2){painel.x + 24.0f,
-                                               painel.y + 18.0f},
-                      24.0f, RAYWHITE);
+    Rectangle esquerda = {MARGEM, 250.0f, 760.0f, 370.0f};
+    Rectangle direita = {880.0f, 250.0f, 304.0f, 370.0f};
 
-    char subtitulo[192];
-    snprintf(subtitulo, sizeof subtitulo,
-             "[Dia %d, %s] sobre %s", depoimento->dia,
-             nome_periodo(depoimento->periodo),
-             nome_suspeito(tela->jogo, depoimento->id_assunto));
-    ui_desenhar_texto(fonte, subtitulo,
-                      (Vector2){painel.x + 24.0f, painel.y + 52.0f},
-                      16.0f, COR_TEXTO_SUAVE);
+    DrawRectangleRec(esquerda, (Color){27, 27, 24, 246});
+    DrawRectangleLinesEx(esquerda, 1.0f, COR_POEIRA);
+    DrawRectangle((int)esquerda.x, (int)esquerda.y, (int)esquerda.width, 4,
+                  COR_TIJOLO);
 
-    DrawRectangle((int)painel.x + 24, (int)painel.y + 80,
-                  (int)painel.width - 48, 1,
-                  (Color){80, 80, 105, 255});
+    DrawRectangleRec(direita, (Color){27, 27, 24, 240});
+    DrawRectangleLinesEx(direita, 1.0f, COR_POEIRA);
+    DrawRectangle((int)direita.x, (int)direita.y, (int)direita.width, 4,
+                  COR_POEIRA);
 
-    Rectangle area_texto = {painel.x + 24.0f, painel.y + 96.0f,
-                            painel.width - 48.0f, 110.0f};
+    desenhar_rotulo(fonte_corpo_bold, "DEPOIMENTO",
+                    (Vector2){esquerda.x + 24.0f, esquerda.y + 18.0f},
+                    COR_TIJOLO);
+    ui_desenhar_texto(fonte_titulo, nome_por_id(tela->jogo,
+                                                depoimento->id_falante),
+                      (Vector2){esquerda.x + 24.0f, esquerda.y + 32.0f},
+                      30.0f, COR_OSSO);
+
+    char meta[320];
+    snprintf(meta, sizeof meta, "Dia %d — %s · sobre %s · local: %s",
+             depoimento->dia, nome_periodo(depoimento->periodo),
+             nome_por_id(tela->jogo, depoimento->id_assunto),
+             (depoimento->local != NULL) ? depoimento->local : "—");
+    ui_desenhar_texto(fonte_corpo, meta,
+                      (Vector2){esquerda.x + 24.0f, esquerda.y + 70.0f},
+                      12.5f, COR_POEIRA);
+
+    DrawRectangle((int)esquerda.x + 24, (int)esquerda.y + 94,
+                  (int)esquerda.width - 48, 1,
+                  (Color){138, 129, 117, 100});
+
+    Rectangle area_texto = {
+        esquerda.x + 24.0f,
+        esquerda.y + 108.0f,
+        esquerda.width - 48.0f,
+        170.0f,
+    };
     BeginScissorMode((int)area_texto.x, (int)area_texto.y,
                      (int)area_texto.width, (int)area_texto.height);
     ui_desenhar_texto_quebrado(
-        fonte,
-        (depoimento->texto != NULL) ? depoimento->texto
-                                    : "Depoimento sem texto.",
-        area_texto, 21.0f, 4.0f, RAYWHITE);
+        fonte_corpo,
+        (depoimento->texto != NULL && depoimento->texto[0] != '\0')
+            ? depoimento->texto
+            : TEXTO_DEPOIMENTO_VAZIO,
+        area_texto, 17.0f, 5.0f, COR_OSSO);
     EndScissorMode();
 
-    ui_desenhar_texto(fonte, "Reações:",
-                      (Vector2){painel.x + 24.0f, painel.y + 218.0f},
-                      17.0f, COR_TEXTO_SUAVE);
+    if (tela->tempo_alerta > 0.0f) {
+        Rectangle alerta = {esquerda.x + 24.0f, esquerda.y + 298.0f,
+                            esquerda.width - 48.0f, 42.0f};
+        DrawRectangleRec(alerta, COR_RUBOR);
+        DrawRectangle((int)alerta.x, (int)alerta.y, 3, (int)alerta.height,
+                      COR_TIJOLO);
+        ui_desenhar_icone(UI_ICONE_ALERTA,
+                          (Vector2){alerta.x + 22.0f,
+                                    alerta.y + alerta.height / 2.0f},
+                          18.0f, COR_TIJOLO);
+        ui_desenhar_texto(fonte_corpo, TEXTO_NOVA_CONTRADICAO,
+                          (Vector2){alerta.x + 40.0f, alerta.y + 13.0f},
+                          14.0f, COR_OSSO);
+    } else {
+        ui_desenhar_texto(fonte_corpo,
+                          "ENTER ou CONTINUAR para voltar ao debate.",
+                          (Vector2){esquerda.x + 24.0f,
+                                    esquerda.y + 306.0f},
+                          11.5f, COR_POEIRA);
+    }
+
+    desenhar_rotulo(fonte_corpo_bold, "REAÇÕES",
+                    (Vector2){direita.x + 24.0f, direita.y + 18.0f},
+                    COR_POEIRA);
 
     int reacoes = 0;
     for (NoListaDupla *no = tela->jogo->caderno->reacoes.inicio;
@@ -594,132 +724,140 @@ static void desenhar_depoimento(const TelaDebate *tela,
             reacao->id_depoimento != tela->id_depoimento) {
             continue;
         }
-
-        int coluna = reacoes % 2;
-        int linha = reacoes / 2;
-        float x = painel.x + 40.0f + (float)coluna * 352.0f;
-        float y = painel.y + 250.0f + (float)linha * 32.0f;
-
-        ui_desenhar_icone(icone_da_reacao(reacao->tipo_reacao),
-                          (Vector2){x, y + 11.0f}, 22.0f,
-                          cor_da_reacao(reacao->tipo_reacao));
-
-        const Suspeito *quem = NULL;
-        for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
-            const Suspeito *suspeito = buscar_suspeito(tela->jogo, id);
-            if (suspeito != NULL && reacao->quem_reagiu != NULL &&
-                strcmp(suspeito->nome, reacao->quem_reagiu) == 0) {
-                quem = suspeito;
-                break;
-            }
-        }
-
-        char rotulo[160];
-        snprintf(rotulo, sizeof rotulo, "%s — %s",
-                 (reacao->quem_reagiu != NULL) ? reacao->quem_reagiu : "?",
-                 (quem != NULL && quem->cargo != NULL) ? quem->cargo : "?");
-        ui_desenhar_texto(fonte, rotulo, (Vector2){x + 22.0f, y + 2.0f},
-                          16.0f, cor_da_reacao(reacao->tipo_reacao));
         reacoes++;
     }
 
-    if (reacoes == 0) {
-        ui_desenhar_texto(fonte, "Ninguém reagiu.",
-                          (Vector2){painel.x + 40.0f, painel.y + 250.0f},
-                          16.0f, COR_TEXTO_SUAVE);
+    char total[16];
+    snprintf(total, sizeof total, "%d", reacoes);
+    texto_direita(fonte_titulo, total, direita.x + direita.width - 24.0f,
+                  direita.y + 14.0f, 20.0f, COR_OSSO);
+
+    DrawRectangle((int)direita.x + 24, (int)direita.y + 48,
+                  (int)direita.width - 48, 1,
+                  (Color){138, 129, 117, 100});
+
+    int indice = 0;
+    for (NoListaDupla *no = tela->jogo->caderno->reacoes.inicio;
+         no != NULL && indice < 7; no = no->prox) {
+        const Reacao *reacao = (const Reacao *)no->dado;
+        if (reacao == NULL ||
+            reacao->id_depoimento != tela->id_depoimento) {
+            continue;
+        }
+
+        float y = direita.y + 64.0f + (float)indice * 54.0f;
+        Color cor = cor_da_reacao(reacao->tipo_reacao);
+
+        ui_desenhar_icone(icone_da_reacao(reacao->tipo_reacao),
+                          (Vector2){direita.x + 40.0f, y + 15.0f},
+                          18.0f, cor);
+
+        const char *quem = (reacao->quem_reagiu != NULL)
+                               ? reacao->quem_reagiu
+                               : "?";
+        ui_desenhar_texto(fonte_corpo_bold, quem,
+                          (Vector2){direita.x + 60.0f, y},
+                          13.5f, COR_OSSO);
+        desenhar_rotulo(fonte_corpo_bold,
+                        rotulo_da_reacao(reacao->tipo_reacao),
+                        (Vector2){direita.x + 60.0f, y + 18.0f},
+                        COR_POEIRA);
+
+        indice++;
     }
 
-    if (tela->tempo_alerta > 0.0f) {
-        ui_desenhar_icone(UI_ICONE_ALERTA,
-                          (Vector2){painel.x + 34.0f,
-                                    painel.y + 354.0f},
-                          22.0f, COR_ALERTA);
-        ui_desenhar_texto(fonte, TEXTO_NOVA_CONTRADICAO,
-                          (Vector2){painel.x + 52.0f,
-                                    painel.y + 344.0f},
-                          17.0f, COR_ALERTA);
+    if (reacoes == 0) {
+        ui_desenhar_texto(fonte_corpo, TEXTO_SEM_REACOES,
+                          (Vector2){direita.x + 24.0f, direita.y + 68.0f},
+                          13.5f, COR_POEIRA);
+        ui_desenhar_texto(fonte_corpo,
+                          "O depoimento não mexeu com a roda.",
+                          (Vector2){direita.x + 24.0f, direita.y + 90.0f},
+                          10.5f, COR_POEIRA);
     }
 }
 
 static void desenhar_barra_acoes(const TelaDebate *tela,
-                                 const UIFonte *fonte) {
-    DrawRectangle(0, (int)(ALTURA_TELA - ALTURA_BARRA_ACOES),
-                  (int)LARGURA_TELA, (int)ALTURA_BARRA_ACOES,
-                  (Color){10, 10, 16, 235});
-    DrawRectangle(0, (int)(ALTURA_TELA - ALTURA_BARRA_ACOES),
-                  (int)LARGURA_TELA, 1, (Color){70, 70, 95, 220});
+                                 const UIFonte *fonte_corpo_bold) {
+    DrawRectangle(0, (int)TOPO_BARRA_ACOES, (int)LARGURA_TELA,
+                  (int)ALTURA_BARRA_ACOES, (Color){27, 27, 24, 242});
+    DrawRectangle(0, (int)TOPO_BARRA_ACOES, (int)LARGURA_TELA, 1,
+                  (Color){138, 129, 117, 120});
 
-    ui_desenhar_botao(fonte, (BotaoUI *)&tela->botao_caderno, false);
-    ui_desenhar_botao(fonte, (BotaoUI *)&tela->botao_interrogar, false);
-
-    // Com a roda encerrada, "Encerrar debate" é a ação sugerida.
-    ui_desenhar_botao(fonte, (BotaoUI *)&tela->botao_encerrar,
+    ui_desenhar_botao(fonte_corpo_bold,
+                      (BotaoUI *)&tela->botao_caderno, false);
+    ui_desenhar_botao(fonte_corpo_bold,
+                      (BotaoUI *)&tela->botao_interrogar, false);
+    ui_desenhar_botao(fonte_corpo_bold,
+                      (BotaoUI *)&tela->botao_encerrar,
                       debate_encerrado(tela->jogo));
 }
 
 // ---------------------------------------------------------------------------
 // API
 // ---------------------------------------------------------------------------
-void tela_debate_iniciar(TelaDebate *tela, Jogo *jogo) {
+void tela_debate_iniciar(TelaDebate *tela, Jogo *jogo,
+                         const Recursos *recursos) {
     if (tela == NULL) {
         return;
     }
 
     memset(tela, 0, sizeof *tela);
     tela->jogo = jogo;
+    tela->recursos = recursos;
     tela->etapa = DEBATE_ESCOLHENDO_ALVO;
     tela->id_alvo = primeiro_vivo(jogo);
     tela->id_depoimento = -1;
-    tela->contradicoes_antes =
-        (jogo != NULL && jogo->caderno != NULL)
-            ? jogo->caderno->contradicoes.tamanho
-            : 0;
     tela->tempo_alerta = 0.0f;
     tela->botao_focado = -1;
-    tela->interrogar_pressionado = false;
 
-    tela->botao_interrogar = (BotaoUI){
-        .area = {380.0f, 486.0f, 200.0f, 40.0f},
-        .rotulo = "Interrogar",
-        .habilitado = true,
-    };
     tela->botao_caderno = (BotaoUI){
-        .area = {24.0f, 486.0f, 200.0f, 40.0f},
-        .rotulo = "Abrir caderno",
+        .area = {MARGEM, 650.0f, 240.0f, 56.0f},
+        .rotulo = "ABRIR CADERNO",
         .habilitado = true,
+        .primario = false,
+    };
+    tela->botao_interrogar = (BotaoUI){
+        .area = {520.0f, 650.0f, 240.0f, 56.0f},
+        .rotulo = "INTERROGAR",
+        .habilitado = true,
+        .primario = true,
     };
     tela->botao_encerrar = (BotaoUI){
-        .area = {736.0f, 486.0f, 200.0f, 40.0f},
-        .rotulo = "Encerrar debate",
+        .area = {944.0f, 650.0f, 240.0f, 56.0f},
+        .rotulo = "ENCERRAR DEBATE",
         .habilitado = true,
+        .primario = false,
     };
-
-    // Assets primeiro: a área clicável de cada suspeito usa a proporção do
-    // sprite real quando ele está disponível.
-    tela->fundo = carregar_textura(DEBATE_FUNDO);
-    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
-        tela->retratos[id] = carregar_textura(RETRATOS[id]);
-    }
 
     for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
         tela->botoes_alvo[id] = (BotaoUI){
             .area = area_suspeito(tela, id),
             .rotulo = NULL,
             .habilitado = true,
+            .primario = false,
         };
     }
 
     for (int i = 0; i < TOTAL_PERIODOS; i++) {
         tela->botoes_periodo[i] = (BotaoUI){
-            .area = {300.0f + (float)i * 124.0f, 424.0f, 112.0f, 38.0f},
+            .area = {418.0f + (float)i * 152.0f, 366.0f, 140.0f, 44.0f},
             .rotulo = ROTULOS_PERIODO[i],
             .habilitado = true,
+            .primario = false,
         };
     }
+
+    tela->botao_voltar_periodo = (BotaoUI){
+        .area = {580.0f, 416.0f, 120.0f, 26.0f},
+        .rotulo = "VOLTAR",
+        .habilitado = true,
+        .primario = false,
+    };
 }
 
 static EntradaBotao ler_entrada(void) {
-    EntradaBotao entrada = {
+    return (EntradaBotao){
         .mouse = GetMousePosition(),
         .apertou = IsMouseButtonPressed(MOUSE_BUTTON_LEFT),
         .pressionado = IsMouseButtonDown(MOUSE_BUTTON_LEFT),
@@ -728,7 +866,6 @@ static EntradaBotao ler_entrada(void) {
                      IsKeyPressed(KEY_KP_ENTER) ||
                      IsKeyPressed(KEY_SPACE),
     };
-    return entrada;
 }
 
 AcaoDebate tela_debate_atualizar(TelaDebate *tela) {
@@ -750,7 +887,14 @@ AcaoDebate tela_debate_atualizar(TelaDebate *tela) {
     bool pode_interrogar =
         falante != NULL && jogo->resultado == JOGO_EM_ANDAMENTO;
 
-    // Navegação por teclado entre os alvos vivos.
+    // Mantém os alvos sincronizados antes da navegação por teclado.
+    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+        tela->botoes_alvo[id].habilitado =
+            pode_interrogar &&
+            tela->etapa == DEBATE_ESCOLHENDO_ALVO &&
+            suspeito_vivo(jogo, id) != NULL;
+    }
+
     if (tela->etapa == DEBATE_ESCOLHENDO_ALVO && pode_interrogar) {
         int passo = 0;
         if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_DOWN) ||
@@ -768,7 +912,7 @@ AcaoDebate tela_debate_atualizar(TelaDebate *tela) {
             }
         }
 
-        if (entrada.confirmar && suspeito_vivo(jogo, tela->id_alvo)) {
+        if (entrada.confirmar && suspeito_vivo(jogo, tela->id_alvo) != NULL) {
             tela->etapa = DEBATE_ESCOLHENDO_PERIODO;
             tela->botao_focado = 0;
             entrada.confirmar = false;
@@ -785,7 +929,7 @@ AcaoDebate tela_debate_atualizar(TelaDebate *tela) {
         entrada.confirmar = false;
     }
 
-    // Sem mais turnos: Enter encerra o debate direto, como o botão.
+    // Com a roda encerrada, Enter encerra o debate direto, como o botão.
     if (debate_encerrado(jogo) && entrada.confirmar &&
         tela->etapa == DEBATE_ESCOLHENDO_ALVO) {
         return TELA_DEBATE_ENCERRAR;
@@ -793,16 +937,10 @@ AcaoDebate tela_debate_atualizar(TelaDebate *tela) {
 
     // Alvos: só são clicáveis quando é a vez de escolher.
     for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
-        tela->botoes_alvo[id].habilitado =
-            pode_interrogar &&
-            tela->etapa == DEBATE_ESCOLHENDO_ALVO &&
-            suspeito_vivo(jogo, id) != NULL;
-
         EstadoBotao estado = ui_atualizar_botao(
             &tela->botoes_alvo[id], false, &entrada);
 
-        if (tela->etapa == DEBATE_ESCOLHENDO_ALVO &&
-            pode_interrogar) {
+        if (tela->etapa == DEBATE_ESCOLHENDO_ALVO && pode_interrogar) {
             if (estado == BOTAO_HOVER) {
                 tela->id_alvo = id;
             } else if (estado == BOTAO_ACIONADO) {
@@ -857,7 +995,6 @@ AcaoDebate tela_debate_atualizar(TelaDebate *tela) {
             if (id_depoimento > 0) {
                 tela->id_depoimento = id_depoimento;
                 tela->etapa = DEBATE_MOSTRANDO_DEPOIMENTO;
-                tela->contradicoes_antes = antes;
                 tela->tempo_alerta =
                     (jogo->caderno != NULL &&
                      jogo->caderno->contradicoes.tamanho > antes)
@@ -869,19 +1006,29 @@ AcaoDebate tela_debate_atualizar(TelaDebate *tela) {
         }
     }
 
+    tela->botao_voltar_periodo.habilitado = pode_periodo;
+    if (pode_periodo &&
+        ui_atualizar_botao(&tela->botao_voltar_periodo, false, &entrada) ==
+            BOTAO_ACIONADO) {
+        tela->etapa = DEBATE_ESCOLHENDO_ALVO;
+        tela->botao_focado = -1;
+    }
+
     // Botões de ação.
-    tela->botao_interrogar.habilitado = true;
+    bool encerrada = debate_encerrado(jogo) || !pode_interrogar;
+
     if (tela->etapa == DEBATE_ESCOLHENDO_ALVO) {
-        tela->botao_interrogar.rotulo = "Interrogar";
+        tela->botao_interrogar.rotulo = "INTERROGAR";
         tela->botao_interrogar.habilitado =
             pode_interrogar && suspeito_vivo(jogo, tela->id_alvo) != NULL;
     } else if (tela->etapa == DEBATE_ESCOLHENDO_PERIODO) {
-        tela->botao_interrogar.rotulo = "Interrogar";
+        tela->botao_interrogar.rotulo = "INTERROGAR";
         tela->botao_interrogar.habilitado = false;
     } else {
-        tela->botao_interrogar.rotulo = "Continuar";
+        tela->botao_interrogar.rotulo = "CONTINUAR";
         tela->botao_interrogar.habilitado = true;
     }
+    tela->botao_interrogar.primario = !encerrada;
 
     if (ui_atualizar_botao(&tela->botao_interrogar, false, &entrada) ==
         BOTAO_ACIONADO) {
@@ -907,6 +1054,7 @@ AcaoDebate tela_debate_atualizar(TelaDebate *tela) {
     }
 
     tela->botao_encerrar.habilitado = true;
+    tela->botao_encerrar.primario = encerrada;
     if (ui_atualizar_botao(&tela->botao_encerrar, false, &entrada) ==
             BOTAO_ACIONADO ||
         IsKeyPressed(KEY_E)) {
@@ -916,7 +1064,10 @@ AcaoDebate tela_debate_atualizar(TelaDebate *tela) {
     return TELA_DEBATE_CONTINUAR;
 }
 
-void tela_debate_desenhar(const TelaDebate *tela, const UIFonte *fonte) {
+void tela_debate_desenhar(const TelaDebate *tela,
+                          const UIFonte *fonte_titulo,
+                          const UIFonte *fonte_corpo,
+                          const UIFonte *fonte_corpo_bold) {
     if (tela == NULL || tela->jogo == NULL) {
         return;
     }
@@ -926,29 +1077,36 @@ void tela_debate_desenhar(const TelaDebate *tela, const UIFonte *fonte) {
     // Corpos primeiro; a mesa cobre a parte de baixo de quem está atrás dela.
     static const int ORDEM_DESENHO[TOTAL_SUSPEITOS] = {2, 3, 1, 4, 0, 5};
     for (int i = 0; i < TOTAL_SUSPEITOS; i++) {
-        desenhar_corpo_suspeito(tela, ORDEM_DESENHO[i]);
+        desenhar_corpo_suspeito(tela, ORDEM_DESENHO[i], fonte_titulo);
     }
 
     desenhar_mesa();
+    desenhar_dossie();
 
     for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
         desenhar_situacao_suspeito(tela, id);
     }
 
+    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+        desenhar_placa(tela, fonte_corpo, fonte_corpo_bold, id);
+    }
+
     int indicado = alvo_indicado(tela);
     if (indicado >= 0) {
-        desenhar_indicador(tela, fonte, indicado);
+        desenhar_indicador(indicado);
     }
 
-    desenhar_cabecalho(tela, fonte);
+    desenhar_cabecalho(tela, fonte_titulo, fonte_corpo, fonte_corpo_bold);
 
     if (tela->etapa == DEBATE_MOSTRANDO_DEPOIMENTO) {
-        desenhar_depoimento(tela, fonte);
+        desenhar_depoimento(tela, fonte_titulo, fonte_corpo,
+                            fonte_corpo_bold);
     } else if (tela->etapa == DEBATE_ESCOLHENDO_PERIODO) {
-        desenhar_periodo(tela, fonte);
+        desenhar_periodo(tela, fonte_titulo, fonte_corpo, fonte_corpo_bold);
+        desenhar_prompt(tela, fonte_corpo, fonte_corpo_bold);
     } else {
-        desenhar_prompt(tela, fonte);
+        desenhar_prompt(tela, fonte_corpo, fonte_corpo_bold);
     }
 
-    desenhar_barra_acoes(tela, fonte);
+    desenhar_barra_acoes(tela, fonte_corpo_bold);
 }

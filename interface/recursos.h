@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+#include "entidades/personagens.h"
 #include "raylib.h"
 
 /*
@@ -19,6 +20,10 @@ typedef struct {
     Texture2D hercule;
     Texture2D retrato_marple;
     Texture2D retrato_poirot;
+
+    // Sprites dos suspeitos, indexados por ID_GERENTE..ID_VIGIA. Ficam aqui
+    // para a tela de debate não carregar texturas por conta própria.
+    Texture2D retratos_suspeitos[TOTAL_SUSPEITOS];
 } Recursos;
 
 // Procura um caminho relativo na pasta do executável, no diretório atual e
