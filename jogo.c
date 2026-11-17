@@ -183,17 +183,27 @@ static void realizar_crime_noturno(Jogo *jogo) {
     vitima->situacao = MORTO;
     jogo->ultima_vitima = vitima->id;
 
+    // O local do crime é o local noturno do assassino, já calculado em
+    // gerar_agenda(). Ler a agenda evita uma segunda fonte de verdade.
+    const char *local = local_do_crime(jogo, jogo->dia.dia_atual);
+
     char objeto[128];
     char descricao[256];
     snprintf(objeto, sizeof objeto, "Corpo de %s", vitima->nome);
-    snprintf(descricao, sizeof descricao,
-             "%s foi encontrado morto na madrugada. O assassino continua agindo.",
-             vitima->nome);
+
+    if (local != NULL) {
+        snprintf(descricao, sizeof descricao,
+                 "%s foi encontrado morto na madrugada, %s %s. O assassino continua agindo.",
+                 vitima->nome, preposicao_local(local), local);
+    } else {
+        local = "local desconhecido";
+        snprintf(descricao, sizeof descricao,
+                 "%s foi encontrado morto na madrugada. O assassino continua agindo.",
+                 vitima->nome);
+    }
 
     registrar_pista(jogo->caderno, jogo->dia.dia_atual,
-                    "Cena do crime", objeto, descricao, NULL);
-    
-    jogo->agenda.local_crime[jogo->dia.dia_atual - 1] = jogo->agenda.local[jogo->dia.dia_atual - 1][NOITE][jogo->papeis.id_assassino];
+                    (char *)local, objeto, descricao, NULL);
 }
 
 // ---------------------------------------------------------------------------

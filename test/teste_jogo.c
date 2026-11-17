@@ -341,6 +341,21 @@ static void testar_dia_completo_ate_a_derrota_por_tempo(void) {
             verificar(vitima != NULL && vitima->situacao == MORTO,
                       "a vítima da noite fica morta");
 
+            const char *local_crime = local_do_crime(&jogo, dia);
+            const Pista *pista_noite = jogo.caderno->pistas.fim != NULL
+                ? (const Pista *)jogo.caderno->pistas.fim->dado
+                : NULL;
+            verificar(local_crime != NULL && pista_noite != NULL &&
+                      pista_noite->local != NULL &&
+                      strcmp(pista_noite->local, local_crime) == 0,
+                      "pista da noite traz o local real do crime");
+            verificar(pista_noite != NULL && pista_noite->dia == dia,
+                      "pista da noite é do dia do crime");
+            verificar(pista_noite != NULL && pista_noite->descricao != NULL &&
+                      local_crime != NULL &&
+                      strstr(pista_noite->descricao, local_crime) != NULL,
+                      "descrição da pista da noite cita o local do crime");
+
             avancar_fase_jogo(&jogo); // noite -> manhã seguinte
             verificar(jogo.dia.fase_atual == FASE_MANHA,
                       "a noite leva à manhã seguinte");
