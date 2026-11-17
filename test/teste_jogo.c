@@ -750,6 +750,86 @@ static void testar_ultima_pista_apos_ordenacao(void) {
     liberar_jogo(&jogo);
 }
 
+static const Pista *buscar_pista_por_objeto(const Jogo *jogo, const char *objeto) {
+    if (jogo == NULL || jogo->caderno == NULL || objeto == NULL) {
+        return NULL;
+    }
+    for (const NoListaDupla *no = jogo->caderno->pistas.inicio;
+         no != NULL; no = no->prox) {
+        const Pista *pista = (const Pista *)no->dado;
+        if (pista != NULL && pista->objeto != NULL &&
+            strcmp(pista->objeto, objeto) == 0) {
+            return pista;
+        }
+    }
+    return NULL;
+}
+
+static void checar_relacionados(const Jogo *jogo, const char *objeto,
+                                const int *esperados, int total) {
+    const Pista *pista = buscar_pista_por_objeto(jogo, objeto);
+    if (pista == NULL) {
+        verificar(0, "pista do dia encontrada no caderno");
+        return;
+    }
+
+    int quantidade = 0;
+    if (pista->suspeitos_relacionados != NULL) {
+        for (const NoListaDupla *no = pista->suspeitos_relacionados->inicio;
+             no != NULL; no = no->prox) {
+            quantidade++;
+        }
+    }
+    verificar(quantidade == total, "quantidade de suspeitos relacionados");
+    for (int i = 0; i < total; i++) {
+        verificar(pista_tem_suspeito_relacionado(pista, esperados[i]),
+                  "suspeito esperado esta relacionado a pista");
+    }
+}
+
+static void testar_suspeitos_relacionados_das_pistas(void) {
+    Jogo jogo;
+    verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 1234),
+              "partida inicia para testar suspeitos relacionados");
+    if (jogo.suspeitos == NULL || jogo.caderno == NULL) {
+        return;
+    }
+
+    const int chave[] = { ID_ENGENHEIRO, ID_CAPATAZ, ID_OPERARIO, ID_VIGIA };
+    checar_relacionados(&jogo, "Chave inglesa", chave, 4);
+
+    // manhã -> debate -> julgamento -> noite -> manhã do dia seguinte
+    for (int dia = 2; dia <= TOTAL_DIAS; dia++) {
+        for (int passo = 0; passo < 4; passo++) {
+            avancar_fase_jogo(&jogo);
+        }
+        verificar(jogo.dia.dia_atual == dia && jogo.dia.fase_atual == FASE_MANHA,
+                  "avancou para a manha do dia esperado");
+
+        if (dia == 2) {
+            const int diario[] = { ID_ENGENHEIRO, ID_GERENTE, ID_CAPATAZ };
+            checar_relacionados(&jogo, "Diário de manutenção", diario, 3);
+        } else if (dia == 3) {
+            const int ficha[] = { ID_ENFERMEIRA, ID_OPERARIO, ID_CAPATAZ };
+            checar_relacionados(&jogo, "Ficha de atendimento", ficha, 3);
+        } else {
+            const Pista *carta = buscar_pista_por_objeto(&jogo, "Carta pessoal");
+            verificar(carta != NULL, "carta pessoal existe no caderno");
+            if (carta != NULL && carta->suspeitos_relacionados != NULL &&
+                carta->suspeitos_relacionados->inicio != NULL) {
+                const NoListaDupla *no = carta->suspeitos_relacionados->inicio;
+                verificar(no->prox == NULL &&
+                          no->id >= 0 && no->id < TOTAL_SUSPEITOS,
+                          "carta pessoal relaciona exatamente 1 dos 6 suspeitos");
+            } else {
+                verificar(0, "carta pessoal tem 1 suspeito relacionado");
+            }
+        }
+    }
+
+    liberar_jogo(&jogo);
+}
+
 int main(void) {
     testar_inicializacao();
     testar_agenda_local_verdadeiro();
@@ -766,6 +846,7 @@ int main(void) {
     testar_acoes_invalidas();
     testar_pontuacao_e_texto_final();
     testar_ultima_pista_apos_ordenacao();
+    testar_suspeitos_relacionados_das_pistas();
 
     if (falhas == 0) {
         printf("OK: todos os testes do jogo passaram\n");
