@@ -52,6 +52,12 @@ typedef struct {
     NoListaDuplaCircular *turno_atual;
     unsigned int interrogados;
 
+    // Roda do debate: guarda o início atual e o próximo para que o ponto de
+    // partida avance a cada dia mesmo quando alguém morre ou é preso.
+    int proximo_inicio_debate;
+    int inicio_debate_atual;
+    int dia_debate_iniciado;
+
     int ultima_vitima; // id do suspeito morto na última noite, ou NENHUM
     char revelacao_cumplice[256]; // mensagem revelada ao prender o cúmplice
 
@@ -81,6 +87,8 @@ void avancar_fase_jogo(Jogo *jogo);
 // ---------------------------------------------------------------------------
 // Debate (uma volta completa pelos suspeitos vivos)
 // ---------------------------------------------------------------------------
+// Decisão: mortos e presos continuam na lista circular e são pulados pela
+// situação; a lista representa o elenco completo, não apenas a roda do debate.
 void iniciar_debate(Jogo *jogo);
 Suspeito *suspeito_do_turno(const Jogo *jogo); // NULL quando a volta terminou
 int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo);  // retorna o id do depoimento ou -1

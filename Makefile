@@ -51,6 +51,7 @@ TESTE_TEXTO_SRC := $(TEST_DIR)/teste_texto.c
 TESTE_ALEATORIO_SRC := $(TEST_DIR)/teste_aleatorio.c
 TESTE_DIA_SRC := $(TEST_DIR)/teste_dia.c
 TESTE_JOGO_SRC := $(TEST_DIR)/teste_jogo.c
+TESTE_RODA_DEBATE_SRC := $(TEST_DIR)/teste_roda_debate.c
 TESTE_LOCAIS_SRC := $(TEST_DIR)/teste_locais.c
 TESTE_AGENDA_SRC := $(TEST_DIR)/teste_agenda.c
 TESTE_DEBATE_SRC := $(TEST_DIR)/teste_debate.c
@@ -76,6 +77,7 @@ TESTE_ALEATORIO_IMPL := $(ESTRUTURAS_DIR)/entidades/aleatorio.c
 TESTE_DIA_IMPL := dia.c
 # O motor do jogo usa dia, caderno, personagens e as três listas.
 TESTE_JOGO_IMPL := jogo.c dia.c $(wildcard $(ESTRUTURAS_DIR)/*/*.c)
+TESTE_RODA_DEBATE_IMPL := $(TESTE_JOGO_IMPL)
 # Agenda e debate exercitam o motor do jogo inteiro.
 TESTE_AGENDA_IMPL := $(TESTE_JOGO_IMPL)
 TESTE_DEBATE_IMPL := $(TESTE_JOGO_IMPL)
@@ -114,6 +116,9 @@ TESTE_BINS += $(BUILD)/teste_dia
 endif
 ifneq ($(strip $(shell test -s $(TESTE_JOGO_SRC) && echo 1)),)
 TESTE_BINS += $(BUILD)/teste_jogo
+endif
+ifneq ($(strip $(shell test -s $(TESTE_RODA_DEBATE_SRC) && echo 1)),)
+TESTE_BINS += $(BUILD)/teste_roda_debate
 endif
 ifneq ($(strip $(shell test -s $(TESTE_LOCAIS_SRC) && echo 1)),)
 TESTE_BINS += $(BUILD)/teste_locais
@@ -224,6 +229,10 @@ $(BUILD)/teste_dia: $(TESTE_DIA_SRC) $(TESTE_DIA_IMPL) dia.h
 $(BUILD)/teste_jogo: $(TESTE_JOGO_SRC) $(TESTE_JOGO_IMPL) $(CABECALHOS)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $(TESTE_JOGO_SRC) $(TESTE_JOGO_IMPL) -o $@
+
+$(BUILD)/teste_roda_debate: $(TESTE_RODA_DEBATE_SRC) $(TESTE_RODA_DEBATE_IMPL) $(CABECALHOS)
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $(TESTE_RODA_DEBATE_SRC) $(TESTE_RODA_DEBATE_IMPL) -o $@
 
 $(BUILD)/teste_locais: $(TESTE_LOCAIS_SRC) $(TESTE_LOCAIS_IMPL) \
 		$(ESTRUTURAS_DIR)/entidades/locais.h
