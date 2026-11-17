@@ -169,7 +169,9 @@ caracteres do português (ASCII, Latin-1, Latin Extended-A e pontuação
 tipográfica). A linha **Acentos: á ç ã é ô — ação, café, pão, avô** na tela
 serve como teste visual; se a fonte não for encontrada, o jogo avisa no log e
 usa a fonte padrão da raylib, que não tem acentos. Os auxiliares de fonte,
-texto e botões ficam em `ui.c`/`ui.h`.
+texto e botões ficam em `ui.c`/`ui.h`; para textos longos,
+`ui_quebrar_texto` calcula o layout (respeitando `\n` e dividindo palavras
+maiores que a largura) e `ui_desenhar_texto_quebrado` desenha o resultado.
 
 ## Estrutura do projeto
 

@@ -61,11 +61,50 @@ void ui_desenhar_texto(const UIFonte *fonte, const char *texto, Vector2 posicao,
 void ui_desenhar_texto_centralizado(const UIFonte *fonte, const char *texto,
                                     Rectangle area, float tamanho, Color cor);
 
-// Desenha o texto quebrando linhas nos espaços para caber na largura da área.
-// Respeita '\n'. Devolve a altura ocupada em pixels.
+// ---------------------------------------------------------------------------
+// Quebra de linha
+// ---------------------------------------------------------------------------
+// Uma linha do layout aponta para dentro do texto original; nada é copiado.
+typedef struct {
+    const char *inicio; // primeiro byte da linha
+    int comprimento;    // bytes da linha, sem o '\n' final
+    float largura;      // largura medida, em pixels
+} LinhaTexto;
+
+// Resultado de ui_quebrar_texto. `linhas` é alocado pela função e deve ser
+// liberado com ui_liberar_layout_texto.
+typedef struct {
+    LinhaTexto *linhas;
+    int quantidade;
+    float tamanho;            // tamanho de texto usado no cálculo
+    float espacamento_linhas; // espaço extra entre linhas
+    float altura;             // altura total ocupada
+} LayoutTexto;
+
+// Quebra o texto para caber em `largura_maxima` pixels. Respeita '\n', ignora
+// espaços no começo das linhas e parte palavras maiores que a largura (sem
+// hifenizar), para o texto nunca estourar a área.
+LayoutTexto ui_quebrar_texto(const UIFonte *fonte, const char *texto,
+                             float largura_maxima, float tamanho,
+                             float espacamento_linhas);
+
+void ui_liberar_layout_texto(LayoutTexto *layout);
+
+// Desenha um layout já calculado. Devolve a altura desenhada. Útil para
+// recalcular a quebra só quando o texto ou a largura mudarem.
+float ui_desenhar_layout_texto(const UIFonte *fonte, const LayoutTexto *layout,
+                               Vector2 posicao, Color cor);
+
+// Atalho que calcula, desenha e libera o layout. Só a largura da área limita
+// a quebra; a altura não corta o texto. Devolve a altura ocupada.
 float ui_desenhar_texto_quebrado(const UIFonte *fonte, const char *texto,
                                  Rectangle area, float tamanho,
                                  float espacamento_linhas, Color cor);
+
+// Altura que o texto ocuparia, sem desenhar.
+float ui_medir_altura_texto_quebrado(const UIFonte *fonte, const char *texto,
+                                     float largura_maxima, float tamanho,
+                                     float espacamento_linhas);
 
 // ---------------------------------------------------------------------------
 // Botões
