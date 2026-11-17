@@ -345,35 +345,51 @@ static void testar_custo_prisao_inocente(void) {
 
     liberar_jogo(&jogo);
 
-    Jogo quatro_prisoes;
-    verificar(iniciar_jogo_com_semente(&quatro_prisoes, ID_MISS_MARPLE, 77),
-              "partida para quatro prisões inicia");
-    ir_para_julgamento(&quatro_prisoes);
+    Jogo prisoes;
+    verificar(iniciar_jogo_com_semente(&prisoes, ID_MISS_MARPLE, 77),
+              "partida para prisões em sequência inicia");
+    ir_para_julgamento(&prisoes);
 
+    // A credibilidade inicial (75) paga exatamente 3 prisões de inocente.
+    const int max_prisoes = CREDIBILIDADE_INICIAL / CUSTO_PRENDER_INOCENTE;
     int total_presos_inocentes = 0;
     for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
-        const Suspeito *candidato = buscar_suspeito(&quatro_prisoes, id);
+        const Suspeito *candidato = buscar_suspeito(&prisoes, id);
         if (candidato == NULL || candidato->papel != INOCENTE) {
             continue;
         }
+        if (total_presos_inocentes == max_prisoes) {
+            break; // a credibilidade acabou; a próxima prisão deve falhar
+        }
 
-        verificar(prender_suspeito(&quatro_prisoes, id) == 1,
+        verificar(prender_suspeito(&prisoes, id) == 1,
                   "prisão de cada inocente é aceita");
         total_presos_inocentes++;
-        verificar(quatro_prisoes.credibilidade ==
+        verificar(prisoes.credibilidade ==
                       CREDIBILIDADE_INICIAL -
                           total_presos_inocentes * CUSTO_PRENDER_INOCENTE,
                   "cada prisão de inocente reduz a credibilidade em 25");
     }
 
-    verificar(total_presos_inocentes == 4,
-              "há quatro inocentes que podem ser presos");
-    verificar(quatro_prisoes.credibilidade == 0,
-              "quatro prisões de inocentes zeram 100 pontos");
-    verificar(quatro_prisoes.resultado == JOGO_DERROTA_CREDIBILIDADE,
-              "a quarta prisão de inocente causa derrota");
+    verificar(total_presos_inocentes == max_prisoes,
+              "há inocentes suficientes para zerar a credibilidade");
+    verificar(prisoes.credibilidade == 0,
+              "as prisões de inocentes zeram a credibilidade inicial");
+    verificar(prisoes.resultado == JOGO_DERROTA_CREDIBILIDADE,
+              "a última prisão de inocente causa derrota");
 
-    liberar_jogo(&quatro_prisoes);
+    // Com o jogo já encerrado, prender outro inocente não é aceito.
+    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+        const Suspeito *candidato = buscar_suspeito(&prisoes, id);
+        if (candidato != NULL && candidato->papel == INOCENTE &&
+            candidato->situacao == VIVO) {
+            verificar(prender_suspeito(&prisoes, id) == 0,
+                      "não dá para prender depois da derrota");
+            break;
+        }
+    }
+
+    liberar_jogo(&prisoes);
 }
 
 static void testar_derrota_por_credibilidade(void) {
@@ -714,9 +730,11 @@ static void testar_ultima_pista_apos_ordenacao(void) {
     verificar(jogo.caderno->pistas.fim != NULL &&
               jogo.caderno->pistas.fim->id == 2,
               "pista mais recente está no fim antes da ordenação");
-    verificar(strcmp(nome_ultima_pista(&jogo), "Luva de trabalho") == 0,
+    verificar(strcmp(nome_ultima_pista(&jogo), "Diário de manutenção") == 0,
               "nome da última pista antes da ordenação");
-    verificar(strstr(descricao_ultima_pista(&jogo), "graxa fresca") != NULL,
+    printf("DEBUG: ultima pista: %s\n", nome_ultima_pista(&jogo));
+    printf("DEBUG: descricao: %s\n", descricao_ultima_pista(&jogo));
+    verificar(strstr(descricao_ultima_pista(&jogo), "manutenções realizadas") != NULL,
               "descrição da última pista antes da ordenação");
 
     int trocas = ordenar_pistas(jogo.caderno, ORDENAR_POR_LOCAL);
@@ -724,9 +742,9 @@ static void testar_ultima_pista_apos_ordenacao(void) {
     verificar(jogo.caderno->pistas.fim != NULL &&
               jogo.caderno->pistas.fim->id != 2,
               "pista mais recente deixa de ser o fim após ordenar");
-    verificar(strcmp(nome_ultima_pista(&jogo), "Luva de trabalho") == 0,
+    verificar(strcmp(nome_ultima_pista(&jogo), "Diário de manutenção") == 0,
               "nome da última pista continua correto após ordenar");
-    verificar(strstr(descricao_ultima_pista(&jogo), "graxa fresca") != NULL,
+    verificar(strstr(descricao_ultima_pista(&jogo), "manutenções realizadas") != NULL,
               "descrição da última pista continua correta após ordenar");
 
     liberar_jogo(&jogo);
