@@ -18,6 +18,143 @@ static const char *ROTULOS_ABAS[QUANTIDADE_ABAS] = {
     "Contradições"
 };
 
+static void desenhar_contradicao(
+    const UIFonte *fonte,
+    const Contradicao *contradicao,
+    Rectangle painel
+) {
+    if (contradicao == NULL ||
+        contradicao->depoimento1 == NULL ||
+        contradicao->depoimento2 == NULL) {
+        ui_desenhar_texto_centralizado(
+            fonte,
+            "Contradição incompleta.",
+            painel,
+            20,
+            COR_TEXTO
+        );
+        return;
+    }
+
+    const Depoimento *a = contradicao->depoimento1;
+    const Depoimento *b = contradicao->depoimento2;
+
+    Rectangle painel_a = {
+        painel.x,
+        painel.y,
+        (painel.width - 20) / 2,
+        painel.height - 35
+    };
+
+    Rectangle painel_b = {
+        painel.x + painel_a.width + 20,
+        painel.y,
+        painel_a.width,
+        painel.height - 35
+    };
+
+    char texto_a[1024];
+    char texto_b[1024];
+
+    snprintf(
+        texto_a,
+        sizeof(texto_a),
+        "Depoimento A | Dia %d\n\n%s",
+        a->dia,
+        a->texto != NULL ? a->texto : "Sem texto."
+    );
+
+    snprintf(
+        texto_b,
+        sizeof(texto_b),
+        "Depoimento B | Dia %d\n\n%s",
+        b->dia,
+        b->texto != NULL ? b->texto : "Sem texto."
+    );
+
+    ui_desenhar_painel_texto(
+        fonte,
+        painel_a,
+        texto_a,
+        17,
+        COR_PAINEL,
+        COR_VERMELHO,
+        COR_TEXTO
+    );
+
+    ui_desenhar_painel_texto(
+        fonte,
+        painel_b,
+        texto_b,
+        17,
+        COR_PAINEL,
+        COR_VERMELHO,
+        COR_TEXTO
+    );
+
+    char local_a[256];
+    char local_b[256];
+
+    snprintf(
+        local_a,
+        sizeof(local_a),
+        "Local: %s",
+        a->local != NULL ? a->local : "Desconhecido"
+    );
+
+    snprintf(
+        local_b,
+        sizeof(local_b),
+        "Local: %s",
+        b->local != NULL ? b->local : "Desconhecido"
+    );
+
+    Rectangle area_local_a = {
+        painel_a.x + 10,
+        painel_a.y + painel_a.height - 30,
+        painel_a.width - 20,
+        25
+    };
+
+    Rectangle area_local_b = {
+        painel_b.x + 10,
+        painel_b.y + painel_b.height - 30,
+        painel_b.width - 20,
+        25
+    };
+
+    ui_desenhar_texto_centralizado(
+        fonte,
+        local_a,
+        area_local_a,
+        16,
+        COR_VERMELHO
+    );
+
+    ui_desenhar_texto_centralizado(
+        fonte,
+        local_b,
+        area_local_b,
+        16,
+        COR_VERMELHO
+    );
+
+    Rectangle area_frase = {
+        painel.x,
+        painel.y + painel.height - 30,
+        painel.width,
+        25
+    };
+
+    ui_desenhar_texto_centralizado(
+        fonte,
+        "Quem está mentindo? Você decide.",
+        area_frase,
+        18,
+        COR_TEXTO
+    );
+}
+
 static void desenhar_registro_atual(
     const UIFonte *fonte,
     Caderno *caderno,
@@ -94,23 +231,12 @@ static void desenhar_registro_atual(
             break;
         }
 
-        case SECAO_CONTRADICOES: {
+       case SECAO_CONTRADICOES: {
             Contradicao *contradicao = (Contradicao *)no->dado;
 
-            if (contradicao->depoimento1 == NULL ||
-                contradicao->depoimento2 == NULL) {
-                snprintf(texto, sizeof(texto),
-                         "Contradição incompleta.");
-                break;
-            }
+            desenhar_contradicao(fonte, contradicao, painel);
 
-            snprintf(
-                texto, sizeof(texto),
-                "Contradição entre os depoimentos %d e %d",
-                contradicao->depoimento1->id_depoimento,
-                contradicao->depoimento2->id_depoimento
-            );
-            break;
+            return;
         }
 
         default:
@@ -173,96 +299,163 @@ bool tela_caderno_atualizar_desenhar(
         }
     }
 
-    // Área reservada para os registros.
-    Rectangle painel = {50, 185, 860, 245};
-
-    desenhar_registro_atual(fonte, caderno, painel);
-
-    // Botões de navegação entre registros.
-    // static preserva o estado dos cliques entre os frames.
-    static BotaoUI botao_anterior = {
-        .area = {180, 435, 180, 40},
-        .rotulo = "Anterior",
-        .habilitado = true,
-        .pressionado = false
-    };
-
-    static BotaoUI botao_proximo = {
-        .area = {600, 435, 180, 40},
-        .rotulo = "Próximo",
-        .habilitado = true,
-        .pressionado = false
-    };
-
-    // Verifica se existe um registro anterior ou próximo.
-    NoListaDupla *atual = obter_item_atual(caderno);
-
-    // Identifica a seção atualmente selecionada.
-    Secao *secao = NULL;
-
-    switch (caderno->secao_ativa) {
-        case SECAO_DEPOIMENTOS:
-            secao = &caderno->depoimentos;
-            break;
-
-        case SECAO_PISTAS:
-            secao = &caderno->pistas;
-            break;
-
-        case SECAO_REACOES:
-            secao = &caderno->reacoes;
-            break;
-
-        case SECAO_CONTRADICOES:
-            secao = &caderno->contradicoes;
-            break;
-
-        default:
-            break;
-    }
-
-    // Calcula a posição do registro atual.
-    int posicao = 0;
-    int total = 0;
-
-    if (secao != NULL) {
-        total = secao->tamanho;
-
-        int indice = 1;
-
-        for (NoListaDupla *no = secao->inicio;
-            no != NULL;
-            no = no->prox) {
-
-            if (no == atual) {
-                posicao = indice;
-                break;
-            }
-
-            indice++;
+    // Botões de ordenação: aparecem somente na aba Pistas.
+    static int ultima_quantidade_trocas = -1;
+    static BotaoUI botoes_ordenacao[3] = {
+        {
+            .area = {210, 175, 160, 40},
+            .rotulo = "Local",
+            .habilitado = true,
+            .pressionado = false
+        },
+        {
+            .area = {390, 175, 160, 40},
+            .rotulo = "Objeto",
+            .habilitado = true,
+            .pressionado = false
+        },
+        {
+            .area = {570, 175, 180, 40},
+            .rotulo = "Dia recente",
+            .habilitado = true,
+            .pressionado = false
         }
-    }
+    };
 
-    // Exibe o indicador entre os botões de navegação.
-    char indicador[64];
+    if (caderno->secao_ativa == SECAO_PISTAS) {
+
+        CriterioOrdenacao criterios[3] = {
+            ORDENAR_POR_LOCAL,
+            ORDENAR_POR_OBJETO,
+            ORDENAR_POR_DIA_RECENTE
+        };
+
+        for (int i = 0; i < 3; i++) {
+
+            botoes_ordenacao[i].habilitado =
+                (caderno->pistas.tamanho >= 2);
+
+            if (ui_desenhar_botao(fonte, &botoes_ordenacao[i], false)) {
+
+                ultima_quantidade_trocas =
+                    ordenar_pistas(caderno, criterios[i]);
+
+                // Após ordenar, retorna à primeira pista.
+                caderno->pistas.atual = caderno->pistas.inicio;
+            }
+        }
+
+    }
+    // Área reservada para os registros.
+    Rectangle painel = {50, 225, 860, 205};
+    desenhar_registro_atual(fonte, caderno, painel);
+    if (caderno->secao_ativa == SECAO_PISTAS &&
+        ultima_quantidade_trocas >= 0) {
+
+    char mensagem[80];
 
     snprintf(
-        indicador,
-        sizeof(indicador),
-        "Registro %d de %d",
-        posicao,
-        total
+        mensagem,
+        sizeof(mensagem),
+        "Ordenacao concluida: %d trocas",
+        ultima_quantidade_trocas
     );
 
-    Rectangle area_indicador = {370, 435, 220, 40};
+    Rectangle area_mensagem = {620, 270, 270, 25};
 
     ui_desenhar_texto_centralizado(
         fonte,
-        indicador,
-        area_indicador,
-        18,
+        mensagem,
+        area_mensagem,
+        13,
         COR_TEXTO
     );
+    }
+        // Botões de navegação entre registros.
+        // static preserva o estado dos cliques entre os frames.
+        static BotaoUI botao_anterior = {
+            .area = {180, 435, 180, 40},
+            .rotulo = "Anterior",
+            .habilitado = true,
+            .pressionado = false
+        };
+
+        static BotaoUI botao_proximo = {
+            .area = {600, 435, 180, 40},
+            .rotulo = "Próximo",
+            .habilitado = true,
+            .pressionado = false
+        };
+
+        // Verifica se existe um registro anterior ou próximo.
+        NoListaDupla *atual = obter_item_atual(caderno);
+
+        // Identifica a seção atualmente selecionada.
+        Secao *secao = NULL;
+
+        switch (caderno->secao_ativa) {
+            case SECAO_DEPOIMENTOS:
+                secao = &caderno->depoimentos;
+                break;
+
+            case SECAO_PISTAS:
+                secao = &caderno->pistas;
+                break;
+
+            case SECAO_REACOES:
+                secao = &caderno->reacoes;
+                break;
+
+            case SECAO_CONTRADICOES:
+                secao = &caderno->contradicoes;
+                break;
+
+            default:
+                break;
+        }
+
+        // Calcula a posição do registro atual.
+        int posicao = 0;
+        int total = 0;
+
+        if (secao != NULL) {
+            total = secao->tamanho;
+
+            int indice = 1;
+
+            for (NoListaDupla *no = secao->inicio;
+                no != NULL;
+                no = no->prox) {
+
+                if (no == atual) {
+                    posicao = indice;
+                    break;
+                }
+
+                indice++;
+            }
+        }
+
+        // Exibe o indicador entre os botões de navegação.
+        char indicador[64];
+
+        snprintf(
+            indicador,
+            sizeof(indicador),
+            "Registro %d de %d",
+            posicao,
+            total
+        );
+
+        Rectangle area_indicador = {370, 435, 220, 40};
+
+        ui_desenhar_texto_centralizado(
+            fonte,
+            indicador,
+            area_indicador,
+            18,
+            COR_TEXTO
+        );
 
     botao_anterior.habilitado =
         (atual != NULL && atual->ant != NULL);
@@ -278,7 +471,6 @@ bool tela_caderno_atualizar_desenhar(
     if (ui_desenhar_botao(fonte, &botao_proximo, false)) {
         avancar_secao(caderno);
     }
-    
     // Botão para retornar à partida.
     static BotaoUI voltar = {
         .area = {350, 490, 260, 40},
