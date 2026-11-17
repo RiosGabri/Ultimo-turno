@@ -14,6 +14,7 @@ static void verificar(int condicao, const char *mensagem) {
 
 static void testar_tabela(void) {
     int total = total_locais();
+    verificar(total == 5, "a história se passa em 5 locais");
     verificar(total > 0, "tabela tem pelo menos um local");
 
     for (int i = 0; i < total; i++) {

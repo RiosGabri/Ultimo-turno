@@ -48,10 +48,10 @@ static void testar_pergunta_por_periodo(void) {
     liberar_jogo(&jogo);
 }
 
-// Enquanto a etapa 3 estiver adiada, assassino e cúmplice mentem em todos os
-// períodos. Este teste fixa esse comportamento e, principalmente, verifica que
-// a mentira é sempre diferente da verdade e igual para os dois culpados.
-static void testar_culpados_mentem_e_inocentes_dizem_a_verdade(void) {
+// Assassino e cúmplice só mentem à noite, o período do crime. Nos demais
+// períodos todos contam a verdade. A mentira noturna é sempre diferente da
+// verdade e igual para os dois culpados.
+static void testar_culpados_mentem_so_a_noite(void) {
     enum Periodo periodos[3] = { MANHA, TARDE, NOITE };
 
     unsigned int sementes = 40;
@@ -64,6 +64,7 @@ static void testar_culpados_mentem_e_inocentes_dizem_a_verdade(void) {
             avancar_fase_jogo(&jogo); // manhã -> debate
 
             enum Periodo periodo = periodos[p];
+            int noite = (periodo == NOITE);
             const char *verdade =
                 local_do_suspeito(&jogo, ID_GERENTE, 1, periodo);
             verificar(verdade != NULL, "agenda informa a verdade do alvo");
@@ -92,12 +93,17 @@ static void testar_culpados_mentem_e_inocentes_dizem_a_verdade(void) {
                 }
 
                 if (eh_culpado(&jogo, dep->id_falante)) {
-                    verificar(strcmp(dep->local, verdade) != 0,
-                              "culpado não conta a verdade");
-                    if (dep->id_falante == jogo.papeis.id_assassino) {
-                        mentira_assassino = dep->local;
+                    if (noite) {
+                        verificar(strcmp(dep->local, verdade) != 0,
+                                  "culpado mente no período da noite");
+                        if (dep->id_falante == jogo.papeis.id_assassino) {
+                            mentira_assassino = dep->local;
+                        } else {
+                            mentira_cumplice = dep->local;
+                        }
                     } else {
-                        mentira_cumplice = dep->local;
+                        verificar(strcmp(dep->local, verdade) == 0,
+                                  "culpado diz a verdade fora da noite");
                     }
                 } else {
                     verificar(strcmp(dep->local, verdade) == 0,
@@ -105,11 +111,13 @@ static void testar_culpados_mentem_e_inocentes_dizem_a_verdade(void) {
                 }
             }
 
-            verificar(mentira_assassino != NULL && mentira_cumplice != NULL,
-                      "os dois culpados depõem");
-            verificar(mentira_assassino != NULL && mentira_cumplice != NULL &&
-                      strcmp(mentira_assassino, mentira_cumplice) == 0,
-                      "assassino e cúmplice contam a mesma mentira");
+            if (noite) {
+                verificar(mentira_assassino != NULL && mentira_cumplice != NULL,
+                          "os dois culpados depõem à noite");
+                verificar(mentira_assassino != NULL && mentira_cumplice != NULL &&
+                          strcmp(mentira_assassino, mentira_cumplice) == 0,
+                          "assassino e cúmplice contam a mesma mentira à noite");
+            }
 
             liberar_jogo(&jogo);
         }
@@ -238,6 +246,33 @@ static void testar_reacoes_seguem_conhecimento(void) {
     verificar(viu_neutro, "NEUTRO é gerado quando falta conhecimento");
 }
 
+static void testar_sem_contradicoes_fora_da_noite(void) {
+    enum Periodo periodos[2] = { MANHA, TARDE };
+
+    for (unsigned int semente = 1; semente <= 40; semente++) {
+        for (int p = 0; p < 2; p++) {
+            Jogo jogo;
+            verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, semente),
+                      "partida inicia");
+
+            avancar_fase_jogo(&jogo); // manhã -> debate
+
+            for (int turno = 0; turno < TOTAL_SUSPEITOS; turno++) {
+                if (suspeito_do_turno(&jogo) == NULL) {
+                    break;
+                }
+                verificar(perguntar_sobre(&jogo, ID_GERENTE, periodos[p]) > 0,
+                          "pergunta registra depoimento");
+            }
+
+            verificar(jogo.caderno->contradicoes.tamanho == 0,
+                      "fora da noite todos contam a verdade e não há contradição");
+
+            liberar_jogo(&jogo);
+        }
+    }
+}
+
 static void testar_contradicoes_envolvem_culpados(void) {
     int sementes_com_contradicao = 0;
 
@@ -301,8 +336,9 @@ static void testar_contradicoes_envolvem_culpados(void) {
 
 int main(void) {
     testar_pergunta_por_periodo();
-    testar_culpados_mentem_e_inocentes_dizem_a_verdade();
+    testar_culpados_mentem_so_a_noite();
     testar_reacoes_seguem_conhecimento();
+    testar_sem_contradicoes_fora_da_noite();
     testar_contradicoes_envolvem_culpados();
 
     if (falhas == 0) {
