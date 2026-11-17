@@ -277,7 +277,8 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
         return 0;
     }
 
-    
+    memset(jogo->agenda.local, 0, sizeof jogo->agenda.local);
+    memset(jogo->agenda.local_crime, 0, sizeof jogo->agenda.local_crime);
 
     NoListaDuplaCircular *no = jogo->suspeitos->inicio;
     do {
