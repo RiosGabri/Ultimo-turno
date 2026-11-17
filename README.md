@@ -6,7 +6,7 @@ Jogo de investigação (*whodunit*) em linguagem C, feito para a atividade prát
 
 Um operário de *Tempos Modernos*, Chaplin, é encontrado morto ao fim do turno na fábrica. O jogador conduz a investigação como **Hercule Poirot** ou **Miss Marple** e tem **4 dias** para descobrir o culpado entre os suspeitos.
 
-O assassino está entre os suspeitos e continua agindo à noite. Todo dia há um debate: o jogador interroga, os outros suspeitos reagem, e ele decide se prende alguém. Prender um inocente custa credibilidade. Chegar ao dia 4 sem prender o culpado é game over.
+O assassino está entre os suspeitos e age nas noites seguintes à primeira, que passa sem mortes. Todo dia há um debate: o jogador interroga, os outros suspeitos reagem, e ele decide se prende alguém. Prender um inocente custa credibilidade. Chegar ao dia 4 sem prender o culpado é game over.
 
 ## Objetivo
 
@@ -16,7 +16,7 @@ Descobrir quem matou Chaplin, usando o caderno de pistas e depoimentos, antes qu
 
 - **Duração:** 4 dias.
 - **Suspeitos:** 6 no início (exemplo: Gerente, Capataz, Engenheiro, Operária, Enfermeiro e Vigia noturno), com 1 assassino e, possivelmente, 1 cúmplice.
-- **Cada dia tem 4 fases:** Manhã (resumo e pista), Debate, Julgamento e Noite.
+- **Cada dia tem 4 fases:** Manhã (resumo e pista), Debate, Julgamento e Noite. A primeira noite passa sem mortes.
 - **Debate:** os turnos seguem uma volta completa na lista de suspeitos vivos. O jogador pergunta, o suspeito responde e os demais reagem com "Concordo" ou "Discordo".
 - **Credibilidade:** começa em 100. Prender o inocente custa pontos, e chegar a 0 é game over.
 - **Cúmplice:** se existir, prendê-lo não vence; custa 15 de credibilidade e revela uma pista verdadeira sobre o assassino.
@@ -154,8 +154,8 @@ A versão de terminal não depende da raylib. No Windows, ela ajusta a página d
 
 - **Manhã:** uma pista nova entra no caderno.
 - **Debate:** cada suspeito vivo fala uma vez. Escolha sobre quem perguntar; os outros reagem.
-- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 30 de credibilidade; prender o cúmplice custa 15 e revela o local verdadeiro do assassino na noite do crime.
-- **Noite:** o assassino ataca um inocente e o caso continua no dia seguinte.
+- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 25 de credibilidade; prender o cúmplice custa 15 e revela o local verdadeiro do assassino na noite do crime.
+- **Noite:** a primeira noite passa sem mortes; nas seguintes, o assassino pode atacar um inocente e o caso continua no dia seguinte.
 
 O menu gráfico ainda é um protótipo:
 

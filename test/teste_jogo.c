@@ -237,12 +237,19 @@ static void testar_dia_completo_ate_a_derrota_por_tempo(void) {
         if (dia < TOTAL_DIAS) {
             verificar(jogo.dia.fase_atual == FASE_NOITE,
                       "dias 1 a 3 terminam na noite");
-            verificar(jogo.ultima_vitima != NENHUM,
-                      "o assassino ataca durante a noite");
+            if (dia == 1) {
+                verificar(jogo.ultima_vitima == NENHUM,
+                          "a primeira noite passa sem mortes");
+                verificar(contar_situacao(&jogo, MORTO) == mortos_antes,
+                          "a primeira noite não mata suspeitos");
+            } else {
+                verificar(jogo.ultima_vitima != NENHUM,
+                          "o assassino ataca depois da primeira noite");
 
-            const Suspeito *vitima = buscar_suspeito(&jogo, jogo.ultima_vitima);
-            verificar(vitima != NULL && vitima->situacao == MORTO,
-                      "a vítima da noite fica morta");
+                const Suspeito *vitima = buscar_suspeito(&jogo, jogo.ultima_vitima);
+                verificar(vitima != NULL && vitima->situacao == MORTO,
+                          "a vítima da noite fica morta");
+            }
 
             avancar_fase_jogo(&jogo); // noite -> manhã seguinte
             verificar(jogo.dia.fase_atual == FASE_MANHA,
@@ -257,12 +264,12 @@ static void testar_dia_completo_ate_a_derrota_por_tempo(void) {
         }
     }
 
-    verificar(contar_situacao(&jogo, MORTO) == mortos_antes + 3,
-              "houve um crime em cada uma das 3 noites");
-    verificar(contar_situacao(&jogo, VIVO) == 3,
-              "três suspeitos continuam vivos no fim");
-    verificar(jogo.caderno->pistas.tamanho == 7,
-              "caderno registra pistas da manhã e das noites");
+    verificar(contar_situacao(&jogo, MORTO) == mortos_antes + 2,
+              "houve crimes nas duas noites após a primeira");
+    verificar(contar_situacao(&jogo, VIVO) == 4,
+              "quatro suspeitos continuam vivos no fim");
+    verificar(jogo.caderno->pistas.tamanho == 6,
+              "caderno registra pistas da manhã e dos crimes");
 
     // Depois de finalizado, avançar não muda mais nada.
     int credibilidade = jogo.credibilidade;
@@ -316,7 +323,7 @@ static void testar_custo_prisao_inocente(void) {
     verificar(prender_suspeito(&jogo, inocente) == 1,
               "prisão de inocente é aceita");
     verificar(jogo.credibilidade == credibilidade_antes - CUSTO_PRENDER_INOCENTE,
-              "prisão de inocente custa 30");
+              "prisão de inocente custa 25");
     verificar(jogo.resultado == JOGO_EM_ANDAMENTO,
               "prisão de inocente não vence");
     verificar(jogo.dia.fase_atual == FASE_JULGAMENTO,
@@ -327,6 +334,36 @@ static void testar_custo_prisao_inocente(void) {
               "inocente fica preso");
 
     liberar_jogo(&jogo);
+
+    Jogo quatro_prisoes;
+    verificar(iniciar_jogo_com_semente(&quatro_prisoes, ID_MISS_MARPLE, 77),
+              "partida para quatro prisões inicia");
+    ir_para_julgamento(&quatro_prisoes);
+
+    int total_presos_inocentes = 0;
+    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+        const Suspeito *candidato = buscar_suspeito(&quatro_prisoes, id);
+        if (candidato == NULL || candidato->papel != INOCENTE) {
+            continue;
+        }
+
+        verificar(prender_suspeito(&quatro_prisoes, id) == 1,
+                  "prisão de cada inocente é aceita");
+        total_presos_inocentes++;
+        verificar(quatro_prisoes.credibilidade ==
+                      CREDIBILIDADE_INICIAL -
+                          total_presos_inocentes * CUSTO_PRENDER_INOCENTE,
+                  "cada prisão de inocente reduz a credibilidade em 25");
+    }
+
+    verificar(total_presos_inocentes == 4,
+              "há quatro inocentes que podem ser presos");
+    verificar(quatro_prisoes.credibilidade == 0,
+              "quatro prisões de inocentes zeram 100 pontos");
+    verificar(quatro_prisoes.resultado == JOGO_DERROTA_CREDIBILIDADE,
+              "a quarta prisão de inocente causa derrota");
+
+    liberar_jogo(&quatro_prisoes);
 }
 
 static void testar_derrota_por_credibilidade(void) {

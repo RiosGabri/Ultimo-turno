@@ -8,7 +8,7 @@
 #include "listas/lista-dupla-circular.h"
 
 #define CREDIBILIDADE_INICIAL 100
-#define CUSTO_PRENDER_INOCENTE 30
+#define CUSTO_PRENDER_INOCENTE 25
 #define CUSTO_PRENDER_CUMPLICE 15
 
 // Pesos da pontuação da partida.
@@ -73,7 +73,7 @@ int debate_encerrado(const Jogo *jogo);
 // ---------------------------------------------------------------------------
 // Prende um suspeito vivo durante o julgamento. Retorna 1 se a ação foi aceita.
 // Prender o assassino encerra o jogo em vitória; prender o cúmplice custa 15
-// e revela uma informação; prender um inocente custa 30.
+// e revela uma informação; prender um inocente custa 25.
 int prender_suspeito(Jogo *jogo, int id);
 
 // ---------------------------------------------------------------------------
