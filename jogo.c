@@ -192,6 +192,8 @@ static void realizar_crime_noturno(Jogo *jogo) {
 
     registrar_pista(jogo->caderno, jogo->dia.dia_atual,
                     "Cena do crime", objeto, descricao, NULL);
+    
+    jogo->agenda.local_crime[jogo->dia.dia_atual - 1] = jogo->agenda.local[jogo->dia.dia_atual - 1][NOITE][jogo->papeis.id_assassino];
 }
 
 // ---------------------------------------------------------------------------
