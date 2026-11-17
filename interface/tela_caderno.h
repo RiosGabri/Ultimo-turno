@@ -11,4 +11,7 @@ bool tela_caderno_atualizar_desenhar(
     Caderno *caderno
 );
 
+// Inicia o monitoramento de contradições de uma nova partida.
+void tela_caderno_iniciar_monitoramento(Caderno *caderno);
+
 #endif

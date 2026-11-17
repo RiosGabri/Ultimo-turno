@@ -705,6 +705,7 @@ void telas_executar(void) {
                 int id_detetive = (selecionado == 0) ? ID_MISS_MARPLE
                                                      : ID_HERCULE_POIROT;
                 if (iniciar_jogo(&jogo, id_detetive)) {
+                    tela_caderno_iniciar_monitoramento(jogo.caderno);
                     jogo_ativo = true;
                     erro_inicio = NULL;
                     tela = TELA_MANHA;

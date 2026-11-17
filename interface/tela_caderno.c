@@ -9,6 +9,12 @@
 
 #define COR_VERMELHO COR_TIJOLO
 
+#define DURACAO_ALERTA_CONTRADICAO 4.0f
+
+static float tempo_alerta_contradicao = 0.0f;
+static int quantidade_contradicoes_anterior = -1;
+static Caderno *caderno_monitorado = NULL;
+
 static const char *ROTULOS_ABAS[QUANTIDADE_ABAS] = {
     "Depoimentos",
     "Pistas",
@@ -254,12 +260,56 @@ static void desenhar_registro_atual(
     );
 }
 
+void tela_caderno_iniciar_monitoramento(Caderno *caderno) {
+    caderno_monitorado = caderno;
+    tempo_alerta_contradicao = 0.0f;
+
+    if (caderno != NULL) {
+        quantidade_contradicoes_anterior =
+            caderno->contradicoes.tamanho;
+    } else {
+        quantidade_contradicoes_anterior = -1;
+    }
+}
+
 bool tela_caderno_atualizar_desenhar(
     const UIFonte *fonte,
     Caderno *caderno
 ) {
     if (fonte == NULL || caderno == NULL) {
         return false;
+    }
+
+    // Reinicia o monitoramento ao receber outro caderno.
+    if (caderno_monitorado != caderno) {
+        caderno_monitorado = caderno;
+        quantidade_contradicoes_anterior = -1;
+        tempo_alerta_contradicao = 0.0f;
+    }
+
+    int quantidade_atual = caderno->contradicoes.tamanho;
+
+    // Primeira leitura: estabelece a quantidade inicial.
+    if (quantidade_contradicoes_anterior == -1) {
+        quantidade_contradicoes_anterior = quantidade_atual;
+    }
+    // Detecta o registro de uma nova contradição.
+    else if (quantidade_atual > quantidade_contradicoes_anterior) {
+        tempo_alerta_contradicao = DURACAO_ALERTA_CONTRADICAO;
+        quantidade_contradicoes_anterior = quantidade_atual;
+    }
+    // Atualiza o controle caso a quantidade diminua.
+    else if (quantidade_atual < quantidade_contradicoes_anterior) {
+        quantidade_contradicoes_anterior = quantidade_atual;
+    }
+
+    // Reduz o tempo restante a cada quadro.
+    if (tempo_alerta_contradicao > 0.0f) {
+        tempo_alerta_contradicao -= GetFrameTime();
+
+        if (tempo_alerta_contradicao < 0.0f) {
+            tempo_alerta_contradicao = 0.0f;
+        }
     }
 
     // Título da tela.
@@ -476,5 +526,22 @@ bool tela_caderno_atualizar_desenhar(
         .habilitado = true,
         .pressionado = false
     };
-    return ui_desenhar_botao(fonte, &voltar, false);
+    bool solicitou_voltar = ui_desenhar_botao(fonte, &voltar, false);
+
+    // Exibe um aviso temporário ao detectar uma nova contradição.
+    if (tempo_alerta_contradicao > 0.0f) {
+        Rectangle area_alerta = {390, 665, 500, 40};
+
+        DrawRectangleRec(area_alerta, COR_TIJOLO);
+
+        ui_desenhar_texto_centralizado(
+            fonte,
+            "Nova contradição registrada!",
+            area_alerta,
+            20,
+            RAYWHITE
+        );
+    }
+
+    return solicitou_voltar;
 }
