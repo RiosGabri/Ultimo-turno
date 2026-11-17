@@ -793,6 +793,402 @@ static void testar_navegacao_por_secao(void) {
     liberar_caderno(caderno);
 }
 
+static Caderno *criar_caderno_ordenacao(void) {
+    Caderno *caderno = inicializar_caderno(ID_POIROT);
+    if (caderno == NULL) {
+        return NULL;
+    }
+
+    // Ordem de registro: local/objeto fora de ordem alfabética e dias 3, 1, 2, 1.
+    registrar_pista(caderno, 3, "Fundicao", "Luva", "Luva na fundicao.", NULL);
+    registrar_pista(caderno, 1, "Portao", "Chave", "Chave no portao.", NULL);
+    registrar_pista(caderno, 2, "Refeitorio", "Xicara", "Xicara no refeitorio.", NULL);
+    registrar_pista(caderno, 1, "Escritorio", "Carta", "Carta no escritorio.", NULL);
+
+    return caderno;
+}
+
+static void verificar_secao_pistas_integra(const Caderno *caderno) {
+    if (caderno == NULL) {
+        verificar(0, "caderno NULL nao tem secao de pistas");
+        return;
+    }
+
+    const Secao *secao = &caderno->pistas;
+    if (secao->tamanho == 0) {
+        verificar(secao->inicio == NULL && secao->fim == NULL,
+                  "secao de pistas vazia deve ter inicio e fim NULL");
+        return;
+    }
+
+    verificar(secao->inicio != NULL && secao->fim != NULL,
+              "secao de pistas nao vazia deve ter inicio e fim");
+    if (secao->inicio == NULL || secao->fim == NULL) {
+        return;
+    }
+
+    verificar(secao->inicio->ant == NULL,
+              "inicio da secao de pistas nao deve ter anterior");
+    verificar(secao->fim->prox == NULL,
+              "fim da secao de pistas nao deve ter proximo");
+
+    int quantidade = 0;
+    NoListaDupla *anterior = NULL;
+    for (NoListaDupla *no = secao->inicio; no != NULL; no = no->prox) {
+        verificar(no->dado != NULL, "pista da secao nao pode ser NULL");
+        verificar(no->ant == anterior,
+                  "link ant incorreto na secao de pistas");
+        if (anterior != NULL) {
+            verificar(anterior->prox == no,
+                      "link prox incorreto na secao de pistas");
+        }
+        anterior = no;
+        quantidade++;
+        if (quantidade > secao->tamanho + 1) {
+            verificar(0, "loop detectado na secao de pistas");
+            return;
+        }
+    }
+
+    verificar(quantidade == secao->tamanho,
+              "quantidade de nos da secao difere do tamanho");
+    verificar(anterior == secao->fim,
+              "ultimo no da secao de pistas deve ser o fim");
+}
+
+static void verificar_ordem_local(const Caderno *caderno,
+                                  const char *esperados[], int quantidade) {
+    int posicao = 0;
+    for (NoListaDupla *no = caderno->pistas.inicio;
+         no != NULL && posicao < quantidade;
+         no = no->prox, posicao++) {
+        const Pista *pista = (const Pista *)no->dado;
+        verificar(pista != NULL && pista->local != NULL &&
+                  strcmp(pista->local, esperados[posicao]) == 0,
+                  "local da pista fora da ordem esperada");
+    }
+    verificar(posicao == quantidade,
+              "quantidade de pistas ao verificar locais");
+}
+
+static void verificar_ordem_objeto(const Caderno *caderno,
+                                   const char *esperados[], int quantidade) {
+    int posicao = 0;
+    for (NoListaDupla *no = caderno->pistas.inicio;
+         no != NULL && posicao < quantidade;
+         no = no->prox, posicao++) {
+        const Pista *pista = (const Pista *)no->dado;
+        verificar(pista != NULL && pista->objeto != NULL &&
+                  strcmp(pista->objeto, esperados[posicao]) == 0,
+                  "objeto da pista fora da ordem esperada");
+    }
+    verificar(posicao == quantidade,
+              "quantidade de pistas ao verificar objetos");
+}
+
+static void verificar_ordem_dia(const Caderno *caderno,
+                                const int esperados[], int quantidade) {
+    int posicao = 0;
+    for (NoListaDupla *no = caderno->pistas.inicio;
+         no != NULL && posicao < quantidade;
+         no = no->prox, posicao++) {
+        const Pista *pista = (const Pista *)no->dado;
+        verificar(pista != NULL && pista->dia == esperados[posicao],
+                  "dia da pista fora da ordem esperada");
+    }
+    verificar(posicao == quantidade,
+              "quantidade de pistas ao verificar dias");
+}
+
+static void verificar_ids_pistas(const Caderno *caderno,
+                                 const int esperados[], int quantidade) {
+    int posicao = 0;
+    for (NoListaDupla *no = caderno->pistas.inicio;
+         no != NULL && posicao < quantidade;
+         no = no->prox, posicao++) {
+        verificar(no->id == esperados[posicao],
+                  "id do no nao acompanhou a pista ordenada");
+    }
+    verificar(posicao == quantidade,
+              "quantidade de pistas ao verificar ids");
+}
+
+static void testar_ordenacao_por_criterios(void) {
+    const char *locais_esperados[] = {
+        "Escritorio", "Fundicao", "Portao", "Refeitorio"
+    };
+    const char *objetos_esperados[] = {
+        "Carta", "Chave", "Luva", "Xicara"
+    };
+    const char *objetos_por_dia[] = {
+        "Luva", "Xicara", "Chave", "Carta"
+    };
+    const int dias_esperados[] = {3, 2, 1, 1};
+    const int ids_local[] = {4, 1, 2, 3};
+    const int ids_objeto[] = {4, 2, 1, 3};
+    const int ids_dia[] = {1, 3, 2, 4};
+
+    Caderno *caderno = criar_caderno_ordenacao();
+    verificar(caderno != NULL, "caderno de ordenacao por local deve alocar");
+    if (caderno != NULL) {
+        verificar(caderno->pistas.tamanho == 4,
+                  "caderno de ordenacao por local tem quatro pistas");
+        int trocas = ordenar_pistas(caderno, ORDENAR_POR_LOCAL);
+        verificar(trocas > 0, "ordenar por local deve realizar trocas");
+        verificar_ordem_local(caderno, locais_esperados, 4);
+        verificar_ids_pistas(caderno, ids_local, 4);
+        verificar_secao_pistas_integra(caderno);
+        liberar_caderno(caderno);
+    }
+
+    caderno = criar_caderno_ordenacao();
+    verificar(caderno != NULL, "caderno de ordenacao por objeto deve alocar");
+    if (caderno != NULL) {
+        int trocas = ordenar_pistas(caderno, ORDENAR_POR_OBJETO);
+        verificar(trocas > 0, "ordenar por objeto deve realizar trocas");
+        verificar_ordem_objeto(caderno, objetos_esperados, 4);
+        verificar_ids_pistas(caderno, ids_objeto, 4);
+        verificar_secao_pistas_integra(caderno);
+        liberar_caderno(caderno);
+    }
+
+    caderno = criar_caderno_ordenacao();
+    verificar(caderno != NULL, "caderno de ordenacao por dia deve alocar");
+    if (caderno != NULL) {
+        int trocas = ordenar_pistas(caderno, ORDENAR_POR_DIA_RECENTE);
+        verificar(trocas > 0, "ordenar por dia recente deve realizar trocas");
+        verificar_ordem_dia(caderno, dias_esperados, 4);
+        verificar_ordem_objeto(caderno, objetos_por_dia, 4);
+        verificar_ids_pistas(caderno, ids_dia, 4);
+        verificar_secao_pistas_integra(caderno);
+        liberar_caderno(caderno);
+    }
+}
+
+static int coletar_pistas(const Caderno *caderno, Pista *destino[], int maximo) {
+    if (caderno == NULL || destino == NULL || maximo <= 0) {
+        return 0;
+    }
+
+    int quantidade = 0;
+    for (NoListaDupla *no = caderno->pistas.inicio;
+         no != NULL && quantidade < maximo;
+         no = no->prox) {
+        destino[quantidade++] = (Pista *)no->dado;
+    }
+    return quantidade;
+}
+
+static int mesma_colecao_de_pistas(Pista *a[], int n, Pista *b[], int m) {
+    if (a == NULL || b == NULL || n != m) {
+        return 0;
+    }
+
+    for (int i = 0; i < n; i++) {
+        int ocorrencias = 0;
+        for (int j = 0; j < m; j++) {
+            if (a[i] == b[j]) {
+                ocorrencias++;
+            }
+        }
+        if (ocorrencias != 1) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+static void testar_ordenacao_preserva_itens(void) {
+    CriterioOrdenacao criterios[] = {
+        ORDENAR_POR_LOCAL,
+        ORDENAR_POR_OBJETO,
+        ORDENAR_POR_DIA_RECENTE
+    };
+
+    for (int i = 0; i < 3; i++) {
+        Caderno *caderno = criar_caderno_ordenacao();
+        verificar(caderno != NULL, "caderno de preservacao das pistas deve alocar");
+        if (caderno == NULL) {
+            continue;
+        }
+
+        Pista *antes[8];
+        int total_antes = coletar_pistas(caderno, antes, 8);
+        verificar(total_antes == 4, "coleta quatro pistas antes da ordenacao");
+
+        int trocas = ordenar_pistas(caderno, criterios[i]);
+        verificar(trocas > 0, "ordenacao de preservacao deve realizar trocas");
+
+        Pista *depois[8];
+        int total_depois = coletar_pistas(caderno, depois, 8);
+        verificar(total_depois == total_antes,
+                  "ordenacao preserva a quantidade de pistas");
+        verificar(mesma_colecao_de_pistas(antes, total_antes, depois, total_depois),
+                  "ordenacao preserva os mesmos ponteiros de pista");
+        verificar(caderno->pistas.tamanho == total_depois,
+                  "tamanho da secao bate com a quantidade de nos");
+        verificar_secao_pistas_integra(caderno);
+
+        liberar_caderno(caderno);
+    }
+}
+
+static void testar_ordenacao_chaves_repetidas(void) {
+    Caderno *caderno = inicializar_caderno(ID_POIROT);
+    verificar(caderno != NULL, "caderno de chaves repetidas deve alocar");
+    if (caderno == NULL) {
+        return;
+    }
+
+    registrar_pista(caderno, 3, "Gerencia", "Chave", "Chave na gerencia.", NULL);
+    registrar_pista(caderno, 1, "Fundicao", "Luva", "Primeira luva.", NULL);
+    registrar_pista(caderno, 2, "Fundicao", "Luva", "Segunda luva.", NULL);
+
+    verificar(caderno->pistas.tamanho == 3,
+              "caderno de chaves repetidas tem tres pistas");
+    if (caderno->pistas.tamanho != 3) {
+        liberar_caderno(caderno);
+        return;
+    }
+
+    Pista *gerencia = (Pista *)caderno->pistas.inicio->dado;
+    Pista *primeira_luva = (Pista *)caderno->pistas.inicio->prox->dado;
+    Pista *segunda_luva = (Pista *)caderno->pistas.fim->dado;
+
+    int trocas = ordenar_pistas(caderno, ORDENAR_POR_LOCAL);
+    verificar(trocas > 0, "ordenar chaves repetidas deve realizar trocas");
+    verificar(caderno->pistas.tamanho == 3,
+              "ordenar chaves repetidas preserva o tamanho");
+    verificar(caderno->pistas.inicio->dado == primeira_luva &&
+              caderno->pistas.inicio->prox->dado == segunda_luva &&
+              caderno->pistas.fim->dado == gerencia,
+              "chaves repetidas mantem a ordem estavel e nao duplicam");
+    verificar_secao_pistas_integra(caderno);
+
+    liberar_caderno(caderno);
+}
+
+static void testar_ordenacao_casos_limite(void) {
+    verificar(ordenar_pistas(NULL, ORDENAR_POR_LOCAL) == 0,
+              "ordenar pistas NULL retorna zero trocas");
+
+    Caderno *vazio = inicializar_caderno(ID_POIROT);
+    verificar(vazio != NULL, "caderno vazio para ordenacao deve alocar");
+    if (vazio != NULL) {
+        verificar(ordenar_pistas(vazio, ORDENAR_POR_LOCAL) == 0,
+                  "ordenar caderno sem pistas retorna zero trocas");
+        verificar(vazio->pistas.tamanho == 0,
+                  "caderno sem pistas continua vazio");
+        liberar_caderno(vazio);
+    }
+
+    Caderno *uma = inicializar_caderno(ID_POIROT);
+    verificar(uma != NULL, "caderno com uma pista deve alocar");
+    if (uma != NULL) {
+        registrar_pista(uma, 1, "Portao", "Chave", "Chave no portao.", NULL);
+        verificar(ordenar_pistas(uma, ORDENAR_POR_LOCAL) == 0,
+                  "ordenar uma unica pista retorna zero trocas");
+        verificar(uma->pistas.tamanho == 1,
+                  "ordenar uma unica pista preserva a lista");
+        liberar_caderno(uma);
+    }
+
+    Caderno *duas = inicializar_caderno(ID_POIROT);
+    verificar(duas != NULL, "caderno com duas pistas deve alocar");
+    if (duas != NULL) {
+        registrar_pista(duas, 1, "B", "Z", "Local B.", NULL);
+        registrar_pista(duas, 1, "A", "Y", "Local A.", NULL);
+        verificar(duas->pistas.tamanho == 2,
+                  "caderno com duas pistas tem duas pistas");
+
+        if (duas->pistas.tamanho == 2 &&
+            duas->pistas.inicio != NULL && duas->pistas.fim != NULL) {
+            Pista *primeira = (Pista *)duas->pistas.inicio->dado;
+            Pista *segunda = (Pista *)duas->pistas.fim->dado;
+
+            verificar(ordenar_pistas(duas, ORDENAR_POR_LOCAL) == 1,
+                      "duas pistas invertidas geram exatamente uma troca");
+            verificar(duas->pistas.inicio->dado == segunda &&
+                      duas->pistas.fim->dado == primeira,
+                      "ordenacao de duas pistas deixa a ordem correta");
+            verificar(ordenar_pistas(duas, ORDENAR_POR_LOCAL) == 0,
+                      "segunda ordenacao de uma lista ordenada retorna zero trocas");
+        }
+        liberar_caderno(duas);
+    }
+
+    Caderno *invalido = criar_caderno_ordenacao();
+    verificar(invalido != NULL, "caderno para criterio invalido deve alocar");
+    if (invalido != NULL) {
+        Pista *antes[8];
+        int total_antes = coletar_pistas(invalido, antes, 8);
+        verificar(total_antes == 4, "coleta pistas antes do criterio invalido");
+
+        verificar(ordenar_pistas(invalido, (CriterioOrdenacao)99) == 0,
+                  "criterio invalido nao realiza trocas");
+
+        Pista *depois[8];
+        int total_depois = coletar_pistas(invalido, depois, 8);
+        verificar(mesma_colecao_de_pistas(antes, total_antes, depois, total_depois),
+                  "criterio invalido preserva as pistas");
+        verificar(invalido->pistas.tamanho == total_antes,
+                  "criterio invalido nao altera o tamanho");
+        liberar_caderno(invalido);
+    }
+}
+
+static void testar_filtro_depoimentos_sobre_suspeito(void) {
+    Caderno *caderno = criar_caderno_exemplo();
+    verificar(caderno != NULL, "caderno de exemplo para o filtro deve alocar");
+    if (caderno == NULL) {
+        return;
+    }
+
+    const int sobre_engenheiro[] = {1, 2, 5};
+    const int sobre_operaria[] = {3};
+    const int sobre_gerente[] = {4};
+
+    Lista *resultado = depoimentos_sobre_suspeito(caderno, ID_ENGENHEIRO);
+    verificar_resultado(resultado, sobre_engenheiro, 3,
+                        "depoimentos sobre o engenheiro");
+    verificar(resultado != NULL && resultado->inicio != NULL &&
+              resultado->inicio->dado == buscar_depoimento_por_id(caderno, 1),
+              "resultado do filtro aponta para o depoimento original");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(caderno, ID_OPERARIA);
+    verificar_resultado(resultado, sobre_operaria, 1,
+                        "depoimentos sobre a operaria");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(caderno, ID_GERENTE);
+    verificar_resultado(resultado, sobre_gerente, 1,
+                        "depoimentos sobre o gerente");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(caderno, ID_VIGIA);
+    verificar_resultado(resultado, NULL, 0,
+                        "depoimentos sobre o vigia sao vazios");
+    verificar(resultado != NULL && resultado->inicio == NULL,
+              "resultado vazio nao tem inicio");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(caderno, 99);
+    verificar_resultado(resultado, NULL, 0,
+                        "depoimentos sobre suspeito inexistente sao vazios");
+    liberar_resultado_filtro(resultado);
+
+    resultado = depoimentos_sobre_suspeito(NULL, ID_ENGENHEIRO);
+    verificar_resultado(resultado, NULL, 0,
+                        "depoimentos com caderno NULL sao vazios");
+    liberar_resultado_filtro(resultado);
+
+    verificar(caderno->depoimentos.tamanho == 5,
+              "consultas de depoimentos nao alteram o caderno");
+    liberar_caderno(caderno);
+}
+
 static void testar_ordenacao_de_pistas(void) {
     Caderno *caderno = inicializar_caderno(ID_POIROT);
     verificar(caderno != NULL, "inicializar_caderno deve alocar");
@@ -848,6 +1244,7 @@ int main(void) {
     testar_comparacao_direta();
     testar_tabela_de_filtros();
     testar_atalhos();
+    testar_filtro_depoimentos_sobre_suspeito();
     testar_resultado_nao_copia_e_nao_libera_depoimentos();
     testar_reacao_vinculada_ao_depoimento();
     testar_pista();
@@ -864,6 +1261,10 @@ int main(void) {
     testar_detectar_contradicoes_todas();
     testar_navegacao_por_secao();
     testar_ordenacao_de_pistas();
+    testar_ordenacao_por_criterios();
+    testar_ordenacao_preserva_itens();
+    testar_ordenacao_chaves_repetidas();
+    testar_ordenacao_casos_limite();
 
     if (falhas == 0) {
         printf("OK: todos os testes do caderno passaram\n");
