@@ -3,16 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define UI_MAX_CODEPOINTS 512
+#include "paleta.h"
 
-static const Color COR_FUNDO_BOTAO = {45, 45, 60, 255};
-static const Color COR_FUNDO_BOTAO_DESTACADO = {80, 80, 110, 255};
-static const Color COR_FUNDO_BOTAO_PRESSIONADO = {32, 32, 48, 255};
-static const Color COR_FUNDO_BOTAO_DESABILITADO = {35, 35, 42, 255};
-static const Color COR_BORDA_BOTAO = {120, 120, 140, 255};
-static const Color COR_BORDA_BOTAO_DESTACADA = {245, 245, 245, 255};
-static const Color COR_TEXTO_BOTAO = {245, 245, 245, 255};
-static const Color COR_TEXTO_BOTAO_DESABILITADO = {110, 110, 125, 255};
+#define UI_MAX_CODEPOINTS 512
 
 // ---------------------------------------------------------------------------
 // Fonte
@@ -67,16 +60,17 @@ const int *ui_codepoints_portugues(int *quantidade) {
 
 const char *ui_caminho_fonte(const char *caminho) {
     static char encontrado[1024];
+    const char *alvo = (caminho != NULL) ? caminho : UI_CAMINHO_FONTE;
 
-    if (caminho != NULL && FileExists(caminho)) {
-        return caminho;
+    if (FileExists(alvo)) {
+        return alvo;
     }
 
     // Pasta do executável (o CMake copia assets/ para lá).
     const char *pasta_aplicacao = GetApplicationDirectory();
     if (pasta_aplicacao != NULL) {
         snprintf(encontrado, sizeof(encontrado), "%s%s", pasta_aplicacao,
-                 UI_CAMINHO_FONTE);
+                 alvo);
         if (FileExists(encontrado)) {
             return encontrado;
         }
@@ -84,16 +78,12 @@ const char *ui_caminho_fonte(const char *caminho) {
 
     // Diretório atual e um ou dois níveis acima: permite rodar a partir da
     // raiz do repositório, de build/ ou de build/Release/.
-    if (FileExists(UI_CAMINHO_FONTE)) {
-        return UI_CAMINHO_FONTE;
-    }
-
-    snprintf(encontrado, sizeof(encontrado), "../%s", UI_CAMINHO_FONTE);
+    snprintf(encontrado, sizeof(encontrado), "../%s", alvo);
     if (FileExists(encontrado)) {
         return encontrado;
     }
 
-    snprintf(encontrado, sizeof(encontrado), "../../%s", UI_CAMINHO_FONTE);
+    snprintf(encontrado, sizeof(encontrado), "../../%s", alvo);
     if (FileExists(encontrado)) {
         return encontrado;
     }
@@ -702,25 +692,26 @@ bool ui_desenhar_botao(const UIFonte *fonte, BotaoUI *botao, bool focado) {
 
     EstadoBotao estado = ui_atualizar_botao(botao, focado, &entrada);
 
-    Color fundo = COR_FUNDO_BOTAO;
-    Color borda = COR_BORDA_BOTAO;
-    Color texto = COR_TEXTO_BOTAO;
+    Color fundo = botao->primario ? COR_TIJOLO : COR_FUMACA;
+    Color borda = botao->primario ? COR_TIJOLO : COR_POEIRA;
+    Color texto = COR_OSSO;
 
     switch (estado) {
         case BOTAO_DESABILITADO:
-            fundo = COR_FUNDO_BOTAO_DESABILITADO;
-            texto = COR_TEXTO_BOTAO_DESABILITADO;
+            fundo = COR_TINTA;
+            borda = COR_FUMACA;
+            texto = COR_POEIRA;
             break;
 
         case BOTAO_ACIONADO:
         case BOTAO_PRESSIONADO:
-            fundo = COR_FUNDO_BOTAO_PRESSIONADO;
-            borda = COR_BORDA_BOTAO_DESTACADA;
+            fundo = botao->primario ? COR_SANGUE : COR_TINTA;
+            borda = COR_TIJOLO;
             break;
 
         case BOTAO_HOVER:
-            fundo = COR_FUNDO_BOTAO_DESTACADO;
-            borda = COR_BORDA_BOTAO_DESTACADA;
+            fundo = botao->primario ? COR_OXIDO : COR_CARVAO;
+            borda = COR_OSSO;
             break;
 
         case BOTAO_NORMAL:
@@ -729,7 +720,8 @@ bool ui_desenhar_botao(const UIFonte *fonte, BotaoUI *botao, bool focado) {
     }
 
     DrawRectangleRec(botao->area, fundo);
-    DrawRectangleLinesEx(botao->area, 2.0f, borda);
+    DrawRectangleLinesEx(botao->area, (estado == BOTAO_HOVER) ? 2.0f : 1.0f,
+                         borda);
 
     float tamanho_texto = botao->area.height * 0.42f;
     if (tamanho_texto < 10.0f) {

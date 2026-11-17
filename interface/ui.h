@@ -130,6 +130,7 @@ typedef struct {
     Rectangle area;
     const char *rotulo;
     bool habilitado;
+    bool primario;    // ação principal: preenchimento vermelho
     bool pressionado; // estado interno; inicialize com false/zero
 } BotaoUI;
 

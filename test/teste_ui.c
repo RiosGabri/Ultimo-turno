@@ -59,6 +59,19 @@ static void testar_arquivo_da_fonte(void) {
     }
 }
 
+static void testar_fontes_da_interface_grafica(void) {
+    const char *titulo =
+        ui_caminho_fonte("assets/fontes/PlayfairDisplay-Bold.ttf");
+    const char *corpo =
+        ui_caminho_fonte("assets/fontes/CourierPrime-Regular.ttf");
+    const char *corpo_bold =
+        ui_caminho_fonte("assets/fontes/CourierPrime-Bold.ttf");
+
+    verificar(titulo != NULL, "Playfair Display deve existir");
+    verificar(corpo != NULL, "Courier Prime Regular deve existir");
+    verificar(corpo_bold != NULL, "Courier Prime Bold deve existir");
+}
+
 static void testar_glifos_acentuados(void) {
     static const int acentos[] = {0x00E1, 0x00E7, 0x00E3, 0x00E9, 0x00F4};
     static const char *nomes[] = {"á", "ç", "ã", "é", "ô"};
@@ -483,6 +496,7 @@ static void testar_navegacao_de_botoes(void) {
 int main(void) {
     testar_codepoints_do_portugues();
     testar_arquivo_da_fonte();
+    testar_fontes_da_interface_grafica();
     testar_glifos_acentuados();
     testar_fonte_sem_acentos();
     testar_quebra_por_palavra();
