@@ -86,6 +86,8 @@ if(ULTIMO_TURNO_BUILD_JOGO)
     add_executable(jogo
         main.c
         interface/ui.c
+        interface/recursos.c
+        interface/telas.c
         interface/telas/tela_debate.c
         jogo.c
         dia.c
