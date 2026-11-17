@@ -11,6 +11,10 @@
  */
 typedef struct {
     Texture2D fabrica;
+    Texture2D fundo_menu;
+    Texture2D fundo_historia;
+    Texture2D fundo_detetives;
+    Texture2D titulo;
     Texture2D marple;
     Texture2D hercule;
 } Recursos;

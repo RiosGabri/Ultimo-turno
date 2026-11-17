@@ -64,6 +64,10 @@ void recursos_carregar(Recursos *recursos) {
     }
 
     recursos->fabrica = carregar_textura("assets/image/fabrica.png");
+    recursos->fundo_menu = carregar_textura("assets/image/fundo-menu.png");
+    recursos->fundo_historia = carregar_textura("assets/image/fundo-historia.png");
+    recursos->fundo_detetives = carregar_textura("assets/image/fundo-detetives.png");
+    recursos->titulo = carregar_textura("assets/image/ultimo-turno.png");
     recursos->marple = carregar_textura("assets/image/marple.png");
     recursos->hercule = carregar_textura("assets/image/hercule.png");
 }
@@ -76,6 +80,22 @@ void recursos_descarregar(Recursos *recursos) {
     if (recursos->fabrica.id != 0) {
         UnloadTexture(recursos->fabrica);
         recursos->fabrica = (Texture2D){0};
+    }
+    if (recursos->fundo_menu.id != 0) {
+        UnloadTexture(recursos->fundo_menu);
+        recursos->fundo_menu = (Texture2D){0};
+    }
+    if (recursos->fundo_historia.id != 0) {
+        UnloadTexture(recursos->fundo_historia);
+        recursos->fundo_historia = (Texture2D){0};
+    }
+    if (recursos->fundo_detetives.id != 0) {
+        UnloadTexture(recursos->fundo_detetives);
+        recursos->fundo_detetives = (Texture2D){0};
+    }
+    if (recursos->titulo.id != 0) {
+        UnloadTexture(recursos->titulo);
+        recursos->titulo = (Texture2D){0};
     }
     if (recursos->marple.id != 0) {
         UnloadTexture(recursos->marple);
