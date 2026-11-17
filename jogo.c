@@ -10,38 +10,43 @@
 // ---------------------------------------------------------------------------
 // Conteúdo base
 // ---------------------------------------------------------------------------
-static const struct {
-    const char *nome;
-    const char *cargo;
-} DADOS_SUSPEITOS[TOTAL_SUSPEITOS] = {
-    [ID_GERENTE]    = {"Almeida", "Gerente"},
-    [ID_CAPATAZ]    = {"Bastos",  "Capataz"},
-    [ID_ENGENHEIRO] = {"Costa",   "Engenheiro"},
-    [ID_OPERARIO]   = {"Dias",    "Operário"},
-    [ID_ENFERMEIRA] = {"Esteves", "Enfermeira"},
-    [ID_VIGIA]      = {"Farias",  "Vigia noturno"},
+
+static const char *const NOMES_SUSPEITOS[TOTAL_SUSPEITOS] = {
+    [ID_GERENTE]    = "Gerente",
+    [ID_CAPATAZ]    = "Capataz",
+    [ID_ENGENHEIRO] = "Engenheiro",
+    [ID_OPERARIO]   = "Operário",
+    [ID_ENFERMEIRA] = "Enfermeira",
+    [ID_VIGIA]      = "Vigia noturno",
 };
+
+#define RELACIONADO_QUALQUER (-2)
 
 static const struct {
     const char *local;
     const char *objeto;
     const char *descricao;
+    const int relacionados[TOTAL_SUSPEITOS + 1];
 } PISTAS_DO_DIA[TOTAL_DIAS] = {
     [0] = {
         "Sala de máquinas", "Chave inglesa",
-        "Encontrada próxima ao corpo da vítima, na sala de máquinas. É uma das ferramentas utilizadas na manutenção da fábrica. Sua presença no local não é incomum, mas sua proximidade com o corpo lhe chama a atenção. Não apresenta vestígios de sangue ou marcas."
-    },  //falta atualizar os dos outros dias
+        "Encontrada próxima ao corpo da vítima, na sala de máquinas. É uma das ferramentas utilizadas na manutenção da fábrica. Sua presença no local não é incomum, mas sua proximidade com o corpo lhe chama a atenção. Não apresenta vestígios de sangue ou marcas.",
+        { ID_ENGENHEIRO, ID_CAPATAZ, ID_OPERARIO, ID_VIGIA, NENHUM }
+    },
     [1] = {
         "Gerência", "Diário de manutenção",
-        "Este diário registra as manutenções realizadas nos equipamentos da sala de máquinas. Contém descrições dos serviços realizados e seu responsável."
+        "Este diário registra as manutenções realizadas nos equipamentos da sala de máquinas. Contém descrições dos serviços realizados e seu responsável.",
+        { ID_ENGENHEIRO, ID_GERENTE, ID_CAPATAZ, NENHUM }
     },
     [2] = {
-        "Gerência", "Carta rasgada",
-        "Uma carta rasgada na gerência. Sobrou o começo de uma ameaça."
+        "Enfermaria", "Ficha de atendimento",
+        "Uma ficha de atendimento de um paciente. A ficha revela que algúem comunicou um acidente envolvendo o mesmo equipamento.",
+        { ID_ENFERMEIRA, ID_OPERARIO, ID_CAPATAZ, NENHUM }
     },
     [3] = {
-        "Vestiário", "Chave enferrujada",
-        "Uma chave enferrujada no vestiário. A fechadura foi forçada."
+        "Vestiário", "Carta pessoal",
+        "Uma carta que um funcionário da fábrica enviou a outro funcionário. Ela menciona um defeito em uma das máquinas, possivelmente, a mesma máquina.",
+        { RELACIONADO_QUALQUER, NENHUM }
     },
 };
 
@@ -155,6 +160,29 @@ static void avancar_turno(Jogo *jogo) {
     jogo->turno_atual = NULL; // todos os vivos já falaram
 }
 
+static ListaDupla *criar_suspeitos_relacionados(Jogo *jogo, int dia) {
+    const int *ids = PISTAS_DO_DIA[dia].relacionados;
+    ListaDupla *relacionados = criar_lista_dupla();
+    if (relacionados == NULL) {
+        return NULL;
+    }
+
+    for (int i = 0; ids[i] != NENHUM; i++) {
+        int id = ids[i];
+        if (id == RELACIONADO_QUALQUER) {
+            id = aleatorio_intervalo(&jogo->aleatorio, TOTAL_SUSPEITOS);
+        }
+
+        Suspeito *suspeito = suspeito_por_id(jogo, id);
+        if (suspeito == NULL || !lista_dupla_inserir_no_fim(relacionados, id, suspeito)){
+            liberar_lista_dupla(relacionados);
+            return NULL;
+        }
+    }
+
+    return relacionados;
+}
+
 static void registrar_pista_do_dia(Jogo *jogo) {
     int indice = jogo->dia.dia_atual - 1;
     if (indice < 0 || indice >= TOTAL_DIAS) {
@@ -165,7 +193,7 @@ static void registrar_pista_do_dia(Jogo *jogo) {
                     (char *)PISTAS_DO_DIA[indice].local,
                     (char *)PISTAS_DO_DIA[indice].objeto,
                     (char *)PISTAS_DO_DIA[indice].descricao,
-                    NULL);
+                    criar_suspeitos_relacionados(jogo, indice));
 }
 
 static void realizar_crime_noturno(Jogo *jogo) {
@@ -256,6 +284,11 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
     jogo->papeis.id_assassino = NENHUM;
     jogo->papeis.id_cumplice = NENHUM;
 
+    // Dia 1 continua começando no primeiro suspeito da lista (o Gerente).
+    jogo->proximo_inicio_debate = 0;
+    jogo->inicio_debate_atual = 0;
+    jogo->dia_debate_iniciado = 0;
+
     // Um único gerador conduz todos os sorteios da partida: papéis, agenda e
     // vítima noturna. Assim a mesma semente reproduz o mesmo jogo em qualquer
     // plataforma.
@@ -267,10 +300,7 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
     }
 
     for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
-        carregar_suspeito(jogo->suspeitos, id,
-                          (char *)DADOS_SUSPEITOS[id].nome,
-                          (char *)DADOS_SUSPEITOS[id].cargo,
-                          VIVO, INOCENTE);
+        carregar_suspeito(jogo->suspeitos, id,(char *)NOMES_SUSPEITOS[id], (char *)NOMES_SUSPEITOS[id], VIVO, INOCENTE);
     }
 
     if (contar_vivos(jogo->suspeitos) != TOTAL_SUSPEITOS) {
@@ -315,6 +345,40 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
     jogo->interrogados = 0;
 
     return 1;
+}
+static NoListaDuplaCircular *no_por_id(const Jogo *jogo, int id) {
+    if (jogo == NULL || jogo->suspeitos == NULL ||
+        jogo->suspeitos->inicio == NULL) {
+        return NULL;
+    }
+
+    NoListaDuplaCircular *atual = jogo->suspeitos->inicio;
+    do {
+        if (atual->id == id) {
+            return atual;
+        }
+        atual = atual->prox;
+    } while (atual != jogo->suspeitos->inicio);
+
+    return NULL;
+}
+
+static NoListaDuplaCircular *primeiro_vivo_a_partir(
+    const Jogo *jogo, NoListaDuplaCircular *comeco) {
+    if (jogo == NULL || comeco == NULL) {
+        return NULL;
+    }
+
+    NoListaDuplaCircular *atual = comeco;
+    do {
+        Suspeito *suspeito = (Suspeito *)atual->dado;
+        if (suspeito != NULL && suspeito->situacao == VIVO) {
+            return atual;
+        }
+        atual = atual->prox;
+    } while (atual != comeco);
+
+    return NULL;
 }
 
 int iniciar_jogo(Jogo *jogo, int id_detetive) {
@@ -376,14 +440,36 @@ void avancar_fase_jogo(Jogo *jogo) {
 // Debate
 // ---------------------------------------------------------------------------
 void iniciar_debate(Jogo *jogo) {
-    if (jogo == NULL) {
+    if (jogo == NULL || jogo->suspeitos == NULL) {
         return;
     }
 
     jogo->interrogados = 0;
     jogo->turno_atual = NULL;
-    avancar_turno(jogo);
+
+    // Em uma nova chamada no mesmo dia, mantém o início já escolhido; só
+    // avança o ponto de partida quando o debate de outro dia começa.
+    int novo_dia = jogo->dia_debate_iniciado != jogo->dia.dia_atual;
+    if (novo_dia) {
+        jogo->inicio_debate_atual = jogo->proximo_inicio_debate;
+        jogo->dia_debate_iniciado = jogo->dia.dia_atual;
+    }
+
+    NoListaDuplaCircular *candidato =
+        no_por_id(jogo, jogo->inicio_debate_atual);
+
+    jogo->turno_atual = primeiro_vivo_a_partir(
+        jogo,
+        candidato != NULL ? candidato : jogo->suspeitos->inicio
+    );
+
+    if (novo_dia && jogo->turno_atual != NULL) {
+        Suspeito *primeiro = (Suspeito *)jogo->turno_atual->dado;
+        jogo->proximo_inicio_debate =
+            (primeiro->id + 1) % TOTAL_SUSPEITOS;
+    }
 }
+
 
 Suspeito *suspeito_do_turno(const Jogo *jogo) {
     if (jogo == NULL || jogo->dia.fase_atual != FASE_DEBATE || jogo->turno_atual == NULL) {

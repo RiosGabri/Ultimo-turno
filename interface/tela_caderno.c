@@ -1,15 +1,13 @@
 
 #include "tela_caderno.h"
+#include "paleta.h"
 #include <stdio.h>
 
-#define LARGURA_CADERNO 960
-#define ALTURA_CADERNO 540
+#define LARGURA_CADERNO 1280
+#define ALTURA_CADERNO 720
 #define QUANTIDADE_ABAS TOTAL_SECOES
 
-// Paleta visual noir do Último Turno.
-static const Color COR_PAINEL = {32, 32, 32, 255};
-static const Color COR_TEXTO = {242, 242, 242, 255};
-static const Color COR_VERMELHO = {178, 34, 34, 255};
+#define COR_VERMELHO COR_TIJOLO
 
 static const char *ROTULOS_ABAS[QUANTIDADE_ABAS] = {
     "Depoimentos",
@@ -280,7 +278,7 @@ bool tela_caderno_atualizar_desenhar(
     if (!abas_inicializadas) {
         for (int i = 0; i < QUANTIDADE_ABAS; i++) {
             abas[i] = (BotaoUI){
-                .area = {50 + i * 220, 110, 200, 48},
+                .area = {200 + i * 220, 110, 200, 48},
                 .rotulo = ROTULOS_ABAS[i],
                 .habilitado = true,
                 .pressionado = false
@@ -303,19 +301,19 @@ bool tela_caderno_atualizar_desenhar(
     static int ultima_quantidade_trocas = -1;
     static BotaoUI botoes_ordenacao[3] = {
         {
-            .area = {210, 175, 160, 40},
+            .area = {370, 175, 160, 40},
             .rotulo = "Local",
             .habilitado = true,
             .pressionado = false
         },
         {
-            .area = {390, 175, 160, 40},
+            .area = {550, 175, 160, 40},
             .rotulo = "Objeto",
             .habilitado = true,
             .pressionado = false
         },
         {
-            .area = {570, 175, 180, 40},
+            .area = {730, 175, 180, 40},
             .rotulo = "Dia recente",
             .habilitado = true,
             .pressionado = false
@@ -347,7 +345,7 @@ bool tela_caderno_atualizar_desenhar(
 
     }
     // Área reservada para os registros.
-    Rectangle painel = {50, 225, 860, 205};
+    Rectangle painel = {210, 225, 860, 315};
     desenhar_registro_atual(fonte, caderno, painel);
     if (caderno->secao_ativa == SECAO_PISTAS &&
         ultima_quantidade_trocas >= 0) {
@@ -361,7 +359,7 @@ bool tela_caderno_atualizar_desenhar(
         ultima_quantidade_trocas
     );
 
-    Rectangle area_mensagem = {620, 270, 270, 25};
+    Rectangle area_mensagem = {780, 270, 270, 25};
 
     ui_desenhar_texto_centralizado(
         fonte,
@@ -374,14 +372,14 @@ bool tela_caderno_atualizar_desenhar(
         // Botões de navegação entre registros.
         // static preserva o estado dos cliques entre os frames.
         static BotaoUI botao_anterior = {
-            .area = {180, 435, 180, 40},
+            .area = {340, 550, 180, 40},
             .rotulo = "Anterior",
             .habilitado = true,
             .pressionado = false
         };
 
         static BotaoUI botao_proximo = {
-            .area = {600, 435, 180, 40},
+            .area = {760, 550, 180, 40},
             .rotulo = "Próximo",
             .habilitado = true,
             .pressionado = false
@@ -447,7 +445,7 @@ bool tela_caderno_atualizar_desenhar(
             total
         );
 
-        Rectangle area_indicador = {370, 435, 220, 40};
+        Rectangle area_indicador = {530, 550, 220, 40};
 
         ui_desenhar_texto_centralizado(
             fonte,
@@ -473,7 +471,7 @@ bool tela_caderno_atualizar_desenhar(
     }
     // Botão para retornar à partida.
     static BotaoUI voltar = {
-        .area = {350, 490, 260, 40},
+        .area = {510, 610, 260, 40},
         .rotulo = "Voltar à partida",
         .habilitado = true,
         .pressionado = false

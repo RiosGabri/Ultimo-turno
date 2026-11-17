@@ -87,6 +87,8 @@ if(ULTIMO_TURNO_BUILD_JOGO)
         main.c
         interface/ui.c
         interface/tela_caderno.c
+        interface/recursos.c
+        interface/telas.c
         jogo.c
         dia.c
         ${ULTIMO_TURNO_ESTRUTURAS}
@@ -180,6 +182,13 @@ ultimo_turno_adicionar_teste(teste_dia
 
 ultimo_turno_adicionar_teste(teste_jogo
     test/teste_jogo.c
+    jogo.c
+    dia.c
+    ${ULTIMO_TURNO_ESTRUTURAS}
+)
+
+ultimo_turno_adicionar_teste(teste_roda_debate
+    test/teste_roda_debate.c
     jogo.c
     dia.c
     ${ULTIMO_TURNO_ESTRUTURAS}

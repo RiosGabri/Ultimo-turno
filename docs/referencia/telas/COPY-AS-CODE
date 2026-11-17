@@ -1,0 +1,1235 @@
+<!-- O Último Turno - Menu Principal (1930s Industrial Noir) -->
+<!DOCTYPE html><html class="h-full w-full" lang="pt-BR"><head></head><body class="bg-[#2B2B28] text-[#F0EADF] font-mono-noir select-none overflow-hidden m-0 p-0 w-screen h-screen"><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>O ÚLTIMO TURNO</title>
+<!-- Google Fonts: Playfair Display (700, 900) & Courier Prime (400, 700) -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&amp;family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            noir: {
+              charcoal: '#2B2B28', // Background
+              shadow: '#1B1B18',   // Deep ink / shadows
+              osso: '#F0EADF',     // Bone primary text
+              paper: '#D8CFBC',    // Aged paper secondary
+              dust: '#8A8175',     // Muted borders / text
+              tijolo: '#C23B22',   // Primary accent brick red
+              brickDark: '#A8321D' // Dark red
+            }
+          },
+          fontFamily: {
+            title: ['"Playfair Display"', 'serif'],
+            mono: ['"Courier Prime"', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+<!-- Typography & Layout Styles -->
+<style data-purpose="custom-typography">
+    .font-title-noir {
+      font-family: 'Playfair Display', serif;
+      letter-spacing: -0.025em;
+    }
+    .font-mono-noir {
+      font-family: 'Courier Prime', monospace;
+    }
+  </style>
+<!-- Atmospheric Lighting & Effects Styles -->
+<style data-purpose="film-noir-atmosphere">
+    /* Subtle camera vignette across entire screen */
+    .vignette-overlay {
+      background: radial-gradient(circle at 62% 40%, transparent 35%, rgba(27, 27, 24, 0.6) 75%, #1B1B18 100%);
+      pointer-events: none;
+    }
+    /* Film grain emulation */
+    .film-grain {
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+    /* Soft flickering animation for industrial lamp */
+    @keyframes lamp-hum {
+      0%, 100% { opacity: 0.96; }
+      50% { opacity: 0.99; }
+      72% { opacity: 0.93; }
+      74% { opacity: 0.98; }
+      92% { opacity: 0.94; }
+    }
+    .lamp-glow-group {
+      animation: lamp-hum 9s infinite ease-in-out;
+    }
+  </style>
+
+
+<!-- BEGIN: GameScreenContainer -->
+<!-- Fixed 1920x1080 canvas constrained to 16:9 viewport ratio -->
+<div class="relative w-full h-full max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-[#2B2B28] flex" data-purpose="game-viewport">
+<!-- BEGIN: AtmosphericLayers -->
+<!-- Film grain and vintage camera vignette covering full visual stage -->
+<div class="film-grain absolute inset-0 z-30 pointer-events-none" data-purpose="film-grain"></div>
+<div class="vignette-overlay absolute inset-0 z-20 pointer-events-none" data-purpose="vignette"></div>
+<!-- END: AtmosphericLayers -->
+<!-- BEGIN: BackgroundIllustration -->
+<!-- Right 45-55% Industrial Chiaroscuro Machine Room Silhouette & Volumetric Lamp Light -->
+<div class="absolute inset-y-0 right-0 w-3/5 h-full pointer-events-none z-0" data-purpose="factory-backdrop">
+<svg class="w-full h-full object-cover" fill="none" viewBox="0 0 1152 1080" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<!-- Volumetric light cone from pendant lamp -->
+<linearGradient gradientUnits="userSpaceOnUse" id="volumetricBeam" x1="680" x2="640" y1="90" y2="1080">
+<stop offset="0%" stop-color="#F0EADF" stop-opacity="0.22"></stop>
+<stop offset="35%" stop-color="#D8CFBC" stop-opacity="0.09"></stop>
+<stop offset="75%" stop-color="#D8CFBC" stop-opacity="0.03"></stop>
+<stop offset="100%" stop-color="#2B2B28" stop-opacity="0"></stop>
+</linearGradient>
+<!-- Shadow fade blending backdrop into the left canvas -->
+<linearGradient gradientUnits="userSpaceOnUse" id="leftEdgeBlend" x1="0" x2="420" y1="540" y2="540">
+<stop offset="0%" stop-color="#2B2B28" stop-opacity="1"></stop>
+<stop offset="40%" stop-color="#2B2B28" stop-opacity="0.95"></stop>
+<stop offset="80%" stop-color="#2B2B28" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#2B2B28" stop-opacity="0"></stop>
+</linearGradient>
+<!-- Radial warm glare on lamp bulb -->
+<radialGradient cx="680" cy="85" gradientUnits="userSpaceOnUse" id="lampBulbGlare" r="90">
+<stop offset="0%" stop-color="#F0EADF" stop-opacity="0.85"></stop>
+<stop offset="25%" stop-color="#D8CFBC" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#F0EADF" stop-opacity="0"></stop>
+</radialGradient>
+<!-- Red gauge warning indicator radial glow -->
+<radialGradient cx="895" cy="510" gradientUnits="userSpaceOnUse" id="brickGaugeGlow" r="48">
+<stop offset="0%" stop-color="#C23B22" stop-opacity="0.8"></stop>
+<stop offset="40%" stop-color="#A8321D" stop-opacity="0.25"></stop>
+<stop offset="100%" stop-color="#1B1B18" stop-opacity="0"></stop>
+</radialGradient>
+</defs>
+<!-- Deep Backstage Silhouettes: Structural I-beams and masonry -->
+<g id="BackgroundGirders" opacity="0.35">
+<rect fill="#1B1B18" height="1080" width="34" x="250" y="0"></rect>
+<rect fill="#1B1B18" height="1080" width="46" x="520" y="0"></rect>
+<rect fill="#1B1B18" height="1080" width="54" x="940" y="0"></rect>
+<line stroke="#1B1B18" stroke-width="26" x1="200" x2="1152" y1="180" y2="180"></line>
+<line stroke="#1B1B18" stroke-width="6" x1="250" x2="520" y1="180" y2="380"></line>
+<line stroke="#1B1B18" stroke-width="6" x1="520" x2="940" y1="380" y2="180"></line>
+<!-- Catwalk with industrial iron railing -->
+<rect fill="#1B1B18" height="14" width="792" x="360" y="380"></rect>
+<!-- Catwalk balusters -->
+<path d="M420 320v60 M470 320v60 M520 320v60 M570 320v60 M620 320v60 M670 320v60 M720 320v60 M770 320v60 M820 320v60 M870 320v60 M920 320v60 M970 320v60 M1020 320v60 M1070 320v60" stroke="#1B1B18" stroke-width="3"></path>
+<line stroke="#1B1B18" stroke-width="4" x1="390" x2="1152" y1="320" y2="320"></line>
+</g>
+<!-- Midground Industrial Machinery: Boilers, Giant Pressure Vessel, Heavy Flanged Pipes -->
+<g id="MachineMidground">
+<!-- Heavy vertical industrial pipe left -->
+<rect fill="#1B1B18" height="1080" width="58" x="390" y="0"></rect>
+<!-- Pipe flanges and riveted collars -->
+<rect fill="#1B1B18" height="16" stroke="#8A8175" stroke-opacity="0.3" stroke-width="0.8" width="74" x="382" y="240"></rect>
+<rect fill="#1B1B18" height="16" stroke="#8A8175" stroke-opacity="0.3" stroke-width="0.8" width="74" x="382" y="620"></rect>
+<!-- Massive cylindrical boiler / furnace body silhouette -->
+<path d="M720 280 C840 280, 990 340, 1020 480 L1040 1080 L620 1080 L620 420 C640 330, 680 280, 720 280 Z" fill="#1B1B18"></path>
+<!-- Transverse horizontal steam conduits -->
+<path d="M280 670 L1152 670 L1152 725 L280 725 Z" fill="#1B1B18"></path>
+<rect fill="#1B1B18" height="75" stroke="#8A8175" stroke-opacity="0.4" stroke-width="0.8" width="22" x="760" y="660"></rect>
+<rect fill="#1B1B18" height="75" stroke="#8A8175" stroke-opacity="0.4" stroke-width="0.8" width="22" x="910" y="660"></rect>
+<!-- Industrial Valve Wheel (Foreground silhouette) -->
+<g transform="translate(485, 696)">
+<circle cx="0" cy="0" fill="none" r="54" stroke="#1B1B18" stroke-width="12"></circle>
+<circle cx="0" cy="0" fill="#1B1B18" r="14"></circle>
+<line stroke="#1B1B18" stroke-width="8" x1="-50" x2="50" y1="0" y2="0"></line>
+<line stroke="#1B1B18" stroke-width="8" x1="0" x2="0" y1="-50" y2="50"></line>
+<line stroke="#1B1B18" stroke-width="7" x1="-35" x2="35" y1="-35" y2="35"></line>
+<line stroke="#1B1B18" stroke-width="7" x1="-35" x2="35" y1="35" y2="-35"></line>
+<!-- Edge rim highlight reflection -->
+<path d="M-46 -18 A50 50 0 0 1 -18 -46" fill="none" stroke="#8A8175" stroke-opacity="0.4" stroke-width="1.5"></path>
+</g>
+<!-- Riveted boiler seams & specular metal line details -->
+<line stroke="#8A8175" stroke-dasharray="4 8" stroke-opacity="0.25" stroke-width="2" x1="620" x2="1035" y1="460" y2="460"></line>
+<line stroke="#8A8175" stroke-dasharray="4 8" stroke-opacity="0.25" stroke-width="2" x1="620" x2="1040" y1="840" y2="840"></line>
+<!-- Analog Pressure Gauge with subtle Tijolo red accent pointer -->
+<g id="PressureGauge" transform="translate(895, 510)">
+<circle cx="0" cy="0" fill="#1B1B18" r="46" stroke="#8A8175" stroke-opacity="0.6" stroke-width="2"></circle>
+<circle cx="0" cy="0" fill="#2B2B28" r="41" stroke="#1B1B18" stroke-width="2"></circle>
+<!-- Subtle red accent glow behind dial needle -->
+<circle cx="0" cy="0" fill="url(#brickGaugeGlow)" r="44"></circle>
+<!-- Gauge tick marks -->
+<circle cx="0" cy="0" fill="none" opacity="0.6" r="35" stroke="#8A8175" stroke-dasharray="2 6" stroke-width="1"></circle>
+<!-- Needle pivoted past critical point in Tijolo red (#C23B22) -->
+<line stroke="#C23B22" stroke-linecap="round" stroke-width="2.5" x1="-2" x2="22" y1="2" y2="-25"></line>
+<circle cx="0" cy="0" fill="#C23B22" r="5"></circle>
+<circle cx="0" cy="0" fill="#F0EADF" r="2"></circle>
+</g>
+<!-- Steel rivets along the lower structural footing -->
+<circle cx="650" cy="980" fill="#8A8175" opacity="0.35" r="3"></circle>
+<circle cx="700" cy="980" fill="#8A8175" opacity="0.35" r="3"></circle>
+<circle cx="750" cy="980" fill="#8A8175" opacity="0.35" r="3"></circle>
+<circle cx="800" cy="980" fill="#8A8175" opacity="0.35" r="3"></circle>
+<circle cx="850" cy="980" fill="#8A8175" opacity="0.35" r="3"></circle>
+<circle cx="900" cy="980" fill="#8A8175" opacity="0.35" r="3"></circle>
+</g>
+<!-- Volumetric Cone of Warm/Creamy Light from overhead pendant -->
+<g class="lamp-glow-group" id="VolumetricLight">
+<!-- Translucent downward cone beam (#F0EADF) -->
+<polygon fill="url(#volumetricBeam)" points="680,82 180,1080 1152,1080"></polygon>
+<!-- Secondary inner core beam -->
+<polygon fill="#F0EADF" opacity="0.05" points="680,82 440,1080 920,1080"></polygon>
+<!-- Bulb focal glow -->
+<circle cx="680" cy="85" fill="url(#lampBulbGlare)" r="70"></circle>
+</g>
+<!-- Vintage 1930s Conical Industrial Pendant Lamp -->
+<g id="IndustrialPendantLamp">
+<!-- Iron power cord suspended from factory ceiling -->
+<line stroke="#1B1B18" stroke-width="3.5" x1="680" x2="680" y1="0" y2="44"></line>
+<rect fill="#1B1B18" height="12" stroke="#8A8175" stroke-opacity="0.5" stroke-width="0.8" width="12" x="674" y="44"></rect>
+<!-- Conical iron lamp shade -->
+<polygon fill="#1B1B18" points="680,54 624,84 736,84" stroke="#8A8175" stroke-opacity="0.4" stroke-width="1.2"></polygon>
+<!-- Lip rim of the shade with muted highlight -->
+<path d="M624 84 L736 84" stroke="#8A8175" stroke-linecap="round" stroke-opacity="0.6" stroke-width="2.5"></path>
+<!-- Exposed filament incandescent bulb beneath hood -->
+<ellipse cx="680" cy="87" fill="#F0EADF" rx="14" ry="7"></ellipse>
+<circle cx="680" cy="88" fill="#F0EADF" r="4"></circle>
+</g>
+<!-- Soft left edge feathering so machine art recedes smoothly behind UI -->
+<rect fill="url(#leftEdgeBlend)" height="1080" width="460" x="0" y="0"></rect>
+</svg>
+</div>
+<!-- END: BackgroundIllustration -->
+<!-- BEGIN: LeftContentColumn -->
+<!-- Left 55%: Asymmetric, deliberate, high-gravity 1930s editorial composition -->
+<div class="relative z-20 w-[55%] h-full flex flex-col justify-between pl-24 pr-12 pt-28 pb-24" data-purpose="primary-interface-zone">
+<!-- BEGIN: TitleBlock -->
+<header class="space-y-6" data-purpose="title-and-subtitle">
+<!-- Minimal era badge / contextual marker -->
+<div class="flex items-center space-x-3 text-[#8A8175] text-[13px] tracking-[0.25em] uppercase font-bold">
+<span class="inline-block w-6 h-[1.5px] bg-[#C23B22]"></span>
+
+</div>
+<!-- Main Title: Playfair Display 900, stark, massive, letterpress presence -->
+<img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzehLxAie8dVLq_5TOfN4WzprLB2AXikYn3i2a1wESQ431R4yzlqnV0Rn1gvZR1pYibSKvzNFlPitXzSqc14w6VouKKo1DB6HJbZlJ5B0neJ1ftIpmDrBeMAiptjtz8FSX9_n-r3kWduC9LZEmQjxFXhY0OgQkR-7ZCZiw9kcXIKP_YuqUQ3B5mDXKmPBwCXtqAdqJ9Vx0NDoyhZkVelTeF09Kpdt0KN1MPXp-1uM9HrS74Flo5mKDNg" alt="O Último Turno" class="max-w-[460px] w-full h-auto object-contain filter drop-shadow-md select-none mix-blend-screen">
+<!-- One-line evocative subtitle in Courier Prime -->
+<p class="font-mono-noir text-[#D8CFBC] text-[17px] tracking-[0.06em] max-w-[620px] pt-1 opacity-90 leading-relaxed">
+          Uma investigação na fábrica — Novembro de 1936</p>
+</header>
+<!-- END: TitleBlock -->
+<!-- BEGIN: ActionMenu -->
+<!-- Asymmetric vertical menu: exactly ONE primary focal action and quiet stacked secondaries -->
+<nav aria-label="Menu Principal" class="flex flex-col items-start pt-8 pb-4" data-purpose="menu-actions">
+<!-- Primary Action Button: "INICIAR INVESTIGAÇÃO" -->
+<div class="relative group mb-10">
+<button class="relative flex items-center bg-[#C23B22] hover:bg-[#A8321D] active:bg-[#922A16] text-[#F0EADF] font-mono-noir font-bold text-[18px] uppercase tracking-[0.22em] px-9 py-5 rounded-[1px] border border-[#C23B22] shadow-[0_4px_24px_rgba(194,59,34,0.22)] transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-[#F0EADF]" data-purpose="primary-action-start" type="button">
+<!-- Left solid indicator pip -->
+<span class="inline-block w-2.5 h-2.5 bg-[#F0EADF] mr-4 opacity-90 transition-transform group-hover:scale-125"></span>
+<span>Iniciar Investigação</span>
+</button>
+</div>
+<!-- Quiet Secondary Actions Stack -->
+<div class="flex flex-col space-y-4 pl-1" data-purpose="secondary-actions">
+<!-- Secondary Action: Registros Anteriores -->
+<button class="group flex items-center text-left text-[#8A8175] hover:text-[#D8CFBC] transition-colors duration-150 focus:outline-none" data-purpose="secondary-action-load" type="button">
+
+</button>
+<!-- Secondary Action: Ajustes -->
+<button class="group flex items-center text-left text-[#8A8175] hover:text-[#D8CFBC] transition-colors duration-150 focus:outline-none" data-purpose="secondary-action-settings" type="button">
+
+</button>
+<!-- Quiet Bottom Action: Sair -->
+<div class="pt-1">
+<button class="group flex items-center text-left text-[#8A8175] hover:text-[#C23B22] transition-colors duration-150 focus:outline-none" data-purpose="secondary-action-exit" type="button">
+<span class="font-mono-noir text-[13px] uppercase tracking-[0.28em] font-normal opacity-75 group-hover:opacity-100 transition-opacity">
+                Sair
+              </span>
+</button>
+</div>
+</div>
+</nav>
+<!-- END: ActionMenu -->
+<!-- BEGIN: SubtleStatusFootnote -->
+<!-- Understated footer note establishing era texture -->
+<footer class="pt-6" data-purpose="copyright-and-build">
+
+</footer>
+<!-- END: SubtleStatusFootnote -->
+</div>
+<!-- END: LeftContentColumn -->
+</div>
+<!-- END: GameScreenContainer -->
+
+
+
+
+
+
+
+
+</body></html>
+
+<!-- O Último Turno - Seleção de Detetive -->
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O Último Turno - Escolha seu Detetive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&amp;family=Playfair+Display:ital,wght@0,700;0,900;1,700&amp;display=swap" rel="stylesheet">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body {
+    width: 100vw;
+    height: 100vh;
+    background-color: #170b09;
+    color: #F0EADF;
+    font-family: 'Courier Prime', monospace;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 16:9 Game Screen Container (1920x1080 scaled) */
+  .game-canvas {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    background-color: #2B2B28;
+    background-image:
+      radial-gradient(ellipse at 50% 30%, rgba(58, 57, 52, 0.45) 0%, rgba(27, 27, 24, 0.95) 75%),
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.25) 4px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Vignette & Atmospheric Film Grain */
+  .vignette-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 50%, transparent 45%, rgba(15, 15, 13, 0.85) 100%);
+    box-shadow: inset 0 0 160px rgba(0, 0, 0, 0.9);
+    z-index: 20;
+  }
+
+  .film-grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.08;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    z-index: 21;
+  }
+
+  /* Industrial desk background texture elements */
+  .desk-texture {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(30, 29, 26, 0.6) 0%, transparent 20%, transparent 80%, rgba(30, 29, 26, 0.6) 100%),
+      linear-gradient(0deg, #1B1B18 0%, transparent 35%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Top Header / Title */
+  .header-container {
+    position: relative;
+    z-index: 10;
+    margin-top: 64px;
+    text-align: center;
+  }
+
+  .case-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    color: #8A8175;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .case-tag::before,
+  .case-tag::after {
+    content: "";
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background-color: #C23B22;
+  }
+
+  .main-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #F0EADF;
+    text-transform: uppercase;
+    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
+  }
+
+  .sub-tagline {
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    color: #8A8175;
+    margin-top: 6px;
+  }
+
+  /* Dossier Cards Arena */
+  .cards-arena {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    gap: 96px;
+    margin-top: 42px;
+  }
+
+  /* Cream Paper Dossier Card */
+  .dossier-card {
+    position: relative;
+    width: 520px;
+    height: 680px;
+    background-color: #D8CFBC;
+    color: #1B1B18;
+    border: 1px solid #8A8175;
+    border-radius: 3px;
+    padding: 34px 38px;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    box-shadow:
+      0 18px 45px rgba(0, 0, 0, 0.65),
+      0 3px 8px rgba(0, 0, 0, 0.45);
+    transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.18s ease;
+  }
+
+  /* Aged paper subtle border and stamp grain */
+  .dossier-card::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(138, 129, 117, 0.4);
+    pointer-events: none;
+    border-radius: 2px;
+  }
+
+  /* Top Right Folder Clip / Notch detail */
+  .dossier-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 48px;
+    width: 36px;
+    height: 12px;
+    background: #8A8175;
+    opacity: 0.35;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    pointer-events: none;
+  }
+
+  .dossier-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 26px 55px rgba(0, 0, 0, 0.75),
+      0 6px 14px rgba(0, 0, 0, 0.5);
+    border-color: #A8321D;
+  }
+
+  /* Active/Selected Dossier State */
+  .dossier-card.selected {
+    transform: translateY(-6px);
+    border: 2px solid #C23B22;
+    box-shadow:
+      0 30px 65px rgba(0, 0, 0, 0.8),
+      0 0 0 1px #C23B22,
+      0 4px 16px rgba(194, 59, 34, 0.25);
+  }
+
+  .dossier-card.selected::before {
+    border-color: rgba(194, 59, 34, 0.4);
+  }
+
+  /* Card Header: Tab + File Code */
+  .card-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(138, 129, 117, 0.55);
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+  }
+
+  .file-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1B1B18;
+    color: #F0EADF;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    padding: 4px 10px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+
+  .dossier-card.selected .file-tab {
+    background: #C23B22;
+    color: #F0EADF;
+  }
+
+  .file-code {
+    font-size: 12px;
+    font-weight: 700;
+    color: #8A8175;
+    letter-spacing: 0.14em;
+  }
+
+  /* Portrait Window */
+  .portrait-frame {
+    position: relative;
+    width: 100%;
+    height: 310px;
+    background-color: #E2DBD0;
+    border: 1px solid #8A8175;
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Corner photo tabs on the portrait */
+  .corner-mount {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #8A8175;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .corner-mount.tl { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+  .corner-mount.tr { top: 6px; right: 6px; border-left: none; border-bottom: none; }
+  .corner-mount.bl { bottom: 6px; left: 6px; border-right: none; border-top: none; }
+  .corner-mount.br { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+
+  .portrait-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    mix-blend-mode: multiply;
+    transition: transform 0.25s ease;
+  }
+
+  .dossier-card:hover .portrait-img {
+    transform: scale(1.02);
+  }
+
+  /* Stamped watermark badge */
+  .stamp-badge {
+    position: absolute;
+    bottom: 12px;
+    right: 14px;
+    font-family: 'Playfair Display', serif;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    color: #C23B22;
+    border: 1.5px solid #C23B22;
+    padding: 2px 7px;
+    transform: rotate(-7deg);
+    opacity: 0.75;
+    pointer-events: none;
+    text-transform: uppercase;
+  }
+
+  /* Detective Information */
+  .detective-info {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+
+  .detective-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 1.1;
+    color: #1B1B18;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+
+  .detective-profile {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #C23B22;
+    margin-top: 6px;
+    margin-bottom: 12px;
+  }
+
+  .divider-line {
+    width: 100%;
+    height: 1px;
+    background-color: rgba(138, 129, 117, 0.45);
+    margin-bottom: 14px;
+  }
+
+  .quote-line {
+    font-size: 15px;
+    line-height: 1.45;
+    font-style: italic;
+    color: #1B1B18;
+    margin-bottom: 12px;
+    font-weight: 400;
+  }
+
+  .description-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #3A3934;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-top: auto;
+  }
+
+  /* Selection Indicator on Card */
+  .selection-tag {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-top: 14px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: #C23B22;
+    text-transform: uppercase;
+  }
+
+  .selection-tag::before {
+    content: "■";
+    font-size: 10px;
+    color: #C23B22;
+  }
+
+  .dossier-card.selected .selection-tag {
+    display: flex;
+  }
+
+  /* Bottom Actions Bar */
+  .footer-action-area {
+    position: relative;
+    z-index: 10;
+    margin-top: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Big Primary Investigation Button */
+  .btn-investigate {
+    position: relative;
+    width: 440px;
+    height: 60px;
+    background-color: #3A3934;
+    border: 1px solid #8A8175;
+    border-radius: 2px;
+    color: #8A8175;
+    font-family: 'Courier Prime', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: not-allowed;
+    transition: all 0.18s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    outline: none;
+  }
+
+  /* Enabled State */
+  .btn-investigate.enabled {
+    background-color: #A8321D;
+    border-color: #C23B22;
+    color: #F0EADF;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(194, 59, 34, 0.35);
+  }
+
+  .btn-investigate.enabled:hover {
+    background-color: #C23B22;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 3px 10px rgba(194, 59, 34, 0.5);
+  }
+
+  .btn-investigate.enabled:active {
+    background-color: #7F2417;
+    transform: translateY(1px);
+  }
+
+  .chevron-svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    fill: none;
+    transition: transform 0.15s ease;
+  }
+
+  .btn-investigate.enabled:hover .chevron-svg {
+    transform: translateX(4px);
+  }
+
+  .selection-hint {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: #8A8175;
+    text-transform: uppercase;
+  }
+
+  .dossier-card.selected ~ .footer-action-area .selection-hint {
+    color: #D8CFBC;
+  }
+</style>
+</head>
+<body>
+
+<div class="game-canvas">
+  <div class="vignette-overlay"></div>
+  <div class="film-grain"></div>
+  <div class="desk-texture"></div>
+
+  <!-- Header Section -->
+  <header class="header-container">
+
+    <h1 class="main-title">Escolha seu Detetive</h1>
+
+  </header>
+
+  <!-- Dossiers Cards Arena -->
+  <main class="cards-arena">
+
+    <!-- Dossier 1: Miss Marple -->
+    <article class="dossier-card selected" id="card-marple" onclick="selectDetective('marple')">
+      <div class="card-topbar">
+        <span class="file-tab">Detetive 01</span>
+
+      </div>
+
+      <div class="portrait-frame">
+        <span class="corner-mount tl"></span>
+        <span class="corner-mount tr"></span>
+        <span class="corner-mount bl"></span>
+        <span class="corner-mount br"></span>
+        <img class="portrait-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiwSV-7D5FjQHXDaquP19n0XBncCEL53vHOlFYoBvYcoUB-6rV3icnnfVwuymDLEUvhujcuUMo-nK4SwWIJUcceG_11G9npVmHV2z3OrifaBCXiSw0vo6qk7y4PGUAy4N6i83pTj_z1NcLxWO_hUvPOwwtdMxi6uxv7SKZ01I8WEcvuhX-3e_Hfdz8QPcAqojG04mGBkuxR2lQZKZl_07ltjM68LEr0tFQXioPEP80" alt="Retrato Miss Marple">
+        <span class="stamp-badge">HOMOLOGADO</span>
+      </div>
+
+      <div class="detective-info">
+        <h2 class="detective-name">Miss Marple</h2>
+        <div class="detective-profile">A observadora</div>
+        <div class="divider-line"></div>
+        <p class="quote-line">“Pessoas mentem. Hábitos, não.”</p>
+        <p class="description-text">Leitura humana, memória e conversa.</p>
+        <div class="selection-tag">Dossiê Selecionado</div>
+      </div>
+    </article>
+
+    <!-- Dossier 2: Hercule Poirot -->
+    <article class="dossier-card" id="card-poirot" onclick="selectDetective('poirot')">
+      <div class="card-topbar">
+        <span class="file-tab">Detetive 02</span>
+        <span class="file-code">ARQUIVO • HPT-09</span>
+      </div>
+
+      <div class="portrait-frame">
+        <span class="corner-mount tl"></span>
+        <span class="corner-mount tr"></span>
+        <span class="corner-mount bl"></span>
+        <span class="corner-mount br"></span>
+        <img class="portrait-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJnYMzIDRRQ5hLHt6-TPOefn1D2lA0GJ4vnnxxleaGfDphqXrn8EsR6jp-HUUs8cy8GXgRj73kBoSICgoN7EIyjsZul9lNcWexO188UUTOT13Xu6ZhscU2rUueWlBgEKx05w8Yo2U7j6UusA4-ZKw3OQcWCDOrjX7WNK4pRKprbDYCf4mQYwBcicr_NPDhJBykGiF9duvmLPycZMm1DIWiFg58FKPNuQd7prU7_s46" alt="Retrato Hercule Poirot">
+        <span class="stamp-badge">HOMOLOGADO</span>
+      </div>
+
+      <div class="detective-info">
+        <h2 class="detective-name">Hercule Poirot</h2>
+        <div class="detective-profile">O metódico</div>
+        <div class="divider-line"></div>
+        <p class="quote-line">“O caos é apenas um padrão que ainda não foi organizado.”</p>
+        <p class="description-text">Ordem, contradição e dedução.</p>
+        <div class="selection-tag">Dossiê Selecionado</div>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- Bottom CTA Area -->
+  <footer class="footer-action-area">
+    <button id="btn-start" class="btn-investigate enabled" onclick="startInvestigation()">
+      <span>Iniciar Investigação</span>
+      <svg class="chevron-svg" viewBox="0 0 24 24">
+        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </button>
+
+  </footer>
+
+</div>
+
+<script>
+  let selected = null;
+
+  function selectDetective(id) {
+    selected = id;
+    const cardMarple = document.getElementById('card-marple');
+    const cardPoirot = document.getElementById('card-poirot');
+    const btn = document.getElementById('btn-start');
+    const hint = document.getElementById('status-hint');
+
+    if (id === 'marple') {
+      cardMarple.classList.add('selected');
+      cardPoirot.classList.remove('selected');
+      hint.innerText = '[ Detetive selecionada: Miss Marple • Pressione para iniciar ]';
+    } else if (id === 'poirot') {
+      cardPoirot.classList.add('selected');
+      cardMarple.classList.remove('selected');
+      hint.innerText = '[ Detetive selecionado: Hercule Poirot • Pressione para iniciar ]';
+    }
+
+    btn.disabled = false;
+    btn.classList.add('enabled');
+  }
+
+  // Pre-select Miss Marple by default to showcase the active state immediately
+  window.addEventListener('DOMContentLoaded', () => {
+    selectDetective('marple');
+  });
+
+  function startInvestigation() {
+    if (!selected) return;
+    const name = selected === 'marple' ? 'Miss Marple' : 'Hercule Poirot';
+    console.log('Iniciando investigação com:', name);
+  }
+</script>
+
+
+
+
+
+
+</body></html>
+
+<!-- O Último Turno - Prólogo Cinematográfico: A Fábrica (Editorial) -->
+<!DOCTYPE html><html lang="pt-BR"><head></head><body><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=1920, height=1080, initial-scale=1.0" name="viewport">
+<title>O Último Turno - Prólogo: A Fábrica</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&amp;family=Playfair+Display:ital,wght@0,700;0,900;1,700&amp;display=swap" rel="stylesheet">
+<style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background-color: #1B1B18;
+      color: #D8CFBC;
+      font-family: 'Courier Prime', monospace;
+      position: relative;
+    }
+
+    /* Screen Canvas (Strict 1920x1080) */
+    .screen-root {
+      width: 1920px;
+      height: 1080px;
+      position: relative;
+      background: #1B1B18;
+      overflow: hidden;
+    }
+
+    /* Cinematic 1930s Film Grain & Heavy Noir Vignette */
+    .film-grain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0.22;
+      background-image:
+        radial-gradient(circle at 50% 50%, transparent 35%, rgba(20, 20, 18, 0.85) 100%),
+        repeating-radial-gradient(circle at 10% 10%, rgba(10, 9, 8, 0.35) 0, rgba(10, 9, 8, 0.35) 1px, transparent 1px, transparent 3px);
+      background-size: auto, 3px 3px;
+    }
+
+    .vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 45;
+      box-shadow:
+        inset 0 0 200px rgba(14, 13, 12, 0.95),
+        inset 0 0 80px rgba(27, 27, 24, 0.85);
+    }
+
+    /* Soft Atmospheric Dark Scrim for Typography Legibility (Lower-Left) */
+    .editorial-scrim {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 25;
+      background: radial-gradient(circle at 32% 70%, rgba(20, 19, 17, 0.88) 0%, rgba(23, 22, 19, 0.65) 38%, rgba(27, 27, 24, 0) 72%);
+    }
+
+    /* Factory Scene SVG Layer */
+    .factory-scene-svg {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      z-index: 10;
+    }
+
+    /* Upper-Left Cinematic Title Safe Area */
+    .prologue-header {
+      position: absolute;
+      top: 72px;
+      left: 100px;
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    .prologue-badge {
+      font-family: 'Courier Prime', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: #C23B22;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .prologue-badge::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 2px;
+      background-color: #C23B22;
+    }
+
+    .prologue-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 78px;
+      font-weight: 900;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      color: #F0EADF;
+      text-transform: uppercase;
+      text-shadow: 0 4px 18px rgba(10, 9, 8, 0.9), 0 2px 4px rgba(10, 9, 8, 0.8);
+    }
+
+    /* Editorial Narrative Typography directly on background (No Panel / No Box) */
+    .editorial-narrative {
+      position: absolute;
+      top: 48%;
+      left: 100px;
+      width: 55%;
+      max-width: 980px;
+      z-index: 35;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .editorial-lead {
+      font-family: 'Playfair Display', serif;
+      font-size: 40px;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -0.015em;
+      color: #F0EADF;
+      text-shadow: 0 2px 12px rgba(10, 9, 8, 0.8);
+    }
+
+    .editorial-p {
+      font-family: 'Courier Prime', monospace;
+      font-size: 24px;
+      line-height: 1.45;
+      color: #D8CFBC;
+      max-width: 55ch;
+      text-shadow: 0 2px 10px rgba(10, 9, 8, 0.85);
+    }
+
+    .editorial-conclusion {
+      font-family: 'Courier Prime', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.45;
+      color: #F0EADF;
+      margin-top: 6px;
+      text-shadow: 0 2px 10px rgba(10, 9, 8, 0.9);
+    }
+
+    /* Sharp Rectangle Action Button (Bottom Right) */
+    .btn-avancar {
+      position: absolute;
+      right: 48px;
+      bottom: 48px;
+      width: 220px;
+      height: 56px;
+      border-radius: 2px;
+      background-color: #A8321D;
+      border: 1px solid #C23B22;
+      box-shadow: 0 4px 16px rgba(10, 9, 8, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      z-index: 40;
+      transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease;
+      outline: none;
+      text-decoration: none;
+    }
+
+    .btn-avancar:hover {
+      background-color: #C23B22;
+      border-color: #ffb4a5;
+    }
+
+    .btn-avancar:active {
+      background-color: #7F2417;
+      border-color: #8E1400;
+      transform: translateY(1px);
+    }
+
+    .btn-avancar-text {
+      font-family: 'Courier Prime', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: #F0EADF;
+      line-height: 1;
+    }
+
+    .btn-avancar-chevron {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 10px;
+      height: 14px;
+    }
+
+    .btn-avancar-chevron svg {
+      width: 10px;
+      height: 14px;
+      stroke: #F0EADF;
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+  </style>
+
+
+<div class="screen-root">
+<!-- Atmospheric Overlays -->
+<div class="film-grain"></div>
+<div class="vignette"></div>
+<div class="editorial-scrim"></div>
+<!-- Upper-Left Cinematic Game Title -->
+<header class="prologue-header">
+<div class="prologue-badge">PRÓLOGO</div>
+<h1 class="prologue-title">A FÁBRICA</h1>
+</header>
+<!-- Full-Bleed 1920x1080 Industrial Noir Machine Room Background -->
+<svg class="factory-scene-svg" preserveAspectRatio="none" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<!-- Deep Noir Background Gradient -->
+<linearGradient id="bgGrad" x1="50%" x2="50%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#23221F"></stop>
+<stop offset="50%" stop-color="#1B1B18"></stop>
+<stop offset="100%" stop-color="#121110"></stop>
+</linearGradient>
+<!-- Heavy Metallic Steel Gradient -->
+<linearGradient id="steelDark" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#171715"></stop>
+<stop offset="30%" stop-color="#3A3934"></stop>
+<stop offset="65%" stop-color="#282824"></stop>
+<stop offset="100%" stop-color="#141412"></stop>
+</linearGradient>
+<!-- Horizontal Pipe Shading -->
+<linearGradient id="steelDarkH" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#141412"></stop>
+<stop offset="25%" stop-color="#3A3934"></stop>
+<stop offset="70%" stop-color="#242320"></stop>
+<stop offset="100%" stop-color="#141412"></stop>
+</linearGradient>
+<!-- Hard Volumetric Conical Light from Overhead Lamp -->
+<linearGradient id="volBeam" x1="50%" x2="50%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#F0EADF" stop-opacity="0.34"></stop>
+<stop offset="25%" stop-color="#D8CFBC" stop-opacity="0.22"></stop>
+<stop offset="65%" stop-color="#D8CFBC" stop-opacity="0.08"></stop>
+<stop offset="100%" stop-color="#D8CFBC" stop-opacity="0.01"></stop>
+</linearGradient>
+<!-- Pool of Light on Wet Concrete Floor -->
+<radialGradient cx="50%" cy="50%" id="floorPool" r="50%">
+<stop offset="0%" stop-color="#D8CFBC" stop-opacity="0.26"></stop>
+<stop offset="45%" stop-color="#8A8175" stop-opacity="0.12"></stop>
+<stop offset="85%" stop-color="#1B1B18" stop-opacity="0.0"></stop>
+</radialGradient>
+</defs>
+<!-- Machine Room Back Wall -->
+<rect fill="url(#bgGrad)" height="1080" width="1920"></rect>
+<!-- Distant High Factory Windows with Cold Shadows -->
+<g opacity="0.12">
+<rect fill="#3A3934" height="260" stroke="#2B2B28" stroke-width="4" width="180" x="180" y="30"></rect>
+<line stroke="#1B1B18" stroke-width="4" x1="270" x2="270" y1="30" y2="290"></line>
+<line stroke="#1B1B18" stroke-width="4" x1="180" x2="360" y1="115" y2="115"></line>
+<line stroke="#1B1B18" stroke-width="4" x1="180" x2="360" y1="200" y2="200"></line>
+<rect fill="#3A3934" height="260" stroke="#2B2B28" stroke-width="4" width="220" x="1220" y="30"></rect>
+<line stroke="#1B1B18" stroke-width="4" x1="1330" x2="1330" y1="30" y2="290"></line>
+<line stroke="#1B1B18" stroke-width="4" x1="1220" x2="1440" y1="115" y2="115"></line>
+<line stroke="#1B1B18" stroke-width="4" x1="1220" x2="1440" y1="200" y2="200"></line>
+<rect fill="#3A3934" height="260" stroke="#2B2B28" stroke-width="4" width="180" x="1560" y="30"></rect>
+<line stroke="#1B1B18" stroke-width="4" x1="1650" x2="1650" y1="30" y2="290"></line>
+<line stroke="#1B1B18" stroke-width="4" x1="1560" x2="1740" y1="115" y2="115"></line>
+</g>
+<!-- Massive Riveted Steel Ceiling Girders & Pillars -->
+<g opacity="0.8" stroke="#141412" stroke-width="8">
+<line x1="80" x2="80" y1="0" y2="1080"></line>
+<line x1="560" x2="560" y1="0" y2="1080"></line>
+<line x1="1140" x2="1140" y1="0" y2="1080"></line>
+<line x1="1780" x2="1780" y1="0" y2="1080"></line>
+<line x1="0" x2="1920" y1="140" y2="140"></line>
+<line x1="0" x2="1920" y1="220" y2="220"></line>
+<line x1="80" x2="560" y1="140" y2="220"></line>
+<line x1="560" x2="80" y1="140" y2="220"></line>
+<line x1="560" x2="1140" y1="140" y2="220"></line>
+<line x1="1140" x2="560" y1="140" y2="220"></line>
+<line x1="1140" x2="1780" y1="140" y2="220"></line>
+<line x1="1780" x2="1140" y1="140" y2="220"></line>
+</g>
+<!-- Industrial Rivets along Truss -->
+<g fill="#2B2B28">
+<circle cx="200" cy="140" r="3"></circle><circle cx="340" cy="140" r="3"></circle><circle cx="480" cy="140" r="3"></circle>
+<circle cx="700" cy="140" r="3"></circle><circle cx="860" cy="140" r="3"></circle><circle cx="1020" cy="140" r="3"></circle>
+<circle cx="1300" cy="140" r="3"></circle><circle cx="1480" cy="140" r="3"></circle><circle cx="1660" cy="140" r="3"></circle>
+</g>
+<!-- Background Industrial Machinery & Silo Silhouettes -->
+<path d="M 680 1080 L 680 460 Q 820 440 940 480 L 960 1080 Z" fill="#181816"></path>
+<path d="M 1360 1080 L 1360 380 Q 1550 340 1720 420 L 1740 1080 Z" fill="#161514"></path>
+<!-- Heavy Vertical High-Pressure Steam Pipes -->
+<rect fill="url(#steelDark)" height="1080" width="42" x="620" y="0"></rect>
+<rect fill="url(#steelDark)" height="1080" width="18" x="668" y="0"></rect>
+<rect fill="url(#steelDark)" height="1080" width="54" x="1460" y="0"></rect>
+<rect fill="url(#steelDark)" height="1080" width="22" x="1524" y="0"></rect>
+<!-- Transverse High-Pressure Overhead Pipe System -->
+<rect fill="url(#steelDarkH)" height="38" width="1920" x="0" y="270"></rect>
+<rect fill="#121210" height="50" stroke="#3A3934" stroke-width="2" width="28" x="548" y="264"></rect>
+<rect fill="#121210" height="50" stroke="#3A3934" stroke-width="2" width="34" x="990" y="264"></rect>
+<rect fill="#121210" height="50" stroke="#3A3934" stroke-width="2" width="36" x="1448" y="264"></rect>
+<!-- Industrial Pressure Valve with Brick-Red Accent (#C23B22) -->
+<g transform="translate(641, 470)">
+<circle cx="0" cy="0" fill="none" r="32" stroke="#3A3934" stroke-width="6"></circle>
+<circle cx="0" cy="0" fill="#171715" r="28" stroke="#2B2B28" stroke-width="2"></circle>
+<line stroke="#3A3934" stroke-width="5" x1="-28" x2="28" y1="0" y2="0"></line>
+<line stroke="#3A3934" stroke-width="5" x1="0" x2="0" y1="-28" y2="28"></line>
+<!-- Brick-Red Valve Stem Core & Needle -->
+<circle cx="0" cy="0" fill="#C23B22" r="9" stroke="#8E1400" stroke-width="2"></circle>
+<line stroke="#ffb4a5" stroke-width="2" x1="0" x2="16" y1="0" y2="-12"></line>
+</g>
+<!-- Second Steam Gauge (Right Machine Body) -->
+<g transform="translate(1487, 430)">
+<circle cx="0" cy="0" fill="#2B2B28" r="22" stroke="#3A3934" stroke-width="3"></circle>
+<circle cx="0" cy="0" fill="#141412" r="17"></circle>
+<line stroke="#C23B22" stroke-width="2" x1="0" x2="10" y1="0" y2="-8"></line>
+<circle cx="0" cy="0" fill="#F0EADF" r="3"></circle>
+</g>
+<!-- Suspended Overhead Cone Lamp Fixture -->
+<line stroke="#121110" stroke-width="4" x1="1050" x2="1050" y1="0" y2="290"></line>
+<rect fill="#2B2B28" height="18" stroke="#171715" stroke-width="2" width="24" x="1038" y="286"></rect>
+<path d="M 990 350 L 1110 350 L 1064 300 L 1036 300 Z" fill="#181816" stroke="#3A3934" stroke-width="2.5"></path>
+<ellipse cx="1050" cy="354" fill="#F0EADF" opacity="0.95" rx="14" ry="10"></ellipse>
+<!-- Hard Volumetric Conical Light Beam -->
+<polygon fill="url(#volBeam)" points="1036,354 1064,354 1560,980 540,980"></polygon>
+<!-- Floor Perspective & Joint Scratches -->
+<polygon fill="#141312" opacity="0.9" points="0,780 1920,780 1920,1080 0,1080"></polygon>
+<g opacity="0.4" stroke="#261815" stroke-width="1.5">
+<line x1="0" x2="1920" y1="840" y2="840"></line>
+<line x1="0" x2="1920" y1="920" y2="920"></line>
+<line x1="300" x2="100" y1="780" y2="1080"></line>
+<line x1="720" x2="620" y1="780" y2="1080"></line>
+<line x1="1100" x2="1140" y1="780" y2="1080"></line>
+<line x1="1500" x2="1640" y1="780" y2="1080"></line>
+</g>
+<!-- Light Pool on Floor -->
+<ellipse cx="1050" cy="910" fill="url(#floorPool)" rx="380" ry="75"></ellipse>
+<!-- Dramatic Fallen Silhouette on Floor at Edge of Light -->
+<g fill="#0C0B0A" opacity="0.96">
+<ellipse cx="1120" cy="920" fill="#0A0909" opacity="0.8" rx="190" ry="24"></ellipse>
+<ellipse cx="1070" cy="905" rx="88" ry="26" transform="rotate(-4 1070 905)"></ellipse>
+<ellipse cx="968" cy="894" rx="24" ry="17"></ellipse>
+<ellipse cx="964" cy="888" fill="#070707" rx="28" ry="11"></ellipse>
+<path d="M 990 898 Q 940 914 910 910 Q 904 905 922 896 Q 970 888 995 894 Z"></path>
+<path d="M 1110 894 Q 1160 878 1202 882 Q 1205 889 1175 896 Q 1125 902 1110 894 Z"></path>
+<path d="M 1130 912 Q 1215 924 1280 940 Q 1272 948 1210 934 Q 1135 922 1115 916 Z"></path>
+<path d="M 1110 918 Q 1170 946 1238 964 Q 1230 970 1165 954 Q 1105 928 1092 920 Z"></path>
+<rect fill="#1B1B18" height="7" stroke="#3A3934" stroke-width="1.2" transform="rotate(22 888 920)" width="34" x="888" y="920"></rect>
+</g>
+</svg>
+<!-- Editorial Story Typography Directly on Canvas (No Box / No Cards) -->
+<main class="editorial-narrative" style="top: 240px;">
+<h2 class="editorial-lead">Na década de 1930, a fábrica acorda antes do sol.</h2>
+<p class="editorial-p">O apito marca o turno, as máquinas cobrem as conversas e ninguém olha duas vezes para o chão.</p>
+<p class="editorial-p">Ao fim do expediente, Chaplin é encontrado morto na sala de máquinas. A polícia não quer escândalo. Os operários não querem falar.</p>
+<p class="editorial-conclusion">Você tem quatro dias para descobrir quem mentiu.</p>
+</main>
+<!-- Standalone Action Button in Bottom-Right Corner -->
+<button aria-label="Avançar para o próximo ato" class="btn-avancar" style="position: absolute; bottom: 48px; right: 48px; z-index: 50; width: 220px; height: 56px; border-radius: 2px; background-color: rgb(168, 50, 29); border: 1px solid rgb(194, 59, 34); box-shadow: none; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; text-decoration: none; outline: none;" type="button">
+<span class="btn-avancar-text" style="font-family: 'Courier Prime', monospace; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #F0EADF; line-height: 1;">AVANÇAR</span>
+<span aria-hidden="true" class="btn-avancar-chevron" style="display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px;">
+<svg style="width: 12px; height: 12px; stroke: #F0EADF; stroke-width: 2.5; fill: none; stroke-linecap: square; stroke-linejoin: miter;" viewBox="0 0 10 14">
+<polyline points="2,2 8,7 2,12"></polyline>
+</svg>
+</span>
+</button>
+</div>
+
+
+
+
+</body></html>
