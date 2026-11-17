@@ -70,6 +70,10 @@ void recursos_carregar(Recursos *recursos) {
     recursos->titulo = carregar_textura("assets/image/ultimo-turno.png");
     recursos->marple = carregar_textura("assets/image/marple.png");
     recursos->hercule = carregar_textura("assets/image/hercule.png");
+    recursos->retrato_marple =
+        carregar_textura("assets/image/selecao-marple.png");
+    recursos->retrato_poirot =
+        carregar_textura("assets/image/selecao-poirot.png");
 }
 
 void recursos_descarregar(Recursos *recursos) {
@@ -104,6 +108,14 @@ void recursos_descarregar(Recursos *recursos) {
     if (recursos->hercule.id != 0) {
         UnloadTexture(recursos->hercule);
         recursos->hercule = (Texture2D){0};
+    }
+    if (recursos->retrato_marple.id != 0) {
+        UnloadTexture(recursos->retrato_marple);
+        recursos->retrato_marple = (Texture2D){0};
+    }
+    if (recursos->retrato_poirot.id != 0) {
+        UnloadTexture(recursos->retrato_poirot);
+        recursos->retrato_poirot = (Texture2D){0};
     }
 }
 

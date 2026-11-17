@@ -17,6 +17,8 @@ typedef struct {
     Texture2D titulo;
     Texture2D marple;
     Texture2D hercule;
+    Texture2D retrato_marple;
+    Texture2D retrato_poirot;
 } Recursos;
 
 // Procura um caminho relativo na pasta do executável, no diretório atual e
