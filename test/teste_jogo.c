@@ -531,6 +531,43 @@ static void testar_reacoes_confirmam_a_verdade(void) {
     liberar_jogo(&jogo);
 }
 
+static void testar_ultima_pista_apos_ordenacao(void) {
+    Jogo jogo;
+    verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 1234),
+              "partida inicia para testar a ultima pista");
+    if (jogo.suspeitos == NULL || jogo.caderno == NULL) {
+        return;
+    }
+
+    ir_para_julgamento(&jogo); // manhã -> debate -> julgamento
+    avancar_fase_jogo(&jogo);  // julgamento -> noite (crime)
+    avancar_fase_jogo(&jogo);  // noite -> manhã do dia 2 (pista)
+
+    verificar(jogo.dia.dia_atual == 2 && jogo.dia.fase_atual == FASE_MANHA,
+              "chegou à manhã do dia 2");
+    verificar(jogo.caderno->pistas.tamanho == 3,
+              "manhã do dia 2 tem três pistas");
+    verificar(jogo.caderno->pistas.fim != NULL &&
+              jogo.caderno->pistas.fim->id == 3,
+              "pista mais recente está no fim antes da ordenação");
+    verificar(strcmp(nome_ultima_pista(&jogo), "Luva de trabalho") == 0,
+              "nome da última pista antes da ordenação");
+    verificar(strstr(descricao_ultima_pista(&jogo), "graxa fresca") != NULL,
+              "descrição da última pista antes da ordenação");
+
+    int trocas = ordenar_pistas(jogo.caderno, ORDENAR_POR_LOCAL);
+    verificar(trocas > 0, "ordenar por local troca as pistas");
+    verificar(jogo.caderno->pistas.fim != NULL &&
+              jogo.caderno->pistas.fim->id != 3,
+              "pista mais recente deixa de ser o fim após ordenar");
+    verificar(strcmp(nome_ultima_pista(&jogo), "Luva de trabalho") == 0,
+              "nome da última pista continua correto após ordenar");
+    verificar(strstr(descricao_ultima_pista(&jogo), "graxa fresca") != NULL,
+              "descrição da última pista continua correta após ordenar");
+
+    liberar_jogo(&jogo);
+}
+
 int main(void) {
     testar_inicializacao();
     testar_agenda_local_verdadeiro();
@@ -545,6 +582,7 @@ int main(void) {
     testar_prisao_do_cumplice();
     testar_derrota_por_credibilidade_cumplice();
     testar_acoes_invalidas();
+    testar_ultima_pista_apos_ordenacao();
 
     if (falhas == 0) {
         printf("OK: todos os testes do jogo passaram\n");
