@@ -17,10 +17,10 @@
 #define ALTURA_BOTAO 64
 #define ESPACO_BOTOES 18
 
-#define CARTA_LARGURA 460.0f
-#define CARTA_ALTURA 520.0f
-#define CARTA_ESPACO 48.0f
-#define CARTA_TOPO 112.0f
+#define CARTA_LARGURA 410.0f
+#define CARTA_ALTURA 500.0f
+#define CARTA_ESPACO 56.0f
+#define CARTA_TOPO 92.0f
 
 typedef enum {
     TELA_MENU,
@@ -210,14 +210,14 @@ static void desenhar_card_detetive(const UIFonte *fonte_titulo,
                          area.height - 12.0f};
     DrawRectangleLinesEx(interno, 1.0f, (Color){138, 129, 117, 100});
 
-    Rectangle aba = {area.x + 24.0f, area.y + 18.0f, 112.0f, 18.0f};
+    Rectangle aba = {area.x + 22.0f, area.y + 14.0f, 104.0f, 16.0f};
     DrawRectangleRec(aba, selecionado ? COR_TIJOLO : COR_TINTA);
     ui_desenhar_texto(fonte_corpo_bold, arquivo,
-                      (Vector2){aba.x + 8.0f, aba.y + 4.0f}, 9.0f,
+                      (Vector2){aba.x + 7.0f, aba.y + 3.0f}, 8.5f,
                       selecionado ? COR_OSSO : COR_POEIRA);
 
-    Rectangle quadro = {area.x + 24.0f, area.y + 46.0f, area.width - 48.0f,
-                        244.0f};
+    Rectangle quadro = {area.x + 22.0f, area.y + 40.0f, area.width - 44.0f,
+                        218.0f};
     DrawRectangleRec(quadro, COR_OSSO);
     DrawRectangleLinesEx(quadro, 1.0f, COR_POEIRA);
 
@@ -253,37 +253,37 @@ static void desenhar_card_detetive(const UIFonte *fonte_titulo,
                (Vector2){quadro.x + quadro.width - 6, quadro.y + 6 + marca},
                1.0f, COR_POEIRA);
 
-    Rectangle selo = {quadro.x + quadro.width - 142.0f,
-                      quadro.y + quadro.height - 34.0f, 126.0f, 24.0f};
+    Rectangle selo = {quadro.x + quadro.width - 134.0f,
+                      quadro.y + quadro.height - 30.0f, 120.0f, 22.0f};
     DrawRectangleLinesEx(selo, 1.0f, COR_TIJOLO);
     ui_desenhar_texto(fonte_corpo_bold, "HOMOLOGADO",
-                      (Vector2){selo.x + 8.0f, selo.y + 5.0f}, 10.0f,
+                      (Vector2){selo.x + 7.0f, selo.y + 5.0f}, 9.0f,
                       COR_TIJOLO);
 
     ui_desenhar_texto(fonte_titulo, nome,
-                      (Vector2){area.x + 24.0f, area.y + 304.0f}, 28.0f,
+                      (Vector2){area.x + 22.0f, area.y + 276.0f}, 26.0f,
                       COR_TINTA);
     ui_desenhar_texto(fonte_corpo_bold, perfil,
-                      (Vector2){area.x + 24.0f, area.y + 344.0f}, 11.0f,
+                      (Vector2){area.x + 22.0f, area.y + 310.0f}, 10.5f,
                       COR_TIJOLO);
 
-    DrawRectangle(area.x + 24, area.y + 366, area.width - 48, 1,
+    DrawRectangle(area.x + 22, area.y + 330, area.width - 44, 1,
                   (Color){138, 129, 117, 120});
 
-    Rectangle area_citacao = {area.x + 24.0f, area.y + 380.0f,
-                              area.width - 48.0f, 0.0f};
-    ui_desenhar_texto_quebrado(fonte_corpo, citacao, area_citacao, 13.0f,
+    Rectangle area_citacao = {area.x + 22.0f, area.y + 342.0f,
+                              area.width - 44.0f, 0.0f};
+    ui_desenhar_texto_quebrado(fonte_corpo, citacao, area_citacao, 12.5f,
                                2.0f, COR_TINTA);
 
     ui_desenhar_texto(fonte_corpo, descricao,
-                      (Vector2){area.x + 24.0f, area.y + 448.0f}, 11.0f,
+                      (Vector2){area.x + 22.0f, area.y + 408.0f}, 11.0f,
                       COR_TINTA);
 
     if (selecionado) {
-        DrawRectangle(area.x + 24, area.y + 482, 4, 4, COR_TIJOLO);
-        DrawRectangle(area.x + 32, area.y + 482, 4, 4, COR_TIJOLO);
+        DrawRectangle(area.x + 22, area.y + 452, 4, 4, COR_TIJOLO);
+        DrawRectangle(area.x + 30, area.y + 452, 4, 4, COR_TIJOLO);
         ui_desenhar_texto(fonte_corpo_bold, "POSIÇÃO SELECIONADA",
-                          (Vector2){area.x + 44.0f, area.y + 478.0f}, 9.0f,
+                          (Vector2){area.x + 42.0f, area.y + 448.0f}, 8.5f,
                           COR_TIJOLO);
     }
 
@@ -469,7 +469,7 @@ int main(void) {
     };
 
     botao_iniciar_detetive = (BotaoUI){
-        .area = {450.0f, 646.0f, 380.0f, 56.0f},
+        .area = {450.0f, 640.0f, 380.0f, 56.0f},
         .rotulo = "INICIAR INVESTIGAÇÃO >",
         .habilitado = true,
         .primario = true,
@@ -550,7 +550,7 @@ int main(void) {
                 desenhar_fundo_textura_com_vinheta(recursos.fundo_detetives,
                                                    45);
                 desenhar_titulo_centralizado(
-                    &fonte_titulo, "ESCOLHA SEU DETETIVE", 30.0f, 48.0f,
+                    &fonte_titulo, "ESCOLHA SEU DETETIVE", 18.0f, 44.0f,
                     COR_OSSO);
 
                 float x0 = (LARGURA_TELA -
@@ -624,9 +624,9 @@ int main(void) {
                 }
 
                 if (erro_inicio != NULL) {
-                    Rectangle area_erro = {0.0f, 704.0f, LARGURA_TELA, 16.0f};
+                    Rectangle area_erro = {0.0f, 700.0f, LARGURA_TELA, 14.0f};
                     ui_desenhar_texto_centralizado(
-                        &fonte_corpo, erro_inicio, area_erro, 13.0f,
+                        &fonte_corpo, erro_inicio, area_erro, 12.0f,
                         COR_TIJOLO);
                 }
                 break;
