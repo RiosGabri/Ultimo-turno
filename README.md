@@ -79,6 +79,7 @@ Outros comandos:
 
 ```sh
 make test        # testes das estruturas, do dia e do jogo
+make test-ui     # fonte .ttf com acentos e auxiliares de interface (raylib)
 make valgrind    # testes com verificação de memória
 make clean       # remove a pasta build/
 make distclean   # remove build/ e os artefatos compilados da raylib
@@ -162,6 +163,13 @@ O menu gráfico ainda é um protótipo:
 make
 ./build/jogo
 ```
+
+O menu carrega `assets/fontes/DejaVuSans.ttf` com `LoadFontEx` e todos os
+caracteres do português (ASCII, Latin-1, Latin Extended-A e pontuação
+tipográfica). A linha **Acentos: á ç ã é ô — ação, café, pão, avô** na tela
+serve como teste visual; se a fonte não for encontrada, o jogo avisa no log e
+usa a fonte padrão da raylib, que não tem acentos. Os auxiliares de fonte,
+texto e botões ficam em `ui.c`/`ui.h`.
 
 ## Estrutura do projeto
 

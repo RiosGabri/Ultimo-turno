@@ -48,6 +48,7 @@ TESTE_SUSPEITO_SRC := $(TEST_DIR)/teste_suspeito.c
 TESTE_TEXTO_SRC := $(TEST_DIR)/teste_texto.c
 TESTE_DIA_SRC := $(TEST_DIR)/teste_dia.c
 TESTE_JOGO_SRC := $(TEST_DIR)/teste_jogo.c
+TESTE_UI_SRC := $(TEST_DIR)/teste_ui.c
 
 TESTE_LISTA_SIMPLES_IMPL := $(ESTRUTURAS_DIR)/listas/lista-simples.c
 TESTE_LISTA_DUPLA_IMPL := $(ESTRUTURAS_DIR)/listas/lista-dupla.c
@@ -67,6 +68,9 @@ TESTE_TEXTO_IMPL := $(ESTRUTURAS_DIR)/entidades/texto.c
 TESTE_DIA_IMPL := dia.c
 # O motor do jogo usa dia, caderno, personagens e as três listas.
 TESTE_JOGO_IMPL := jogo.c dia.c $(wildcard $(ESTRUTURAS_DIR)/*/*.c)
+# O teste da interface usa raylib para ler o .ttf e conferir os glifos, mas
+# não abre janela.
+TESTE_UI_IMPL := ui.c $(RAYLIB_LIB)
 
 # Só entram no alvo test os arquivos de teste existentes e não vazios.
 # Assim o Makefile continua válido enquanto os testes novos são escritos.
@@ -95,8 +99,16 @@ endif
 ifneq ($(strip $(shell test -s $(TESTE_JOGO_SRC) && echo 1)),)
 TESTE_BINS += $(BUILD)/teste_jogo
 endif
+# O teste de interface precisa da raylib. Para não obrigar quem só quer testar
+# as estruturas a compilá-la, ele entra em `make test` apenas quando a
+# biblioteca já existe; `make test-ui` compila a raylib se necessário.
+ifneq ($(strip $(shell test -s $(TESTE_UI_SRC) && echo 1)),)
+ifneq ($(wildcard $(RAYLIB_LIB)),)
+TESTE_BINS += $(BUILD)/teste_ui
+endif
+endif
 
-.PHONY: all jogo terminal run test valgrind submodules raylib clean distclean FORCE
+.PHONY: all jogo terminal run test test-ui valgrind submodules raylib clean distclean FORCE
 
 all: jogo
 
@@ -183,6 +195,10 @@ $(BUILD)/teste_jogo: $(TESTE_JOGO_SRC) $(TESTE_JOGO_IMPL) $(CABECALHOS)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) $(TESTE_JOGO_SRC) $(TESTE_JOGO_IMPL) -o $@
 
+$(BUILD)/teste_ui: $(TESTE_UI_SRC) $(TESTE_UI_IMPL) ui.h
+	@mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) $(RAYLIB_CFLAGS) $(TESTE_UI_SRC) ui.c -o $@ $(RAYLIB_LIBS)
+
 test: $(TESTE_BINS)
 	@status=0; \
 	for teste in $(TESTE_BINS); do \
@@ -190,6 +206,11 @@ test: $(TESTE_BINS)
 		./$$teste || status=1; \
 	done; \
 	exit $$status
+
+# Teste da fonte/.ttf e dos auxiliares de interface. Compila a raylib se ela
+# ainda não estiver disponível.
+test-ui: $(BUILD)/teste_ui
+	./$(BUILD)/teste_ui
 
 valgrind: $(TESTE_BINS)
 	@status=0; \
