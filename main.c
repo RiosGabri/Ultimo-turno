@@ -1,15 +1,19 @@
 #include "ui.h"
-#include "jogo.h"
 
 #include <stdio.h>
 
-#define LARGURA_TELA 960
-#define ALTURA_TELA 540
+#include "jogo.h"
+#include "paleta.h"
+#include "recursos.h"
+
+#define LARGURA_TELA 1280
+#define ALTURA_TELA 720
 #define TITULO_JOGO "Último Turno"
-#define TAMANHO_TITULO 64
-#define LARGURA_BOTAO 300
-#define ALTURA_BOTAO 56
-#define ESPACO_BOTOES 20
+#define TAMANHO_TITULO_MENU 90.0f
+#define TAMANHO_TITULO_TELA 56.0f
+#define LARGURA_BOTAO 360
+#define ALTURA_BOTAO 64
+#define ESPACO_BOTOES 18
 
 typedef enum {
     TELA_MENU,
@@ -31,7 +35,7 @@ typedef enum {
 } OpcaoDetetive;
 
 static const char *ROTULOS_MENU[TOTAL_OPCOES_MENU] = {
-    [OPCAO_INICIAR] = "Iniciar",
+    [OPCAO_INICIAR] = "Iniciar investigação",
     [OPCAO_SAIR] = "Sair",
 };
 
@@ -41,19 +45,19 @@ static const char *ROTULOS_DETETIVE[TOTAL_OPCOES_DETETIVE] = {
     [OPCAO_VOLTAR] = "Voltar",
 };
 
-static Rectangle obter_retangulo_botao(int indice, float primeiro_y) {
-    float x = (LARGURA_TELA - LARGURA_BOTAO) / 2.0f;
+static Rectangle obter_retangulo_botao(int indice, float x, float primeiro_y) {
     float y = primeiro_y + indice * (ALTURA_BOTAO + ESPACO_BOTOES);
     return (Rectangle){x, y, LARGURA_BOTAO, ALTURA_BOTAO};
 }
 
 static void inicializar_botoes(BotaoUI *botoes, const char *const *rotulos,
-                               int quantidade, float primeiro_y) {
+                               int quantidade, float x, float primeiro_y) {
     for (int i = 0; i < quantidade; i++) {
         botoes[i] = (BotaoUI){
-            .area = obter_retangulo_botao(i, primeiro_y),
+            .area = obter_retangulo_botao(i, x, primeiro_y),
             .rotulo = rotulos[i],
             .habilitado = true,
+            .primario = false,
         };
     }
 }
@@ -104,33 +108,85 @@ static const char *nome_detetive(int id) {
     }
 }
 
-static void desenhar_titulo(const UIFonte *fonte, const char *texto) {
-    Rectangle area = {0.0f, 64.0f, LARGURA_TELA, 84.0f};
-    ui_desenhar_texto_centralizado(fonte, texto, area, TAMANHO_TITULO,
-                                   RAYWHITE);
+static void desenhar_titulo_centralizado(const UIFonte *fonte,
+                                         const char *texto, float y,
+                                         float tamanho, Color cor) {
+    Rectangle area = {0.0f, y, LARGURA_TELA, tamanho + 14.0f};
+    ui_desenhar_texto_centralizado(fonte, texto, area, tamanho, cor);
+}
+
+static void desenhar_fundo_com_vinheta(const Recursos *recursos,
+                                       unsigned char intensidade) {
+    recursos_desenhar_fundo(recursos);
+    DrawRectangle(0, 0, LARGURA_TELA, ALTURA_TELA,
+                  (Color){18, 18, 17, intensidade});
+}
+
+static void desenhar_menu(const UIFonte *fonte_titulo,
+                          const UIFonte *fonte_corpo, const Recursos *recursos) {
+    recursos_desenhar_fundo(recursos);
+
+    // Scrim lateral para o texto respirar sem virar um card.
+    DrawRectangleGradientH(0, 0, 860, ALTURA_TELA,
+                           (Color){18, 18, 17, 238},
+                           (Color){18, 18, 17, 0});
+    DrawRectangle(0, 0, LARGURA_TELA, ALTURA_TELA,
+                  (Color){10, 10, 9, 28});
+
+    ui_desenhar_texto(fonte_corpo,
+                      "UM CASO DE HERCULE POIROT E MISS MARPLE",
+                      (Vector2){100.0f, 104.0f}, 14.0f, COR_POEIRA);
+    ui_desenhar_texto(fonte_titulo, "O ÚLTIMO TURNO",
+                      (Vector2){96.0f, 136.0f}, TAMANHO_TITULO_MENU,
+                      COR_OSSO);
+    ui_desenhar_texto(fonte_corpo, "Uma investigação na fábrica",
+                      (Vector2){100.0f, 252.0f}, 24.0f, COR_PAPEL);
+
+    DrawRectangle(100, 300, 72, 3, COR_TIJOLO);
+
+    ui_desenhar_texto(fonte_corpo, "ENTER / CLIQUE PARA ESCOLHER",
+                      (Vector2){100.0f, ALTURA_TELA - 42.0f}, 14.0f,
+                      COR_POEIRA);
 }
 
 int main(void) {
     InitWindow(LARGURA_TELA, ALTURA_TELA, TITULO_JOGO);
     SetTargetFPS(60);
 
-    UIFonte fonte = ui_carregar_fonte(NULL, UI_FONTE_TAMANHO_BASE);
-    if (!ui_fonte_suporta_acentos(&fonte)) {
+    UIFonte fonte_titulo =
+        ui_carregar_fonte("assets/fontes/PlayfairDisplay-Bold.ttf", 96);
+    UIFonte fonte_corpo =
+        ui_carregar_fonte("assets/fontes/CourierPrime-Regular.ttf", 48);
+    UIFonte fonte_corpo_bold =
+        ui_carregar_fonte("assets/fontes/CourierPrime-Bold.ttf", 48);
+
+    if (!ui_fonte_suporta_acentos(&fonte_titulo) ||
+        !ui_fonte_suporta_acentos(&fonte_corpo)) {
         TraceLog(LOG_WARNING,
-                 "A fonte carregada nao tem os acentos de \"á ç ã é ô\".");
+                 "Interface: uma das fontes nao cobre todos os acentos.");
     }
+
+    Recursos recursos;
+    recursos_carregar(&recursos);
 
     BotaoUI botoes_menu[TOTAL_OPCOES_MENU];
     BotaoUI botoes_detetive[TOTAL_OPCOES_DETETIVE];
     BotaoUI botao_voltar_partida;
-    inicializar_botoes(botoes_menu, ROTULOS_MENU, TOTAL_OPCOES_MENU, 210.0f);
+
+    inicializar_botoes(botoes_menu, ROTULOS_MENU, TOTAL_OPCOES_MENU,
+                       96.0f, 356.0f);
+    botoes_menu[OPCAO_INICIAR].primario = true;
+
     inicializar_botoes(botoes_detetive, ROTULOS_DETETIVE,
-                       TOTAL_OPCOES_DETETIVE, 180.0f);
+                       TOTAL_OPCOES_DETETIVE,
+                       (LARGURA_TELA - LARGURA_BOTAO) / 2.0f, 300.0f);
+
     botao_voltar_partida = (BotaoUI){
-        .area = {(LARGURA_TELA - LARGURA_BOTAO) / 2.0f, 430.0f,
+        .area = {(LARGURA_TELA - LARGURA_BOTAO) / 2.0f, 590.0f,
                  LARGURA_BOTAO, ALTURA_BOTAO},
         .rotulo = "Voltar ao menu",
         .habilitado = true,
+        .primario = false,
     };
 
     Tela tela = TELA_MENU;
@@ -161,13 +217,13 @@ int main(void) {
             atualizar_selecao(botoes_atuais, quantidade_botoes, selecionado);
 
         BeginDrawing();
-        ClearBackground((Color){20, 20, 28, 255});
+        ClearBackground(COR_CARVAO);
 
         int acionado = -1;
         switch (tela) {
             case TELA_MENU:
-                desenhar_titulo(&fonte, TITULO_JOGO);
-                acionado = desenhar_botoes(&fonte, botoes_menu,
+                desenhar_menu(&fonte_titulo, &fonte_corpo, &recursos);
+                acionado = desenhar_botoes(&fonte_corpo_bold, botoes_menu,
                                            TOTAL_OPCOES_MENU, selecionado);
                 if (acionado == OPCAO_INICIAR) {
                     tela = TELA_DETETIVE;
@@ -178,14 +234,19 @@ int main(void) {
                 break;
 
             case TELA_DETETIVE: {
-                desenhar_titulo(&fonte, "Escolha a detetive");
-                Rectangle instrucao = {0.0f, 145.0f, LARGURA_TELA, 28.0f};
+                desenhar_fundo_com_vinheta(&recursos, 218);
+                desenhar_titulo_centralizado(
+                    &fonte_titulo, "ESCOLHA SEU DETETIVE", 74.0f,
+                    TAMANHO_TITULO_TELA, COR_OSSO);
+
+                Rectangle instrucao = {0.0f, 150.0f, LARGURA_TELA, 34.0f};
                 ui_desenhar_texto_centralizado(
-                    &fonte, "Quem conduz a investigação?", instrucao, 22.0f,
-                    (Color){190, 190, 205, 255});
-                acionado =
-                    desenhar_botoes(&fonte, botoes_detetive,
-                                    TOTAL_OPCOES_DETETIVE, selecionado);
+                    &fonte_corpo, "Quem conduz a investigação?", instrucao,
+                    22.0f, COR_POEIRA);
+
+                acionado = desenhar_botoes(
+                    &fonte_corpo_bold, botoes_detetive,
+                    TOTAL_OPCOES_DETETIVE, selecionado);
 
                 if (acionado == OPCAO_VOLTAR) {
                     tela = TELA_MENU;
@@ -209,42 +270,44 @@ int main(void) {
                 }
 
                 if (erro_inicio != NULL) {
-                    Rectangle area_erro = {0.0f, 470.0f, LARGURA_TELA, 28.0f};
+                    Rectangle area_erro = {0.0f, 630.0f, LARGURA_TELA, 28.0f};
                     ui_desenhar_texto_centralizado(
-                        &fonte, erro_inicio, area_erro, 18.0f,
-                        (Color){235, 105, 105, 255});
+                        &fonte_corpo, erro_inicio, area_erro, 18.0f,
+                        COR_TIJOLO);
                 }
                 break;
             }
 
             case TELA_PARTIDA: {
-                desenhar_titulo(&fonte, "Investigação iniciada");
-                Rectangle nome = {80.0f, 180.0f, 800.0f, 38.0f};
+                desenhar_fundo_com_vinheta(&recursos, 232);
+                desenhar_titulo_centralizado(
+                    &fonte_titulo, "INVESTIGAÇÃO INICIADA", 64.0f,
+                    TAMANHO_TITULO_TELA, COR_OSSO);
+
                 char texto_detetive[96];
                 snprintf(texto_detetive, sizeof(texto_detetive),
                          "Detetive: %s", nome_detetive(jogo.id_detetive));
-                ui_desenhar_texto_centralizado(&fonte, texto_detetive, nome,
-                                               26.0f, RAYWHITE);
+                Rectangle nome = {0.0f, 170.0f, LARGURA_TELA, 38.0f};
+                ui_desenhar_texto_centralizado(
+                    &fonte_corpo, texto_detetive, nome, 26.0f, COR_OSSO);
 
                 char texto_fase[96];
                 snprintf(texto_fase, sizeof(texto_fase), "Dia %d — %s",
                          jogo.dia.dia_atual,
                          nome_fase(jogo.dia.fase_atual));
-                Rectangle fase = {80.0f, 230.0f, 800.0f, 34.0f};
+                Rectangle fase = {0.0f, 218.0f, LARGURA_TELA, 34.0f};
                 ui_desenhar_texto_centralizado(
-                    &fonte, texto_fase, fase, 22.0f,
-                    (Color){190, 190, 205, 255});
+                    &fonte_corpo, texto_fase, fase, 22.0f, COR_POEIRA);
 
                 const char *pista = nome_ultima_pista(&jogo);
-                Rectangle area_pista = {150.0f, 290.0f, 660.0f, 90.0f};
+                Rectangle area_pista = {120.0f, 290.0f, 1040.0f, 140.0f};
                 ui_desenhar_painel_texto(
-                    &fonte, area_pista,
+                    &fonte_corpo, area_pista,
                     (pista != NULL) ? pista : "A investigação está pronta.",
-                    20.0f, (Color){30, 30, 42, 255},
-                    (Color){90, 90, 115, 255}, RAYWHITE);
+                    20.0f, COR_TINTA, COR_POEIRA, COR_OSSO);
 
-                acionado = desenhar_botoes(&fonte, &botao_voltar_partida, 1,
-                                           selecionado);
+                acionado = desenhar_botoes(
+                    &fonte_corpo_bold, &botao_voltar_partida, 1, selecionado);
                 if (acionado == 0) {
                     liberar_jogo(&jogo);
                     jogo_ativo = false;
@@ -261,7 +324,10 @@ int main(void) {
     if (jogo_ativo) {
         liberar_jogo(&jogo);
     }
-    ui_descarregar_fonte(&fonte);
+    recursos_descarregar(&recursos);
+    ui_descarregar_fonte(&fonte_titulo);
+    ui_descarregar_fonte(&fonte_corpo);
+    ui_descarregar_fonte(&fonte_corpo_bold);
     CloseWindow();
     return 0;
 }
