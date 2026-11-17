@@ -859,7 +859,7 @@ void tela_debate_iniciar(TelaDebate *tela, Jogo *jogo,
 
 static EntradaBotao ler_entrada(void) {
     return (EntradaBotao){
-        .mouse = GetMousePosition(),
+        .mouse = ui_mouse_canvas(),
         .apertou = IsMouseButtonPressed(MOUSE_BUTTON_LEFT),
         .pressionado = IsMouseButtonDown(MOUSE_BUTTON_LEFT),
         .soltou = IsMouseButtonReleased(MOUSE_BUTTON_LEFT),

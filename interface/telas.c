@@ -71,7 +71,7 @@ static int atualizar_selecao(const BotaoUI *botoes, int quantidade,
     Vector2 movimento = GetMouseDelta();
     if (movimento.x != 0.0f || movimento.y != 0.0f ||
         IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        Vector2 mouse = GetMousePosition();
+        Vector2 mouse = ui_mouse_canvas();
         for (int i = 0; i < quantidade; i++) {
             if (botoes[i].habilitado &&
                 CheckCollisionPointRec(mouse, botoes[i].area)) {
@@ -108,7 +108,10 @@ static void desenhar_fundo_historia(const Recursos *recursos) {
         DrawTexturePro(recursos->fundo_historia, origem, destino,
                        (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
     } else {
-        recursos_desenhar_fundo(recursos);
+        recursos_desenhar_fundo(
+            recursos,
+            (Rectangle){0.0f, 0.0f, (float)LARGURA_TELA,
+                        (float)ALTURA_TELA});
     }
 
     DrawRectangleGradientH(0, 0, 900, ALTURA_TELA,
@@ -284,7 +287,7 @@ static void desenhar_card_detetive(const UIFonte *fonte_titulo,
 
 static EntradaBotao ler_entrada_botao(void) {
     return (EntradaBotao){
-        .mouse = GetMousePosition(),
+        .mouse = ui_mouse_canvas(),
         .apertou = IsMouseButtonPressed(MOUSE_BUTTON_LEFT),
         .pressionado = IsMouseButtonDown(MOUSE_BUTTON_LEFT),
         .soltou = IsMouseButtonReleased(MOUSE_BUTTON_LEFT),
@@ -388,12 +391,12 @@ static void desenhar_fundo_textura_com_vinheta(Texture2D textura,
 
 static void desenhar_menu(const UIFonte *fonte_titulo,
                           const UIFonte *fonte_corpo, const Recursos *recursos) {
+    Rectangle tela = {0.0f, 0.0f, (float)LARGURA_TELA, (float)ALTURA_TELA};
+
     if (recursos->fundo_menu.id != 0) {
-        Rectangle tela = {0.0f, 0.0f, (float)LARGURA_TELA,
-                          (float)ALTURA_TELA};
         recursos_desenhar_textura_cover(recursos->fundo_menu, tela);
     } else {
-        recursos_desenhar_fundo(recursos);
+        recursos_desenhar_fundo(recursos, tela);
     }
 
     // Scrim lateral para o texto respirar sem virar um card.
@@ -432,6 +435,8 @@ static UIFonte fonte_titulo;
 static UIFonte fonte_corpo;
 static UIFonte fonte_corpo_bold;
 static Recursos recursos;
+static RenderTexture2D canvas;
+static bool canvas_pronto;
 static TelaDebate debate;
 
 static BotaoUI botoes_menu[TOTAL_OPCOES_MENU];
@@ -673,11 +678,25 @@ void telas_iniciar(void) {
         .primario = true,
     };
 
+    canvas = LoadRenderTexture(TELAS_LARGURA, TELAS_ALTURA);
+    canvas_pronto = canvas.id != 0;
+    if (canvas_pronto) {
+        SetTextureFilter(canvas.texture, TEXTURE_FILTER_BILINEAR);
+    } else {
+        TraceLog(LOG_WARNING,
+                 "Interface: canvas virtual indisponivel; desenhando direto.");
+    }
+
     debate = (TelaDebate){0};
     configurar_botoes_interludio();
 }
 
 void telas_executar(void) {
+    // O canvas virtual mantém o layout de 1280x720 e o mouse alinhado mesmo
+    // quando a janela é redimensionada ou entra em tela cheia.
+    ui_configurar_canvas(canvas_pronto ? (float)TELAS_LARGURA : 0.0f,
+                         canvas_pronto ? (float)TELAS_ALTURA : 0.0f);
+
     // O debate lê a própria entrada e devolve a ação de navegação para o
     // fluxo principal. Isso precisa acontecer antes do desenho para a troca
     // de tela valer já neste frame.
@@ -737,6 +756,11 @@ void telas_executar(void) {
     BeginDrawing();
     ClearBackground(COR_CARVAO);
 
+    if (canvas_pronto) {
+        BeginTextureMode(canvas);
+        ClearBackground(COR_CARVAO);
+    }
+
     int acionado = -1;
     switch (tela) {
         case TELA_MENU:
@@ -777,7 +801,7 @@ void telas_executar(void) {
                  CARTA_LARGURA, CARTA_ALTURA},
             };
 
-            Vector2 mouse = GetMousePosition();
+            Vector2 mouse = ui_mouse_canvas();
             bool clique = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
             if (IsKeyPressed(KEY_LEFT)) {
@@ -899,6 +923,17 @@ void telas_executar(void) {
             break;
     }
 
+    if (canvas_pronto) {
+        EndTextureMode();
+
+        // RenderTexture é invertida na vertical; por isso a altura negativa.
+        Rectangle origem = {0.0f, 0.0f,
+                            (float)canvas.texture.width,
+                            -(float)canvas.texture.height};
+        DrawTexturePro(canvas.texture, origem, ui_canvas_destino(),
+                       (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+    }
+
     EndDrawing();
 }
 
@@ -906,6 +941,11 @@ void telas_liberar(void) {
     if (jogo_ativo) {
         liberar_jogo(&jogo);
         jogo_ativo = false;
+    }
+
+    if (canvas_pronto) {
+        UnloadRenderTexture(canvas);
+        canvas_pronto = false;
     }
 
     recursos_descarregar(&recursos);

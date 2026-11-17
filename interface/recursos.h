@@ -37,8 +37,8 @@ void recursos_carregar(Recursos *recursos);
 
 void recursos_descarregar(Recursos *recursos);
 
-// Desenha a fábrica em modo cover, cobrindo a tela sem esticar.
-void recursos_desenhar_fundo(const Recursos *recursos);
+// Desenha a fábrica em modo cover. O destino é o canvas virtual da tela.
+void recursos_desenhar_fundo(const Recursos *recursos, Rectangle destino);
 
 // Desenha uma textura em modo cover dentro do retângulo de destino.
 void recursos_desenhar_textura_cover(Texture2D textura, Rectangle destino);

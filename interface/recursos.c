@@ -160,13 +160,11 @@ void recursos_desenhar_textura_cover(Texture2D textura, Rectangle destino) {
                    WHITE);
 }
 
-void recursos_desenhar_fundo(const Recursos *recursos) {
+void recursos_desenhar_fundo(const Recursos *recursos, Rectangle destino) {
     if (recursos == NULL || recursos->fabrica.id == 0) {
         ClearBackground(COR_CARVAO);
         return;
     }
 
-    Rectangle tela = {0.0f, 0.0f, (float)GetScreenWidth(),
-                      (float)GetScreenHeight()};
-    recursos_desenhar_textura_cover(recursos->fabrica, tela);
+    recursos_desenhar_textura_cover(recursos->fabrica, destino);
 }
