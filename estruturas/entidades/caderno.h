@@ -96,6 +96,7 @@ Caderno* inicializar_caderno(int id);
 int registrar_depoimento(Caderno *caderno, int dia, int quem_falou, char* local, enum Periodo periodo, int sobre_quem_fala, enum Categorias categoria, char* texto);
 int verificar_conflitos_do_depoimento(Caderno *caderno, Depoimento *novo);
 void registrar_pista(Caderno *caderno, int dia, char* local, char* objeto, char* descricao, ListaDupla *suspeitos_relacionados);
+int pista_tem_suspeito_relacionado(const Pista *pista, int id_suspeito);
 void registrar_reacao(Caderno *caderno, int dia, int id_depoimento, char* quem_reagiu, enum TipoReacao tipo_reacao);
 void selecionar_secao(Caderno *caderno, SecaoCaderno secao); //define a seção ativa e posiciona no primeiro item
 void avancar_secao(Caderno *caderno); //move o atual para o próximo ou anterior da seção, parando nas pontas

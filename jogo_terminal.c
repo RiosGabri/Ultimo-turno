@@ -69,6 +69,25 @@ static const char *nome_periodo(enum Periodo periodo) {
     }
 }
 
+static void mostrar_suspeitos_relacionados(const Jogo *jogo, const Pista *pista) {
+    if (pista == NULL || pista->suspeitos_relacionados == NULL ||
+        pista->suspeitos_relacionados->inicio == NULL) {
+        return;
+    }
+
+    printf("  Relacionados: ");
+    int primeiro = 1;
+    for (const NoListaDupla *no = pista->suspeitos_relacionados->inicio;
+         no != NULL; no = no->prox) {
+        if (!primeiro) {
+            printf(", ");
+        }
+        printf("%s", nome_suspeito(jogo, no->id));
+        primeiro = 0;
+    }
+    printf("\n");
+}
+
 static void mostrar_cabecalho(const Jogo *jogo) {
     printf("\n============================================================\n");
     printf(" Dia %d/%d  |  Fase: %-11s |  Credibilidade: %d\n",
@@ -172,6 +191,7 @@ static void exibir_item_atual(const Jogo *jogo) {
             printf("  Pista #%d — dia %d, %s\n", no->id, pista->dia, pista->local);
             printf("  Objeto: %s\n", pista->objeto);
             printf("  %s\n", pista->descricao);
+            mostrar_suspeitos_relacionados(jogo, pista);
             break;
         }
         case SECAO_REACOES: {

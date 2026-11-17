@@ -20,26 +20,33 @@ static const char *const NOMES_SUSPEITOS[TOTAL_SUSPEITOS] = {
     [ID_VIGIA]      = "Vigia noturno",
 };
 
+#define RELACIONADO_QUALQUER (-2)
+
 static const struct {
     const char *local;
     const char *objeto;
     const char *descricao;
+    const int relacionados[TOTAL_SUSPEITOS + 1];
 } PISTAS_DO_DIA[TOTAL_DIAS] = {
     [0] = {
         "Sala de máquinas", "Chave inglesa",
-        "Encontrada próxima ao corpo da vítima, na sala de máquinas. É uma das ferramentas utilizadas na manutenção da fábrica. Sua presença no local não é incomum, mas sua proximidade com o corpo lhe chama a atenção. Não apresenta vestígios de sangue ou marcas."
-    },  
+        "Encontrada próxima ao corpo da vítima, na sala de máquinas. É uma das ferramentas utilizadas na manutenção da fábrica. Sua presença no local não é incomum, mas sua proximidade com o corpo lhe chama a atenção. Não apresenta vestígios de sangue ou marcas.",
+        { ID_ENGENHEIRO, ID_CAPATAZ, ID_OPERARIO, ID_VIGIA, NENHUM }
+    },
     [1] = {
         "Gerência", "Diário de manutenção",
-        "Este diário registra as manutenções realizadas nos equipamentos da sala de máquinas. Contém descrições dos serviços realizados e seu responsável."
+        "Este diário registra as manutenções realizadas nos equipamentos da sala de máquinas. Contém descrições dos serviços realizados e seu responsável.",
+        { ID_ENGENHEIRO, ID_GERENTE, ID_CAPATAZ, NENHUM }
     },
     [2] = {
         "Enfermaria", "Ficha de atendimento",
-        "Uma ficha de atendimento de um paciente. A ficha revela que algúem comunicou um acidente envolvendo o mesmo equipamento."
+        "Uma ficha de atendimento de um paciente. A ficha revela que algúem comunicou um acidente envolvendo o mesmo equipamento.",
+        { ID_ENFERMEIRA, ID_OPERARIO, ID_CAPATAZ, NENHUM }
     },
     [3] = {
         "Vestiário", "Carta pessoal",
-        "Uma carta que um funcionário da fábrica enviou a outro funcionário. Ela menciona um defeito em uma das máquinas, possivelmente, a mesma máquina."
+        "Uma carta que um funcionário da fábrica enviou a outro funcionário. Ela menciona um defeito em uma das máquinas, possivelmente, a mesma máquina.",
+        { RELACIONADO_QUALQUER, NENHUM }
     },
 };
 
@@ -153,6 +160,29 @@ static void avancar_turno(Jogo *jogo) {
     jogo->turno_atual = NULL; // todos os vivos já falaram
 }
 
+static ListaDupla *criar_suspeitos_relacionados(Jogo *jogo, int dia) {
+    const int *ids = PISTAS_DO_DIA[dia].relacionados;
+    ListaDupla *relacionados = criar_lista_dupla();
+    if (relacionados == NULL) {
+        return NULL;
+    }
+
+    for (int i = 0; ids[i] != NENHUM; i++) {
+        int id = ids[i];
+        if (id == RELACIONADO_QUALQUER) {
+            id = aleatorio_intervalo(&jogo->aleatorio, TOTAL_SUSPEITOS);
+        }
+
+        Suspeito *suspeito = suspeito_por_id(jogo, id);
+        if (suspeito == NULL || !lista_dupla_inserir_no_fim(relacionados, id, suspeito)){
+            liberar_lista_dupla(relacionados);
+            return NULL;
+        }
+    }
+
+    return relacionados;
+}
+
 static void registrar_pista_do_dia(Jogo *jogo) {
     int indice = jogo->dia.dia_atual - 1;
     if (indice < 0 || indice >= TOTAL_DIAS) {
@@ -163,7 +193,7 @@ static void registrar_pista_do_dia(Jogo *jogo) {
                     (char *)PISTAS_DO_DIA[indice].local,
                     (char *)PISTAS_DO_DIA[indice].objeto,
                     (char *)PISTAS_DO_DIA[indice].descricao,
-                    NULL);
+                    criar_suspeitos_relacionados(jogo, indice));
 }
 
 static void realizar_crime_noturno(Jogo *jogo) {
