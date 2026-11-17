@@ -9,7 +9,6 @@
 #define LARGURA_TELA 1280
 #define ALTURA_TELA 720
 #define TITULO_JOGO "Último Turno"
-#define TAMANHO_TITULO_MENU 90.0f
 #define TAMANHO_TITULO_TELA 56.0f
 #define LARGURA_BOTAO 360
 #define ALTURA_BOTAO 64
@@ -108,6 +107,89 @@ static const char *nome_detetive(int id) {
     }
 }
 
+static EntradaBotao ler_entrada_botao(void) {
+    return (EntradaBotao){
+        .mouse = GetMousePosition(),
+        .apertou = IsMouseButtonPressed(MOUSE_BUTTON_LEFT),
+        .pressionado = IsMouseButtonDown(MOUSE_BUTTON_LEFT),
+        .soltou = IsMouseButtonReleased(MOUSE_BUTTON_LEFT),
+        .confirmar = IsKeyPressed(KEY_ENTER) ||
+                     IsKeyPressed(KEY_KP_ENTER) ||
+                     IsKeyPressed(KEY_SPACE),
+    };
+}
+
+static int desenhar_menu_acoes(const UIFonte *fonte, BotaoUI *botoes,
+                               int selecionado) {
+    EntradaBotao entrada = ler_entrada_botao();
+    int acionado = -1;
+
+    BotaoUI *iniciar = &botoes[OPCAO_INICIAR];
+    EstadoBotao estado_iniciar =
+        ui_atualizar_botao(iniciar, selecionado == OPCAO_INICIAR, &entrada);
+
+    Color fundo = COR_TIJOLO;
+    Color borda = COR_TIJOLO;
+
+    if (estado_iniciar == BOTAO_HOVER) {
+        fundo = COR_OXIDO;
+        borda = COR_OSSO;
+    } else if (estado_iniciar == BOTAO_ACIONADO ||
+               estado_iniciar == BOTAO_PRESSIONADO) {
+        fundo = COR_SANGUE;
+        borda = COR_OSSO;
+    }
+
+    if (selecionado == OPCAO_INICIAR) {
+        borda = COR_OSSO;
+    }
+
+    DrawRectangleRec(iniciar->area, fundo);
+    DrawRectangleLinesEx(iniciar->area, 1.0f, borda);
+
+    Rectangle pip = {
+        iniciar->area.x + 28.0f,
+        iniciar->area.y + iniciar->area.height * 0.5f - 5.0f,
+        10.0f,
+        10.0f,
+    };
+    DrawRectangleRec(pip, COR_OSSO);
+
+    const char *texto_iniciar = "INICIAR INVESTIGAÇÃO";
+    Vector2 tamanho_iniciar =
+        MeasureTextEx(fonte->fonte, texto_iniciar, 20.0f, 2.0f);
+    DrawTextEx(fonte->fonte, texto_iniciar,
+               (Vector2){iniciar->area.x + 54.0f,
+                         iniciar->area.y +
+                             (iniciar->area.height - tamanho_iniciar.y) * 0.5f},
+               20.0f, 2.0f, COR_OSSO);
+
+    if (estado_iniciar == BOTAO_ACIONADO) {
+        acionado = OPCAO_INICIAR;
+    }
+
+    BotaoUI *sair = &botoes[OPCAO_SAIR];
+    EstadoBotao estado_sair =
+        ui_atualizar_botao(sair, selecionado == OPCAO_SAIR, &entrada);
+
+    Color cor_sair = COR_POEIRA;
+    if (selecionado == OPCAO_SAIR || estado_sair == BOTAO_HOVER) {
+        cor_sair = COR_TIJOLO;
+    } else if (estado_sair == BOTAO_PRESSIONADO ||
+               estado_sair == BOTAO_ACIONADO) {
+        cor_sair = COR_OSSO;
+    }
+
+    ui_desenhar_texto(fonte, "SAIR", (Vector2){sair->area.x, sair->area.y},
+                      14.0f, cor_sair);
+
+    if (estado_sair == BOTAO_ACIONADO) {
+        acionado = OPCAO_SAIR;
+    }
+
+    return acionado;
+}
+
 static void desenhar_titulo_centralizado(const UIFonte *fonte,
                                          const char *texto, float y,
                                          float tamanho, Color cor) {
@@ -124,29 +206,37 @@ static void desenhar_fundo_com_vinheta(const Recursos *recursos,
 
 static void desenhar_menu(const UIFonte *fonte_titulo,
                           const UIFonte *fonte_corpo, const Recursos *recursos) {
-    recursos_desenhar_fundo(recursos);
+    if (recursos->fundo_menu.id != 0) {
+        Rectangle tela = {0.0f, 0.0f, (float)LARGURA_TELA,
+                          (float)ALTURA_TELA};
+        recursos_desenhar_textura_cover(recursos->fundo_menu, tela);
+    } else {
+        recursos_desenhar_fundo(recursos);
+    }
 
     // Scrim lateral para o texto respirar sem virar um card.
-    DrawRectangleGradientH(0, 0, 860, ALTURA_TELA,
-                           (Color){18, 18, 17, 238},
+    DrawRectangleGradientH(0, 0, 780, ALTURA_TELA,
+                           (Color){18, 18, 17, 218},
                            (Color){18, 18, 17, 0});
     DrawRectangle(0, 0, LARGURA_TELA, ALTURA_TELA,
-                  (Color){10, 10, 9, 28});
+                  (Color){10, 10, 9, 24});
 
-    ui_desenhar_texto(fonte_corpo,
-                      "UM CASO DE HERCULE POIROT E MISS MARPLE",
-                      (Vector2){100.0f, 104.0f}, 14.0f, COR_POEIRA);
-    ui_desenhar_texto(fonte_titulo, "O ÚLTIMO TURNO",
-                      (Vector2){96.0f, 136.0f}, TAMANHO_TITULO_MENU,
-                      COR_OSSO);
-    ui_desenhar_texto(fonte_corpo, "Uma investigação na fábrica",
-                      (Vector2){100.0f, 252.0f}, 24.0f, COR_PAPEL);
+    DrawRectangle(96, 78, 28, 2, COR_TIJOLO);
 
-    DrawRectangle(100, 300, 72, 3, COR_TIJOLO);
+    if (recursos->titulo.id != 0) {
+        Rectangle destino = {96.0f, 96.0f, 500.0f, 282.0f};
+        Rectangle origem = {0.0f, 0.0f, (float)recursos->titulo.width,
+                            (float)recursos->titulo.height};
+        DrawTexturePro(recursos->titulo, origem, destino,
+                       (Vector2){0.0f, 0.0f}, 0.0f, COR_OSSO);
+    } else {
+        ui_desenhar_texto(fonte_titulo, "O ÚLTIMO TURNO",
+                          (Vector2){96.0f, 120.0f}, 72.0f, COR_OSSO);
+    }
 
-    ui_desenhar_texto(fonte_corpo, "ENTER / CLIQUE PARA ESCOLHER",
-                      (Vector2){100.0f, ALTURA_TELA - 42.0f}, 14.0f,
-                      COR_POEIRA);
+    ui_desenhar_texto(
+        fonte_corpo, "Uma investigação na fábrica — Novembro de 1936",
+        (Vector2){100.0f, 400.0f}, 17.0f, COR_PAPEL);
 }
 
 int main(void) {
@@ -174,7 +264,9 @@ int main(void) {
     BotaoUI botao_voltar_partida;
 
     inicializar_botoes(botoes_menu, ROTULOS_MENU, TOTAL_OPCOES_MENU,
-                       96.0f, 356.0f);
+                       96.0f, 470.0f);
+    botoes_menu[OPCAO_INICIAR].area = (Rectangle){96.0f, 470.0f, 420.0f, 64.0f};
+    botoes_menu[OPCAO_SAIR].area = (Rectangle){100.0f, 580.0f, 120.0f, 24.0f};
     botoes_menu[OPCAO_INICIAR].primario = true;
 
     inicializar_botoes(botoes_detetive, ROTULOS_DETETIVE,
@@ -223,8 +315,8 @@ int main(void) {
         switch (tela) {
             case TELA_MENU:
                 desenhar_menu(&fonte_titulo, &fonte_corpo, &recursos);
-                acionado = desenhar_botoes(&fonte_corpo_bold, botoes_menu,
-                                           TOTAL_OPCOES_MENU, selecionado);
+                acionado = desenhar_menu_acoes(
+                    &fonte_corpo_bold, botoes_menu, selecionado);
                 if (acionado == OPCAO_INICIAR) {
                     tela = TELA_DETETIVE;
                     selecionado = 0;
