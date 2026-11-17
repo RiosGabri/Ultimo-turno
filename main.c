@@ -1,5 +1,7 @@
 #include "ui.h"
 #include "jogo.h"
+#include "tela_caderno.h"
+
 
 #include <stdio.h>
 
@@ -14,7 +16,8 @@
 typedef enum {
     TELA_MENU,
     TELA_DETETIVE,
-    TELA_PARTIDA
+    TELA_PARTIDA,
+    TELA_CADERNO
 } Tela;
 
 typedef enum {
@@ -29,6 +32,12 @@ typedef enum {
     OPCAO_VOLTAR,
     TOTAL_OPCOES_DETETIVE
 } OpcaoDetetive;
+
+typedef enum {
+    PARTIDA_ABRIR_CADERNO,
+    PARTIDA_VOLTAR_MENU,
+    TOTAL_BOTOES_PARTIDA
+} OpcaoPartida;
 
 static const char *ROTULOS_MENU[TOTAL_OPCOES_MENU] = {
     [OPCAO_INICIAR] = "Iniciar",
@@ -119,18 +128,26 @@ int main(void) {
         TraceLog(LOG_WARNING,
                  "A fonte carregada nao tem os acentos de \"á ç ã é ô\".");
     }
-
     BotaoUI botoes_menu[TOTAL_OPCOES_MENU];
     BotaoUI botoes_detetive[TOTAL_OPCOES_DETETIVE];
-    BotaoUI botao_voltar_partida;
+    BotaoUI botoes_partida[TOTAL_BOTOES_PARTIDA];
+    //BotaoUI botao_voltar_partida;
+   // BotaoUI botao_abrir_caderno;
+    
     inicializar_botoes(botoes_menu, ROTULOS_MENU, TOTAL_OPCOES_MENU, 210.0f);
     inicializar_botoes(botoes_detetive, ROTULOS_DETETIVE,
                        TOTAL_OPCOES_DETETIVE, 180.0f);
-    botao_voltar_partida = (BotaoUI){
-        .area = {(LARGURA_TELA - LARGURA_BOTAO) / 2.0f, 430.0f,
-                 LARGURA_BOTAO, ALTURA_BOTAO},
+                       
+    botoes_partida[PARTIDA_ABRIR_CADERNO] = (BotaoUI){
+        .area = {330.0f, 375.0f, 300.0f, 45.0f},
+        .rotulo = "Abrir caderno",
+        .habilitado = true
+    };
+
+    botoes_partida[PARTIDA_VOLTAR_MENU] = (BotaoUI){
+        .area = {330.0f, 440.0f, 300.0f, 45.0f},
         .rotulo = "Voltar ao menu",
-        .habilitado = true,
+        .habilitado = true
     };
 
     Tela tela = TELA_MENU;
@@ -152,14 +169,21 @@ int main(void) {
                 botoes_atuais = botoes_detetive;
                 quantidade_botoes = TOTAL_OPCOES_DETETIVE;
                 break;
-            case TELA_PARTIDA:
-                botoes_atuais = &botao_voltar_partida;
-                quantidade_botoes = 1;
+           case TELA_PARTIDA:
+                botoes_atuais = botoes_partida;
+                quantidade_botoes = TOTAL_BOTOES_PARTIDA;
+                break;
+
+            case TELA_CADERNO:
+                botoes_atuais = NULL;
+                quantidade_botoes = 0;
                 break;
         }
-        selecionado =
-            atualizar_selecao(botoes_atuais, quantidade_botoes, selecionado);
-
+        if (quantidade_botoes > 0) {
+        selecionado = atualizar_selecao(
+            botoes_atuais, quantidade_botoes, selecionado
+        );
+        }
         BeginDrawing();
         ClearBackground((Color){20, 20, 28, 255});
 
@@ -243,9 +267,17 @@ int main(void) {
                     20.0f, (Color){30, 30, 42, 255},
                     (Color){90, 90, 115, 255}, RAYWHITE);
 
-                acionado = desenhar_botoes(&fonte, &botao_voltar_partida, 1,
-                                           selecionado);
-                if (acionado == 0) {
+                acionado = desenhar_botoes(
+                    &fonte,
+                    botoes_partida,
+                    TOTAL_BOTOES_PARTIDA,
+                    selecionado
+                );
+
+                if (acionado == PARTIDA_ABRIR_CADERNO) {
+                    tela = TELA_CADERNO;
+                    selecionado = 0;
+                } else if (acionado == PARTIDA_VOLTAR_MENU) {
                     liberar_jogo(&jogo);
                     jogo_ativo = false;
                     tela = TELA_MENU;
@@ -253,7 +285,13 @@ int main(void) {
                 }
                 break;
             }
-        }
+        case TELA_CADERNO:
+            if (tela_caderno_atualizar_desenhar(&fonte, jogo.caderno)) {
+                tela = TELA_PARTIDA;
+                selecionado = 0;
+            }
+            break;
+                }
 
         EndDrawing();
     }
