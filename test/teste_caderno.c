@@ -1069,6 +1069,75 @@ static void testar_ordenacao_chaves_repetidas(void) {
     liberar_caderno(caderno);
 }
 
+static void testar_ordenacao_casos_limite(void) {
+    verificar(ordenar_pistas(NULL, ORDENAR_POR_LOCAL) == 0,
+              "ordenar pistas NULL retorna zero trocas");
+
+    Caderno *vazio = inicializar_caderno(ID_POIROT);
+    verificar(vazio != NULL, "caderno vazio para ordenacao deve alocar");
+    if (vazio != NULL) {
+        verificar(ordenar_pistas(vazio, ORDENAR_POR_LOCAL) == 0,
+                  "ordenar caderno sem pistas retorna zero trocas");
+        verificar(vazio->pistas.tamanho == 0,
+                  "caderno sem pistas continua vazio");
+        liberar_caderno(vazio);
+    }
+
+    Caderno *uma = inicializar_caderno(ID_POIROT);
+    verificar(uma != NULL, "caderno com uma pista deve alocar");
+    if (uma != NULL) {
+        registrar_pista(uma, 1, "Portao", "Chave", "Chave no portao.", NULL);
+        verificar(ordenar_pistas(uma, ORDENAR_POR_LOCAL) == 0,
+                  "ordenar uma unica pista retorna zero trocas");
+        verificar(uma->pistas.tamanho == 1,
+                  "ordenar uma unica pista preserva a lista");
+        liberar_caderno(uma);
+    }
+
+    Caderno *duas = inicializar_caderno(ID_POIROT);
+    verificar(duas != NULL, "caderno com duas pistas deve alocar");
+    if (duas != NULL) {
+        registrar_pista(duas, 1, "B", "Z", "Local B.", NULL);
+        registrar_pista(duas, 1, "A", "Y", "Local A.", NULL);
+        verificar(duas->pistas.tamanho == 2,
+                  "caderno com duas pistas tem duas pistas");
+
+        if (duas->pistas.tamanho == 2 &&
+            duas->pistas.inicio != NULL && duas->pistas.fim != NULL) {
+            Pista *primeira = (Pista *)duas->pistas.inicio->dado;
+            Pista *segunda = (Pista *)duas->pistas.fim->dado;
+
+            verificar(ordenar_pistas(duas, ORDENAR_POR_LOCAL) == 1,
+                      "duas pistas invertidas geram exatamente uma troca");
+            verificar(duas->pistas.inicio->dado == segunda &&
+                      duas->pistas.fim->dado == primeira,
+                      "ordenacao de duas pistas deixa a ordem correta");
+            verificar(ordenar_pistas(duas, ORDENAR_POR_LOCAL) == 0,
+                      "segunda ordenacao de uma lista ordenada retorna zero trocas");
+        }
+        liberar_caderno(duas);
+    }
+
+    Caderno *invalido = criar_caderno_ordenacao();
+    verificar(invalido != NULL, "caderno para criterio invalido deve alocar");
+    if (invalido != NULL) {
+        Pista *antes[8];
+        int total_antes = coletar_pistas(invalido, antes, 8);
+        verificar(total_antes == 4, "coleta pistas antes do criterio invalido");
+
+        verificar(ordenar_pistas(invalido, (CriterioOrdenacao)99) == 0,
+                  "criterio invalido nao realiza trocas");
+
+        Pista *depois[8];
+        int total_depois = coletar_pistas(invalido, depois, 8);
+        verificar(mesma_colecao_de_pistas(antes, total_antes, depois, total_depois),
+                  "criterio invalido preserva as pistas");
+        verificar(invalido->pistas.tamanho == total_antes,
+                  "criterio invalido nao altera o tamanho");
+        liberar_caderno(invalido);
+    }
+}
+
 static void testar_ordenacao_de_pistas(void) {
     Caderno *caderno = inicializar_caderno(ID_POIROT);
     verificar(caderno != NULL, "inicializar_caderno deve alocar");
@@ -1143,6 +1212,7 @@ int main(void) {
     testar_ordenacao_por_criterios();
     testar_ordenacao_preserva_itens();
     testar_ordenacao_chaves_repetidas();
+    testar_ordenacao_casos_limite();
 
     if (falhas == 0) {
         printf("OK: todos os testes do caderno passaram\n");
