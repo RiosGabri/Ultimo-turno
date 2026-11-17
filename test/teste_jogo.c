@@ -211,6 +211,38 @@ static void testar_agenda_reprodutivel(void) {
     liberar_jogo(&c);
 }
 
+static void testar_pergunta_por_periodo(void) {
+    Jogo jogo;
+    verificar(iniciar_jogo_com_semente(&jogo, ID_MISS_MARPLE, 31),
+              "partida inicia");
+
+    avancar_fase_jogo(&jogo); // manhã -> debate
+
+    enum Periodo periodos[3] = { MANHA, TARDE, NOITE };
+    const char *expressoes[3] = { "pela manhã", "à tarde", "à noite" };
+
+    for (int i = 0; i < 3; i++) {
+        int id_depoimento = perguntar_sobre(&jogo, ID_GERENTE, periodos[i]);
+        verificar(id_depoimento > 0,
+                  "pergunta por período registra depoimento");
+
+        Depoimento *dep =
+            buscar_depoimento_por_id(jogo.caderno, id_depoimento);
+        verificar(dep != NULL, "depoimento por período existe");
+        if (dep == NULL) {
+            continue;
+        }
+
+        verificar(dep->periodo == periodos[i],
+                  "depoimento guarda o período escolhido");
+        verificar(dep->texto != NULL &&
+                  strstr(dep->texto, expressoes[i]) != NULL,
+                  "fala cita o período escolhido");
+    }
+
+    liberar_jogo(&jogo);
+}
+
 static void testar_sorteio_reprodutivel(void) {
     Jogo a;
     Jogo b;
@@ -711,6 +743,7 @@ int main(void) {
     testar_agenda_local_verdadeiro();
     testar_acessores_da_agenda();
     testar_agenda_reprodutivel();
+    testar_pergunta_por_periodo();
     testar_sorteio_reprodutivel();
     testar_ciclo_de_debate_e_contradicoes();
     testar_reacoes_seguem_conhecimento();

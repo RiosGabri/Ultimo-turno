@@ -140,8 +140,9 @@ static void mostrar_depoimento(const Jogo *jogo, int id_depoimento) {
         return;
     }
 
-    printf("\n  %s: \"%s\"\n", nome_suspeito(jogo, depoimento->id_falante),
-           depoimento->texto);
+    printf("\n  [Dia %d, %s] %s: \"%s\"\n",
+           depoimento->dia, nome_periodo(depoimento->periodo),
+           nome_suspeito(jogo, depoimento->id_falante), depoimento->texto);
     mostrar_reacoes(jogo, id_depoimento);
 }
 
@@ -358,6 +359,7 @@ static void menu_depoimentos_suspeito(Jogo *jogo) {
 
             printf("\nDepoimento %d\n", depoimento->id_depoimento);
             printf("Dia: %d\n", depoimento->dia);
+            printf("Periodo: %s\n", nome_periodo(depoimento->periodo));
             printf("Falante: %s\n", nome_suspeito(jogo, depoimento->id_falante));
             printf("Local: %s\n",
                    depoimento->local != NULL ? depoimento->local : "Nao informado");
@@ -424,6 +426,30 @@ static int escolher_alvo(Jogo *jogo) {
     return -1;
 }
 
+static int escolher_periodo(enum Periodo *periodo) {
+    if (periodo == NULL) {
+        return 0;
+    }
+
+    while (!entrada_encerrada) {
+        printf("\nEm qual período interrogar?\n");
+        printf("  [1] Manhã\n");
+        printf("  [2] Tarde\n");
+        printf("  [3] Noite\n");
+        printf("  [0] Cancelar\n> ");
+
+        switch (ler_inteiro()) {
+            case 0: return 0;
+            case 1: *periodo = MANHA; return 1;
+            case 2: *periodo = TARDE; return 1;
+            case 3: *periodo = NOITE; return 1;
+            default: printf("Opção inválida.\n"); break;
+        }
+    }
+
+    return 0;
+}
+
 static void jogar_manha(Jogo *jogo) {
     printf("\nMANHÃ — O turno começa e a fábrica comenta o caso.\n");
     printf("  Pista do dia: %s\n", nome_ultima_pista(jogo));
@@ -453,10 +479,16 @@ static void jogar_debate(Jogo *jogo) {
 
     switch (ler_inteiro()) {
         case 1: {
+            enum Periodo periodo;
+            if (!escolher_periodo(&periodo)) {
+                break;
+            }
+
+            printf("\nPeríodo escolhido: %s.\n", nome_periodo(periodo));
+
             int alvo = escolher_alvo(jogo);
             if (alvo >= 0) {
-                // TODO(issue 13, etapa 6): deixar o jogador escolher o período.
-                int id_depoimento = perguntar_sobre(jogo, alvo, NOITE);
+                int id_depoimento = perguntar_sobre(jogo, alvo, periodo);
                 if (id_depoimento > 0) {
                     mostrar_depoimento(jogo, id_depoimento);
                     pausar();

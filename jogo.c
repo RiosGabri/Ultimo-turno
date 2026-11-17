@@ -112,11 +112,25 @@ static const char *local_falso(const Jogo *jogo, int dia, enum Periodo periodo, 
     return LOCAIS[(indice_verdade + deslocamento) % TOTAL_LOCAIS];
 }
 
-static void montar_fala(char *destino, size_t tamanho, int sobre_si, const char *nome_alvo, const char *local) {
+static const char *expressao_periodo(enum Periodo periodo) {
+    switch (periodo) {
+        case MANHA: return "pela manhã";
+        case TARDE: return "à tarde";
+        case NOITE: return "à noite";
+        default:    return "no período";
+    }
+}
+
+static void montar_fala(char *destino, size_t tamanho, int sobre_si,
+                        const char *nome_alvo, const char *local,
+                        enum Periodo periodo) {
     if (sobre_si) {
-        snprintf(destino, tamanho, "Eu estava %s %s na noite anterior.", preposicao_local(local), local);
+        snprintf(destino, tamanho, "Eu estava %s %s %s.",
+                 preposicao_local(local), local, expressao_periodo(periodo));
     } else {
-        snprintf(destino, tamanho, "Vi %s %s %s na noite anterior.", nome_alvo, preposicao_local(local), local);
+        snprintf(destino, tamanho, "%s estava %s %s %s.",
+                 nome_alvo, preposicao_local(local), local,
+                 expressao_periodo(periodo));
     }
 }
 
@@ -478,7 +492,8 @@ int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo) {
     }
 
     char texto[256];
-    montar_fala(texto, sizeof texto, alvo->id == falante->id, alvo->nome, local);
+    montar_fala(texto, sizeof texto, alvo->id == falante->id, alvo->nome,
+                local, periodo);
 
     int id_depoimento = registrar_depoimento(
         jogo->caderno, jogo->dia.dia_atual, falante->id, (char *)local,
