@@ -32,8 +32,8 @@ static const struct {
         "Encontrada próxima ao corpo da vítima, na sala de máquinas. É uma das ferramentas utilizadas na manutenção da fábrica. Sua presença no local não é incomum, mas sua proximidade com o corpo lhe chama a atenção. Não apresenta vestígios de sangue ou marcas."
     },  //falta atualizar os dos outros dias
     [1] = {
-        "Linha de produção", "Luva de trabalho",
-        "Uma luva de trabalho esquecida na linha de produção, com graxa fresca."
+        "Gerência", "Diário de manutenção",
+        "Este diário registra as manutenções realizadas nos equipamentos da sala de máquinas. Contém descrições dos serviços realizados e seu responsável."
     },
     [2] = {
         "Gerência", "Carta rasgada",
