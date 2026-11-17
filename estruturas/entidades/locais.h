@@ -5,8 +5,7 @@
  * Tabela de locais da fábrica.
  *
  * Cada local tem um nome e a preposição correta a usar nas falas ("na" ou
- * "no"). A lista definitiva (6 locais) será fechada pelo Torzinus (#15); até
- * lá, locais.c mantém os 5 locais atuais como padrão.
+ * "no"). A história se passa em 5 locais da fábrica; essa é a lista final.
  */
 typedef struct {
     const char *nome;

@@ -4,8 +4,8 @@
 #include <string.h>
 
 /*
- * Lista provisória. Para trocar/adicionar locais, basta editar esta tabela:
- * o resto do jogo lê tudo por total_locais()/local_por_indice().
+ * Lista final de locais da fábrica. Para trocar os nomes, basta editar esta
+ * tabela: o resto do jogo lê tudo por total_locais()/local_por_indice().
  */
 static const Local LOCAIS[] = {
     { "Sala de máquinas",  "na" },

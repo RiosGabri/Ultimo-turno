@@ -471,8 +471,10 @@ int perguntar_sobre(Jogo *jogo, int id_alvo, enum Periodo periodo) {
         return -1;
     }
 
-    // TODO(issue 13, etapa 3): mentir somente no período noturno.
-    int mentindo = falante->papel == ASSASSINO || falante->papel == CUMPLICE;
+    // Assassino e cúmplice só mentem sobre o período do crime (noite).
+    // Nos demais períodos, todos os suspeitos contam a verdade.
+    int mentindo = (falante->papel == ASSASSINO ||
+                    falante->papel == CUMPLICE) && periodo == NOITE;
     const char *local;
 
     if (mentindo) {
