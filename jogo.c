@@ -245,7 +245,11 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
     jogo->ultima_vitima = NENHUM;
     jogo->papeis.id_assassino = NENHUM;
     jogo->papeis.id_cumplice = NENHUM;
-	jogo->proximo_inicio_debate = 0; // dia 1 continua começando no Gerente
+
+    // Dia 1 continua começando no primeiro suspeito da lista (o Gerente).
+    jogo->proximo_inicio_debate = 0;
+    jogo->inicio_debate_atual = 0;
+    jogo->dia_debate_iniciado = 0;
 
     srand(semente);
 
@@ -399,15 +403,23 @@ void iniciar_debate(Jogo *jogo) {
     jogo->interrogados = 0;
     jogo->turno_atual = NULL;
 
+    // Em uma nova chamada no mesmo dia, mantém o início já escolhido; só
+    // avança o ponto de partida quando o debate de outro dia começa.
+    int novo_dia = jogo->dia_debate_iniciado != jogo->dia.dia_atual;
+    if (novo_dia) {
+        jogo->inicio_debate_atual = jogo->proximo_inicio_debate;
+        jogo->dia_debate_iniciado = jogo->dia.dia_atual;
+    }
+
     NoListaDuplaCircular *candidato =
-        no_por_id(jogo, jogo->proximo_inicio_debate);
+        no_por_id(jogo, jogo->inicio_debate_atual);
 
     jogo->turno_atual = primeiro_vivo_a_partir(
         jogo,
         candidato != NULL ? candidato : jogo->suspeitos->inicio
     );
 
-    if (jogo->turno_atual != NULL) {
+    if (novo_dia && jogo->turno_atual != NULL) {
         Suspeito *primeiro = (Suspeito *)jogo->turno_atual->dado;
         jogo->proximo_inicio_debate =
             (primeiro->id + 1) % TOTAL_SUSPEITOS;

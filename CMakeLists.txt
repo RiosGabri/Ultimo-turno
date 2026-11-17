@@ -175,4 +175,11 @@ ultimo_turno_adicionar_teste(teste_jogo
     ${ULTIMO_TURNO_ESTRUTURAS}
 )
 
+ultimo_turno_adicionar_teste(teste_roda_debate
+    test/teste_roda_debate.c
+    jogo.c
+    dia.c
+    ${ULTIMO_TURNO_ESTRUTURAS}
+)
+
 

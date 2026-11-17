@@ -1,6 +1,6 @@
 # Planejamento — Issues #17 e #21
 
-> **Status:** planejado, ainda não implementado.
+> **Status:** Parte 1 (#17) implementada e testada; Parte 2 (#21) pendente de #13, #19 e #20.
 >
 > **Última atualização:** 17/11/2026.
 >
@@ -20,13 +20,30 @@
 
 ### Situação atual do repositório
 
-- A branch local `feat/debate` está no mesmo commit da `main`.
+- A branch local `feat/debate` contém a implementação da #17, ainda não mergeada.
 - A `main` **não tem** a agenda/períodos da #13.
 - A #13 está no PR draft #39, na branch `origin/feat/jogo-dedutivel`.
 - As issues #19 (helpers de UI) e #20 (fluxo de telas) ainda não têm branch/PR.
 - `main.c` contém apenas o menu inicial em raylib.
 - `assets/` contém apenas `logo.png`; não há fonte `.ttf`.
 - O terminal já tem a lógica que a tela gráfica deve espelhar.
+
+### Status de implementação
+
+#### #17 — concluída
+
+- [x] Campo `proximo_inicio_debate` e controle do início por dia.
+- [x] Auxiliares `no_por_id` e `primeiro_vivo_a_partir`.
+- [x] `iniciar_debate` começando no próximo vivo e avançando a cada dia.
+- [x] Decisão de manter mortos/presos na lista documentada em `jogo.h`.
+- [x] Testes em `test/teste_roda_debate.c`.
+- [x] Registro do teste no `CMakeLists.txt` e no `Makefile`.
+- [x] `make test` e `ctest` passando.
+
+#### #21 — pendente
+
+- [ ] Aguardando #13, #19 e #20.
+- [ ] Implementar a tela depois da integração.
 
 ---
 
