@@ -109,7 +109,7 @@ static void testar_volta_completa_comecando_no_meio(void) {
                   "o mesmo suspeito não recebe dois turnos na mesma volta");
 
         vistos[falante->id] = 1;
-        verificar(perguntar_sobre(&jogo, falante->id) > 0,
+        verificar(perguntar_sobre(&jogo, falante->id, NOITE) > 0,
                   "pergunta registra depoimento");
         turnos++;
     }
@@ -158,7 +158,7 @@ static void testar_pula_morto_e_preso(void) {
             viu_preso = 1;
         }
 
-        verificar(perguntar_sobre(&jogo, falante->id) > 0,
+        verificar(perguntar_sobre(&jogo, falante->id, NOITE) > 0,
                   "pergunta registra depoimento");
         turnos++;
     }
@@ -198,7 +198,7 @@ static void testar_so_um_vivo(void) {
     Suspeito *unico = suspeito_do_turno(&jogo);
     verificar(unico != NULL && unico->id == ID_GERENTE,
               "o único vivo recebe o turno");
-    verificar(perguntar_sobre(&jogo, ID_GERENTE) > 0,
+    verificar(perguntar_sobre(&jogo, ID_GERENTE, NOITE) > 0,
               "o único vivo pode depor");
     verificar(debate_encerrado(&jogo),
               "o debate encerra após a fala do único vivo");
@@ -221,7 +221,7 @@ static void testar_reentrada_no_mesmo_dia_mantem_inicio(void) {
     }
 
     int id_inicio = primeiro->id;
-    verificar(perguntar_sobre(&jogo, id_inicio) > 0,
+    verificar(perguntar_sobre(&jogo, id_inicio, NOITE) > 0,
               "pergunta registra depoimento");
 
     iniciar_debate(&jogo); // chamada repetida no mesmo dia
