@@ -58,6 +58,15 @@ const char *recursos_caminho(const char *relativo, char *destino,
     return NULL;
 }
 
+static const char *CAMINHOS_SUSPEITOS[TOTAL_SUSPEITOS] = {
+    [ID_GERENTE]    = "assets/image/gerente.png",
+    [ID_CAPATAZ]    = "assets/image/capataz.png",
+    [ID_ENGENHEIRO] = "assets/image/engenheiro.png",
+    [ID_OPERARIO]   = "assets/image/operario.png",
+    [ID_ENFERMEIRA] = "assets/image/enfermeira.png",
+    [ID_VIGIA]      = "assets/image/vigia.png",
+};
+
 void recursos_carregar(Recursos *recursos) {
     if (recursos == NULL) {
         return;
@@ -74,6 +83,11 @@ void recursos_carregar(Recursos *recursos) {
         carregar_textura("assets/image/selecao-marple.png");
     recursos->retrato_poirot =
         carregar_textura("assets/image/selecao-poirot.png");
+
+    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+        recursos->retratos_suspeitos[id] =
+            carregar_textura(CAMINHOS_SUSPEITOS[id]);
+    }
 }
 
 void recursos_descarregar(Recursos *recursos) {
@@ -117,6 +131,13 @@ void recursos_descarregar(Recursos *recursos) {
         UnloadTexture(recursos->retrato_poirot);
         recursos->retrato_poirot = (Texture2D){0};
     }
+
+    for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
+        if (recursos->retratos_suspeitos[id].id != 0) {
+            UnloadTexture(recursos->retratos_suspeitos[id]);
+            recursos->retratos_suspeitos[id] = (Texture2D){0};
+        }
+    }
 }
 
 void recursos_desenhar_textura_cover(Texture2D textura, Rectangle destino) {
@@ -139,13 +160,11 @@ void recursos_desenhar_textura_cover(Texture2D textura, Rectangle destino) {
                    WHITE);
 }
 
-void recursos_desenhar_fundo(const Recursos *recursos) {
+void recursos_desenhar_fundo(const Recursos *recursos, Rectangle destino) {
     if (recursos == NULL || recursos->fabrica.id == 0) {
         ClearBackground(COR_CARVAO);
         return;
     }
 
-    Rectangle tela = {0.0f, 0.0f, (float)GetScreenWidth(),
-                      (float)GetScreenHeight()};
-    recursos_desenhar_textura_cover(recursos->fabrica, tela);
+    recursos_desenhar_textura_cover(recursos->fabrica, destino);
 }

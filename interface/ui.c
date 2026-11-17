@@ -1,11 +1,70 @@
 #include "ui.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "paleta.h"
 
 #define UI_MAX_CODEPOINTS 512
+
+// ---------------------------------------------------------------------------
+// Canvas virtual
+// ---------------------------------------------------------------------------
+static float ui_canvas_largura = 0.0f;
+static float ui_canvas_altura = 0.0f;
+static float ui_canvas_escala = 1.0f;
+static Vector2 ui_canvas_deslocamento = {0.0f, 0.0f};
+
+void ui_configurar_canvas(float largura, float altura) {
+    ui_canvas_largura = largura;
+    ui_canvas_altura = altura;
+
+    int janela_largura = GetScreenWidth();
+    int janela_altura = GetScreenHeight();
+
+    if (largura <= 0.0f || altura <= 0.0f || janela_largura <= 0 ||
+        janela_altura <= 0) {
+        ui_canvas_escala = 1.0f;
+        ui_canvas_deslocamento = (Vector2){0.0f, 0.0f};
+        return;
+    }
+
+    // Escala uniforme para preservar a proporção; o que sobra vira letterbox.
+    float escala_x = (float)janela_largura / largura;
+    float escala_y = (float)janela_altura / altura;
+    ui_canvas_escala = fminf(escala_x, escala_y);
+    if (ui_canvas_escala <= 0.0f) {
+        ui_canvas_escala = 1.0f;
+    }
+
+    ui_canvas_deslocamento.x =
+        ((float)janela_largura - largura * ui_canvas_escala) * 0.5f;
+    ui_canvas_deslocamento.y =
+        ((float)janela_altura - altura * ui_canvas_escala) * 0.5f;
+}
+
+Rectangle ui_canvas_destino(void) {
+    return (Rectangle){
+        ui_canvas_deslocamento.x,
+        ui_canvas_deslocamento.y,
+        ui_canvas_largura * ui_canvas_escala,
+        ui_canvas_altura * ui_canvas_escala,
+    };
+}
+
+Vector2 ui_mouse_canvas(void) {
+    Vector2 mouse = GetMousePosition();
+
+    if (ui_canvas_escala <= 0.0f) {
+        return mouse;
+    }
+
+    return (Vector2){
+        (mouse.x - ui_canvas_deslocamento.x) / ui_canvas_escala,
+        (mouse.y - ui_canvas_deslocamento.y) / ui_canvas_escala,
+    };
+}
 
 // ---------------------------------------------------------------------------
 // Fonte
@@ -681,7 +740,7 @@ bool ui_desenhar_botao(const UIFonte *fonte, BotaoUI *botao, bool focado) {
     }
 
     EntradaBotao entrada = {
-        .mouse = GetMousePosition(),
+        .mouse = ui_mouse_canvas(),
         .apertou = IsMouseButtonPressed(MOUSE_BUTTON_LEFT),
         .pressionado = IsMouseButtonDown(MOUSE_BUTTON_LEFT),
         .soltou = IsMouseButtonReleased(MOUSE_BUTTON_LEFT),
