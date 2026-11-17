@@ -28,18 +28,18 @@ static const struct {
     [0] = {
         "Sala de máquinas", "Chave inglesa",
         "Encontrada próxima ao corpo da vítima, na sala de máquinas. É uma das ferramentas utilizadas na manutenção da fábrica. Sua presença no local não é incomum, mas sua proximidade com o corpo lhe chama a atenção. Não apresenta vestígios de sangue ou marcas."
-    },  //falta atualizar os dos outros dias
+    },  
     [1] = {
         "Gerência", "Diário de manutenção",
         "Este diário registra as manutenções realizadas nos equipamentos da sala de máquinas. Contém descrições dos serviços realizados e seu responsável."
     },
     [2] = {
-        "Gerência", "Carta rasgada",
-        "Uma carta rasgada na gerência. Sobrou o começo de uma ameaça."
+        "Enfermaria", "Ficha de atendimento",
+        "Uma ficha de atendimento de um paciente. A ficha revela que algúem comunicou um acidente envolvendo o mesmo equipamento."
     },
     [3] = {
-        "Vestiário", "Chave enferrujada",
-        "Uma chave enferrujada no vestiário. A fechadura foi forçada."
+        "Vestiário", "Carta pessoal",
+        "Uma carta que um funcionário da fábrica enviou a outro funcionário. Ela menciona um defeito em uma das máquinas, possivelmente, a mesma máquina."
     },
 };
 
