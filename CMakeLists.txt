@@ -87,6 +87,7 @@ if(ULTIMO_TURNO_BUILD_JOGO)
         main.c
         interface/ui.c
         interface/recursos.c
+        interface/telas.c
         jogo.c
         dia.c
         ${ULTIMO_TURNO_ESTRUTURAS}
