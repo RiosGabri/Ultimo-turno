@@ -31,8 +31,9 @@ RAYLIB_LIBS := -L$(RAYLIB_SRC) -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 #   make JOGO_ESTRUTURAS=estruturas/listas/lista-simples.c
 JOGO_ESTRUTURAS ?= $(wildcard $(ESTRUTURAS_DIR)/listas/*.c) \
                    $(wildcard $(ESTRUTURAS_DIR)/entidades/*.c)
-JOGO_SRCS := $(wildcard *.c) interface/ui.c $(JOGO_ESTRUTURAS)
+JOGO_SRCS := $(wildcard *.c) interface/ui.c interface/telas/tela_debate.c $(JOGO_ESTRUTURAS)
 CABECALHOS := $(wildcard *.h) $(wildcard interface/*.h) \
+              $(wildcard interface/*/*.h) \
               $(wildcard $(ESTRUTURAS_DIR)/*.h) \
               $(wildcard $(ESTRUTURAS_DIR)/*/*.h)
 

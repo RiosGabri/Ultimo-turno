@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "jogo.h"
+#include "interface/telas/tela_debate.h"
 
 #include <stdio.h>
 
@@ -14,6 +15,8 @@
 typedef enum {
     TELA_MENU,
     TELA_DETETIVE,
+    TELA_DEBATE,
+    TELA_CADERNO,
     TELA_PARTIDA
 } Tela;
 
@@ -123,6 +126,7 @@ int main(void) {
     BotaoUI botoes_menu[TOTAL_OPCOES_MENU];
     BotaoUI botoes_detetive[TOTAL_OPCOES_DETETIVE];
     BotaoUI botao_voltar_partida;
+    BotaoUI botao_voltar_caderno;
     inicializar_botoes(botoes_menu, ROTULOS_MENU, TOTAL_OPCOES_MENU, 210.0f);
     inicializar_botoes(botoes_detetive, ROTULOS_DETETIVE,
                        TOTAL_OPCOES_DETETIVE, 180.0f);
@@ -132,6 +136,15 @@ int main(void) {
         .rotulo = "Voltar ao menu",
         .habilitado = true,
     };
+    botao_voltar_caderno = (BotaoUI){
+        .area = {(LARGURA_TELA - LARGURA_BOTAO) / 2.0f, 430.0f,
+                 LARGURA_BOTAO, ALTURA_BOTAO},
+        .rotulo = "Voltar ao debate",
+        .habilitado = true,
+    };
+
+    TelaDebate tela_debate = {0};
+    bool debate_pronto = false;
 
     Tela tela = TELA_MENU;
     int selecionado = 0;
@@ -141,6 +154,20 @@ int main(void) {
     Jogo jogo = {0};
 
     while (!WindowShouldClose() && !fechar) {
+        // A tela de debate lê a própria entrada (mouse/teclado) e devolve a
+        // ação de navegação para o fluxo principal.
+        if (tela == TELA_DEBATE && debate_pronto) {
+            AcaoDebate acao = tela_debate_atualizar(&tela_debate);
+            if (acao == TELA_DEBATE_ABRIR_CADERNO) {
+                tela = TELA_CADERNO;
+                selecionado = 0;
+            } else if (acao == TELA_DEBATE_ENCERRAR) {
+                avancar_fase_jogo(&jogo);
+                tela = TELA_PARTIDA;
+                selecionado = 0;
+            }
+        }
+
         BotaoUI *botoes_atuais = NULL;
         int quantidade_botoes = 0;
         switch (tela) {
@@ -152,9 +179,16 @@ int main(void) {
                 botoes_atuais = botoes_detetive;
                 quantidade_botoes = TOTAL_OPCOES_DETETIVE;
                 break;
+            case TELA_CADERNO:
+                botoes_atuais = &botao_voltar_caderno;
+                quantidade_botoes = 1;
+                break;
             case TELA_PARTIDA:
                 botoes_atuais = &botao_voltar_partida;
                 quantidade_botoes = 1;
+                break;
+            case TELA_DEBATE:
+            default:
                 break;
         }
         selecionado =
@@ -199,7 +233,13 @@ int main(void) {
                     if (iniciar_jogo(&jogo, id_detetive)) {
                         jogo_ativo = true;
                         erro_inicio = NULL;
-                        tela = TELA_PARTIDA;
+
+                        // Entrada temporária da tela de debate enquanto a
+                        // issue #20 (fluxo de telas) não chega.
+                        avancar_fase_jogo(&jogo); // manhã -> debate
+                        tela_debate_iniciar(&tela_debate, &jogo);
+                        debate_pronto = true;
+                        tela = TELA_DEBATE;
                         selecionado = 0;
                     } else {
                         liberar_jogo(&jogo);
@@ -213,6 +253,32 @@ int main(void) {
                     ui_desenhar_texto_centralizado(
                         &fonte, erro_inicio, area_erro, 18.0f,
                         (Color){235, 105, 105, 255});
+                }
+                break;
+            }
+
+            case TELA_DEBATE:
+                if (debate_pronto) {
+                    tela_debate_desenhar(&tela_debate, &fonte);
+                }
+                break;
+
+            case TELA_CADERNO: {
+                desenhar_titulo(&fonte, "Caderno");
+                Rectangle area_caderno = {160.0f, 170.0f, 640.0f, 170.0f};
+                ui_desenhar_painel_texto(
+                    &fonte, area_caderno,
+                    "Caderno em construção.\n\nA tela completa do caderno chega "
+                    "com a issue #22. Por enquanto, use o debate para coletar "
+                    "depoimentos e contradições.",
+                    20.0f, (Color){30, 30, 42, 255},
+                    (Color){90, 90, 115, 255}, RAYWHITE);
+
+                acionado = desenhar_botoes(&fonte, &botao_voltar_caderno, 1,
+                                           selecionado);
+                if (acionado == 0) {
+                    tela = TELA_DEBATE;
+                    selecionado = 0;
                 }
                 break;
             }
@@ -246,6 +312,10 @@ int main(void) {
                 acionado = desenhar_botoes(&fonte, &botao_voltar_partida, 1,
                                            selecionado);
                 if (acionado == 0) {
+                    if (debate_pronto) {
+                        tela_debate_liberar(&tela_debate);
+                        debate_pronto = false;
+                    }
                     liberar_jogo(&jogo);
                     jogo_ativo = false;
                     tela = TELA_MENU;
@@ -258,6 +328,9 @@ int main(void) {
         EndDrawing();
     }
 
+    if (debate_pronto) {
+        tela_debate_liberar(&tela_debate);
+    }
     if (jogo_ativo) {
         liberar_jogo(&jogo);
     }
