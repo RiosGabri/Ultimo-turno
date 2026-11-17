@@ -277,6 +277,8 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
         return 0;
     }
 
+    
+
     NoListaDuplaCircular *no = jogo->suspeitos->inicio;
     do {
         Suspeito *suspeito = (Suspeito *)no->dado;
@@ -371,6 +373,20 @@ Suspeito *suspeito_do_turno(const Jogo *jogo) {
         return NULL;
     }
     return (Suspeito *)jogo->turno_atual->dado;
+}
+
+const char *local_do_suspeito(const Jogo *jogo, int id, int dia, enum Periodo periodo) {
+    if (jogo == NULL || id < 0 || id >= TOTAL_SUSPEITOS || dia < 1 || dia > TOTAL_DIAS) {
+        return NULL;
+    }
+    return LOCAIS[jogo->agenda.local[dia - 1][periodo][id]];
+}
+
+const char *local_do_crime(const Jogo *jogo, int dia) {
+    if (jogo == NULL || dia < 1 || dia > TOTAL_DIAS) {
+        return NULL;
+    }
+    return LOCAIS[jogo->agenda.local_crime[dia - 1]];
 }
 
 static enum TipoReacao reagir(int dia, int id_alvo, const char *local_afirmado, const Suspeito *outro, SorteioPapeis papeis) {

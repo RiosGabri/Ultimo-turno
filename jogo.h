@@ -18,6 +18,14 @@ typedef enum {
     JOGO_DERROTA_TEMPO
 } ResultadoJogo;
 
+#define TOTAL_PERIODOS 3
+typedef struct {
+    //[dia][período][suspeito] -> índice na tabela de locais
+    //unsigned char armazena valores nao negativos de 0 a 255
+    unsigned char local[TOTAL_DIAS][TOTAL_PERIODOS][TOTAL_SUSPEITOS];
+    unsigned char local_crime[TOTAL_DIAS]; // índice na tabela de locais
+}Agenda;
+
 /*
  * Estado completo de uma partida. O motor não depende de interface:
  * a UI de terminal (e, depois, a da raylib) só lê este estado e chama
@@ -29,6 +37,7 @@ typedef struct {
     ListaDuplaCircular *suspeitos;
     SorteioPapeis papeis;
     Caderno *caderno;
+    Agenda agenda;
     int credibilidade;
     ResultadoJogo resultado;
 
@@ -46,6 +55,10 @@ typedef struct {
 int iniciar_jogo(Jogo *jogo, int id_detetive);
 int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente);
 void liberar_jogo(Jogo *jogo);
+
+const char *local_do_suspeito(const Jogo*, int id, int dia, enum Periodo);
+const char *local_do_crime(const Jogo*, int dia);
+
 
 // ---------------------------------------------------------------------------
 // Fases
