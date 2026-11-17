@@ -1,10 +1,13 @@
 #include "ui.h"
 
+#include <math.h>
 #include <stdio.h>
 
 #include "jogo.h"
 #include "paleta.h"
+#include "raylib.h"
 #include "recursos.h"
+#include "rlgl.h"
 
 #define LARGURA_TELA 1280
 #define ALTURA_TELA 720
@@ -13,6 +16,11 @@
 #define LARGURA_BOTAO 360
 #define ALTURA_BOTAO 64
 #define ESPACO_BOTOES 18
+
+#define CARTA_LARGURA 460.0f
+#define CARTA_ALTURA 520.0f
+#define CARTA_ESPACO 48.0f
+#define CARTA_TOPO 112.0f
 
 typedef enum {
     TELA_MENU,
@@ -27,22 +35,9 @@ typedef enum {
     TOTAL_OPCOES_MENU
 } OpcaoMenu;
 
-typedef enum {
-    OPCAO_MISS_MARPLE,
-    OPCAO_HERCULE_POIROT,
-    OPCAO_VOLTAR,
-    TOTAL_OPCOES_DETETIVE
-} OpcaoDetetive;
-
 static const char *ROTULOS_MENU[TOTAL_OPCOES_MENU] = {
     [OPCAO_INICIAR] = "Iniciar investigação",
     [OPCAO_SAIR] = "Sair",
-};
-
-static const char *ROTULOS_DETETIVE[TOTAL_OPCOES_DETETIVE] = {
-    [OPCAO_MISS_MARPLE] = "Miss Marple",
-    [OPCAO_HERCULE_POIROT] = "Hercule Poirot",
-    [OPCAO_VOLTAR] = "Voltar",
 };
 
 static Rectangle obter_retangulo_botao(int indice, float x, float primeiro_y) {
@@ -176,6 +171,123 @@ static void desenhar_historia(const UIFonte *fonte_titulo,
         fonte_corpo_bold,
         "Você tem quatro dias para descobrir quem mentiu.",
         final_area, 20.0f, 5.0f, COR_OSSO);
+}
+
+static void desenhar_card_detetive(const UIFonte *fonte_titulo,
+                                   const UIFonte *fonte_corpo,
+                                   const UIFonte *fonte_corpo_bold,
+                                   const Recursos *recursos, int id,
+                                   Rectangle area, float escala,
+                                   bool selecionado) {
+    Texture2D retrato = (id == 0) ? recursos->retrato_marple
+                                  : recursos->retrato_poirot;
+    const char *nome = (id == 0) ? "MISS MARPLE" : "HERCULE POIROT";
+    const char *perfil = (id == 0) ? "A OBSERVADORA" : "O METÓDICO";
+    const char *citacao = (id == 0)
+        ? "\"Pessoas mentem. Hábitos, não.\""
+        : "\"O caos é apenas um padrão que ainda não foi organizado.\"";
+    const char *descricao = (id == 0)
+        ? "Leitura humana, memória e conversa."
+        : "Ordem, contradição e dedução.";
+    const char *arquivo = (id == 0) ? "DETETIVE 01" : "DETETIVE 02";
+
+    Vector2 centro = {area.x + area.width * 0.5f,
+                      area.y + area.height * 0.5f};
+
+    rlPushMatrix();
+    rlTranslatef(centro.x, centro.y, 0.0f);
+    rlScalef(escala, escala, 1.0f);
+    rlTranslatef(-centro.x, -centro.y, 0.0f);
+
+    Rectangle sombra = {area.x + 8.0f, area.y + 10.0f, area.width,
+                        area.height};
+    DrawRectangleRec(sombra, COR_SOMBRA);
+    DrawRectangleRec(area, COR_PAPEL);
+    DrawRectangleLinesEx(area, selecionado ? 2.0f : 1.0f,
+                         selecionado ? COR_TIJOLO : COR_POEIRA);
+
+    Rectangle interno = {area.x + 6.0f, area.y + 6.0f, area.width - 12.0f,
+                         area.height - 12.0f};
+    DrawRectangleLinesEx(interno, 1.0f, (Color){138, 129, 117, 100});
+
+    Rectangle aba = {area.x + 24.0f, area.y + 18.0f, 112.0f, 18.0f};
+    DrawRectangleRec(aba, selecionado ? COR_TIJOLO : COR_TINTA);
+    ui_desenhar_texto(fonte_corpo_bold, arquivo,
+                      (Vector2){aba.x + 8.0f, aba.y + 4.0f}, 9.0f,
+                      selecionado ? COR_OSSO : COR_POEIRA);
+
+    Rectangle quadro = {area.x + 24.0f, area.y + 46.0f, area.width - 48.0f,
+                        244.0f};
+    DrawRectangleRec(quadro, COR_OSSO);
+    DrawRectangleLinesEx(quadro, 1.0f, COR_POEIRA);
+
+    Rectangle foto = {quadro.x + 8.0f, quadro.y + 8.0f, quadro.width - 16.0f,
+                      quadro.height - 16.0f};
+    if (retrato.id != 0) {
+        float escala_foto =
+            fmaxf(foto.width / (float)retrato.width,
+                  foto.height / (float)retrato.height);
+        float largura_origem = foto.width / escala_foto;
+        float altura_origem = foto.height / escala_foto;
+        Rectangle origem = {
+            (retrato.width - largura_origem) * 0.5f,
+            0.0f,
+            largura_origem,
+            altura_origem,
+        };
+        DrawTexturePro(retrato, origem, foto, (Vector2){0.0f, 0.0f}, 0.0f,
+                       WHITE);
+    }
+
+    float marca = 10.0f;
+    DrawLineEx((Vector2){quadro.x + 6, quadro.y + 6 + marca},
+               (Vector2){quadro.x + 6, quadro.y + 6}, 1.0f, COR_POEIRA);
+    DrawLineEx((Vector2){quadro.x + 6, quadro.y + 6},
+               (Vector2){quadro.x + 6 + marca, quadro.y + 6}, 1.0f,
+               COR_POEIRA);
+    DrawLineEx((Vector2){quadro.x + quadro.width - 6 - marca,
+                         quadro.y + 6},
+               (Vector2){quadro.x + quadro.width - 6, quadro.y + 6}, 1.0f,
+               COR_POEIRA);
+    DrawLineEx((Vector2){quadro.x + quadro.width - 6, quadro.y + 6},
+               (Vector2){quadro.x + quadro.width - 6, quadro.y + 6 + marca},
+               1.0f, COR_POEIRA);
+
+    Rectangle selo = {quadro.x + quadro.width - 142.0f,
+                      quadro.y + quadro.height - 34.0f, 126.0f, 24.0f};
+    DrawRectangleLinesEx(selo, 1.0f, COR_TIJOLO);
+    ui_desenhar_texto(fonte_corpo_bold, "HOMOLOGADO",
+                      (Vector2){selo.x + 8.0f, selo.y + 5.0f}, 10.0f,
+                      COR_TIJOLO);
+
+    ui_desenhar_texto(fonte_titulo, nome,
+                      (Vector2){area.x + 24.0f, area.y + 304.0f}, 28.0f,
+                      COR_TINTA);
+    ui_desenhar_texto(fonte_corpo_bold, perfil,
+                      (Vector2){area.x + 24.0f, area.y + 344.0f}, 11.0f,
+                      COR_TIJOLO);
+
+    DrawRectangle(area.x + 24, area.y + 366, area.width - 48, 1,
+                  (Color){138, 129, 117, 120});
+
+    Rectangle area_citacao = {area.x + 24.0f, area.y + 380.0f,
+                              area.width - 48.0f, 0.0f};
+    ui_desenhar_texto_quebrado(fonte_corpo, citacao, area_citacao, 13.0f,
+                               2.0f, COR_TINTA);
+
+    ui_desenhar_texto(fonte_corpo, descricao,
+                      (Vector2){area.x + 24.0f, area.y + 448.0f}, 11.0f,
+                      COR_TINTA);
+
+    if (selecionado) {
+        DrawRectangle(area.x + 24, area.y + 482, 4, 4, COR_TIJOLO);
+        DrawRectangle(area.x + 32, area.y + 482, 4, 4, COR_TIJOLO);
+        ui_desenhar_texto(fonte_corpo_bold, "POSIÇÃO SELECIONADA",
+                          (Vector2){area.x + 44.0f, area.y + 478.0f}, 9.0f,
+                          COR_TIJOLO);
+    }
+
+    rlPopMatrix();
 }
 
 static EntradaBotao ler_entrada_botao(void) {
@@ -338,9 +450,10 @@ int main(void) {
     recursos_carregar(&recursos);
 
     BotaoUI botoes_menu[TOTAL_OPCOES_MENU];
-    BotaoUI botoes_detetive[TOTAL_OPCOES_DETETIVE];
     BotaoUI botao_avancar_historia;
+    BotaoUI botao_iniciar_detetive;
     BotaoUI botao_voltar_partida;
+    float escalas_detetives[2] = {1.06f, 0.98f};
 
     inicializar_botoes(botoes_menu, ROTULOS_MENU, TOTAL_OPCOES_MENU,
                        96.0f, 470.0f);
@@ -348,13 +461,16 @@ int main(void) {
     botoes_menu[OPCAO_SAIR].area = (Rectangle){100.0f, 580.0f, 120.0f, 24.0f};
     botoes_menu[OPCAO_INICIAR].primario = true;
 
-    inicializar_botoes(botoes_detetive, ROTULOS_DETETIVE,
-                       TOTAL_OPCOES_DETETIVE,
-                       (LARGURA_TELA - LARGURA_BOTAO) / 2.0f, 300.0f);
-
     botao_avancar_historia = (BotaoUI){
         .area = {1016.0f, 616.0f, 200.0f, 56.0f},
         .rotulo = "AVANÇAR >",
+        .habilitado = true,
+        .primario = true,
+    };
+
+    botao_iniciar_detetive = (BotaoUI){
+        .area = {450.0f, 646.0f, 380.0f, 56.0f},
+        .rotulo = "INICIAR INVESTIGAÇÃO >",
         .habilitado = true,
         .primario = true,
     };
@@ -387,16 +503,18 @@ int main(void) {
                 quantidade_botoes = 1;
                 break;
             case TELA_DETETIVE:
-                botoes_atuais = botoes_detetive;
-                quantidade_botoes = TOTAL_OPCOES_DETETIVE;
+                botoes_atuais = NULL;
+                quantidade_botoes = 0;
                 break;
             case TELA_PARTIDA:
                 botoes_atuais = &botao_voltar_partida;
                 quantidade_botoes = 1;
                 break;
         }
-        selecionado =
-            atualizar_selecao(botoes_atuais, quantidade_botoes, selecionado);
+        if (quantidade_botoes > 0) {
+            selecionado = atualizar_selecao(botoes_atuais, quantidade_botoes,
+                                            selecionado);
+        }
 
         BeginDrawing();
         ClearBackground(COR_CARVAO);
@@ -423,34 +541,76 @@ int main(void) {
                 if (acionado == 0) {
                     tela = TELA_DETETIVE;
                     selecionado = 0;
+                    escalas_detetives[0] = 1.06f;
+                    escalas_detetives[1] = 0.98f;
                 }
                 break;
 
             case TELA_DETETIVE: {
                 desenhar_fundo_textura_com_vinheta(recursos.fundo_detetives,
-                                                   205);
+                                                   45);
                 desenhar_titulo_centralizado(
-                    &fonte_titulo, "ESCOLHA SEU DETETIVE", 74.0f,
-                    TAMANHO_TITULO_TELA, COR_OSSO);
+                    &fonte_titulo, "ESCOLHA SEU DETETIVE", 30.0f, 48.0f,
+                    COR_OSSO);
 
-                Rectangle instrucao = {0.0f, 150.0f, LARGURA_TELA, 34.0f};
-                ui_desenhar_texto_centralizado(
-                    &fonte_corpo, "Quem conduz a investigação?", instrucao,
-                    22.0f, COR_POEIRA);
+                float x0 = (LARGURA_TELA -
+                            (CARTA_LARGURA * 2.0f + CARTA_ESPACO)) *
+                           0.5f;
+                Rectangle areas[2] = {
+                    {x0, CARTA_TOPO, CARTA_LARGURA, CARTA_ALTURA},
+                    {x0 + CARTA_LARGURA + CARTA_ESPACO, CARTA_TOPO,
+                     CARTA_LARGURA, CARTA_ALTURA},
+                };
 
-                acionado = desenhar_botoes(
-                    &fonte_corpo_bold, botoes_detetive,
-                    TOTAL_OPCOES_DETETIVE, selecionado);
+                Vector2 mouse = GetMousePosition();
+                bool clique = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
-                if (acionado == OPCAO_VOLTAR) {
-                    tela = TELA_HISTORIA;
+                if (IsKeyPressed(KEY_LEFT)) {
                     selecionado = 0;
-                } else if (acionado == OPCAO_MISS_MARPLE ||
-                           acionado == OPCAO_HERCULE_POIROT) {
-                    int id_detetive =
-                        (acionado == OPCAO_MISS_MARPLE)
-                            ? ID_MISS_MARPLE
-                            : ID_HERCULE_POIROT;
+                }
+                if (IsKeyPressed(KEY_RIGHT)) {
+                    selecionado = 1;
+                }
+                for (int i = 0; i < 2; i++) {
+                    if (clique && CheckCollisionPointRec(mouse, areas[i])) {
+                        selecionado = i;
+                    }
+                }
+
+                float dt = GetFrameTime();
+                for (int i = 0; i < 2; i++) {
+                    bool hover = CheckCollisionPointRec(mouse, areas[i]);
+                    float alvo = (i == selecionado)
+                                     ? 1.06f
+                                     : (hover ? 1.02f : 0.98f);
+                    float suavizacao = 1.0f - expf(-14.0f * dt);
+                    escalas_detetives[i] +=
+                        (alvo - escalas_detetives[i]) * suavizacao;
+                }
+
+                int ordem[2] = {
+                    (selecionado == 0) ? 1 : 0,
+                    (selecionado == 0) ? 0 : 1,
+                };
+                for (int k = 0; k < 2; k++) {
+                    int i = ordem[k];
+                    desenhar_card_detetive(
+                        &fonte_titulo, &fonte_corpo, &fonte_corpo_bold,
+                        &recursos, i, areas[i], escalas_detetives[i],
+                        i == selecionado);
+                }
+
+                bool clicou_iniciar = ui_desenhar_botao(
+                    &fonte_corpo_bold, &botao_iniciar_detetive, false);
+                bool confirmar = clicou_iniciar ||
+                                 IsKeyPressed(KEY_ENTER) ||
+                                 IsKeyPressed(KEY_KP_ENTER) ||
+                                 IsKeyPressed(KEY_SPACE);
+
+                if (confirmar) {
+                    int id_detetive = (selecionado == 0)
+                                          ? ID_MISS_MARPLE
+                                          : ID_HERCULE_POIROT;
                     if (iniciar_jogo(&jogo, id_detetive)) {
                         jogo_ativo = true;
                         erro_inicio = NULL;
@@ -464,9 +624,9 @@ int main(void) {
                 }
 
                 if (erro_inicio != NULL) {
-                    Rectangle area_erro = {0.0f, 630.0f, LARGURA_TELA, 28.0f};
+                    Rectangle area_erro = {0.0f, 704.0f, LARGURA_TELA, 16.0f};
                     ui_desenhar_texto_centralizado(
-                        &fonte_corpo, erro_inicio, area_erro, 18.0f,
+                        &fonte_corpo, erro_inicio, area_erro, 13.0f,
                         COR_TIJOLO);
                 }
                 break;
