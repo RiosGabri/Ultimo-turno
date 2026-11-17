@@ -88,7 +88,7 @@ static void listar_vivos(const Jogo *jogo) {
         const Suspeito *suspeito = (const Suspeito *)no->dado;
         if (suspeito != NULL && suspeito->situacao == VIVO) {
             // A interface usa 1..6; o 0 fica reservado para cancelar/não prender.
-            printf("  %d - %s (%s)\n", suspeito->id + 1, suspeito->nome, suspeito->cargo);
+            printf("  %d - %s\n", suspeito->id + 1, suspeito->nome);
         }
         no = no->prox;
     } while (no != jogo->suspeitos->inicio);
@@ -105,10 +105,7 @@ static void listar_todos_suspeitos(const Jogo *jogo) {
         const Suspeito *suspeito = (const Suspeito *)no->dado;
 
         if (suspeito != NULL) {
-            printf("  %d - %s (%s)\n",
-                   suspeito->id + 1,
-                   suspeito->nome,
-                   suspeito->cargo);
+            printf("  %d - %s\n", suspeito->id + 1, suspeito->nome);
         }
 
         no = no->prox;
@@ -473,7 +470,7 @@ static void jogar_debate(Jogo *jogo) {
         return;
     }
 
-    printf("\nDEBATE — vez de %s (%s).\n", falante->nome, falante->cargo);
+    printf("\nDEBATE — vez de %s.\n", falante->nome);
     printf("  [1] Interrogar\n");
     printf("  [2] Abrir caderno\n");
     printf("  [3] Encerrar debate\n> ");

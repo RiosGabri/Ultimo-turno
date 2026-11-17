@@ -10,16 +10,14 @@
 // ---------------------------------------------------------------------------
 // Conteúdo base
 // ---------------------------------------------------------------------------
-static const struct {
-    const char *nome;
-    const char *cargo;
-} DADOS_SUSPEITOS[TOTAL_SUSPEITOS] = {
-    [ID_GERENTE]    = {"Almeida", "Gerente"},
-    [ID_CAPATAZ]    = {"Bastos",  "Capataz"},
-    [ID_ENGENHEIRO] = {"Costa",   "Engenheiro"},
-    [ID_OPERARIO]   = {"Dias",    "Operário"},
-    [ID_ENFERMEIRA] = {"Esteves", "Enfermeira"},
-    [ID_VIGIA]      = {"Farias",  "Vigia noturno"},
+
+static const char *const NOMES_SUSPEITOS[TOTAL_SUSPEITOS] = {
+    [ID_GERENTE]    = "Gerente",
+    [ID_CAPATAZ]    = "Capataz",
+    [ID_ENGENHEIRO] = "Engenheiro",
+    [ID_OPERARIO]   = "Operário",
+    [ID_ENFERMEIRA] = "Enfermeira",
+    [ID_VIGIA]      = "Vigia noturno",
 };
 
 static const struct {
@@ -267,10 +265,7 @@ int iniciar_jogo_com_semente(Jogo *jogo, int id_detetive, unsigned int semente) 
     }
 
     for (int id = 0; id < TOTAL_SUSPEITOS; id++) {
-        carregar_suspeito(jogo->suspeitos, id,
-                          (char *)DADOS_SUSPEITOS[id].nome,
-                          (char *)DADOS_SUSPEITOS[id].cargo,
-                          VIVO, INOCENTE);
+        carregar_suspeito(jogo->suspeitos, id,(char *)NOMES_SUSPEITOS[id], (char *)NOMES_SUSPEITOS[id], VIVO, INOCENTE);
     }
 
     if (contar_vivos(jogo->suspeitos) != TOTAL_SUSPEITOS) {
