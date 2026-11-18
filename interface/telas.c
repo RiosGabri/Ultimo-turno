@@ -5,6 +5,7 @@
 
 #include "interface/telas/tela_caderno.h"
 #include "interface/telas/tela_debate.h"
+#include "interface/telas/tela_julgamento.h"
 #include "paleta.h"
 #include "rlgl.h"
 
@@ -26,6 +27,7 @@ typedef enum {
     TELA_DETETIVE,
     TELA_MANHA,
     TELA_DEBATE,
+    TELA_JULGAMENTO,
     TELA_CADERNO,
     TELA_INTERLUDIO
 } Tela;
@@ -446,6 +448,7 @@ static Recursos recursos;
 static RenderTexture2D canvas;
 static bool canvas_pronto;
 static TelaDebate debate;
+static TelaJulgamento julgamento;
 
 static BotaoUI botoes_menu[TOTAL_OPCOES_MENU];
 static BotaoUI botao_avancar_historia;
@@ -487,6 +490,23 @@ static void desenhar_manha(void) {
 static void configurar_botoes_interludio(void) {
     bool final = jogo_terminou(&jogo) ||
                  jogo.dia.fase_atual == FASE_FINALIZADO;
+    if (final) {
+        botoes_interludio[0] = (BotaoUI){
+            .area = {96.0f, 650.0f, 296.0f, 56.0f},
+            .rotulo = "JOGAR DE NOVO",
+            .habilitado = true,
+            .primario = true,
+        };
+
+        botoes_interludio[1] = (BotaoUI){
+            .area = {888.0f, 650.0f, 296.0f, 56.0f},
+            .rotulo = "SAIR",
+            .habilitado = true,
+            .primario = false,
+        };
+
+        return;
+    }
 
     botoes_interludio[0] = (BotaoUI){
         .area = final ? (Rectangle){888.0f, 650.0f, 296.0f, 56.0f}
@@ -553,9 +573,44 @@ static void desenhar_interludio(void) {
             texto = "O caso chegou ao fim.";
         }
 
-        Rectangle area_texto = {120.0f, 252.0f, 1040.0f, 200.0f};
-        ui_desenhar_texto_quebrado(&fonte_corpo, texto, area_texto, 19.0f,
-                                   7.0f, COR_PAPEL);
+        Rectangle area_texto = {120.0f, 252.0f, 1040.0f, 140.0f};
+        ui_desenhar_texto_quebrado(
+            &fonte_corpo,
+            texto,
+            area_texto,
+            17.0f,
+            5.0f,
+            COR_PAPEL
+        );
+        const Suspeito *assassino = buscar_suspeito(
+            &jogo, jogo.papeis.id_assassino
+        );
+
+        const Suspeito *cumplice = buscar_suspeito(
+            &jogo, jogo.papeis.id_cumplice
+        );
+
+        ui_desenhar_texto(
+            &fonte_corpo_bold,
+            TextFormat(
+                "ASSASSINO: %s",
+                assassino != NULL ? assassino->nome : "Desconhecido"
+            ),
+            (Vector2){120.0f, 400.0f},
+            19.0f,
+            COR_TIJOLO
+        );
+
+        ui_desenhar_texto(
+            &fonte_corpo_bold,
+            TextFormat(
+                "CUMPLICE: %s",
+                cumplice != NULL ? cumplice->nome : "Desconhecido"
+            ),
+            (Vector2){120.0f, 432.0f},
+            19.0f,
+            COR_OSSO
+        );
 
         char pontos[64];
         snprintf(pontos, sizeof(pontos), "PONTUAÇÃO: %d",
@@ -570,14 +625,43 @@ static void desenhar_interludio(void) {
                           (Vector2){120.0f, 260.0f}, 30.0f, COR_OSSO);
 
         DrawRectangle(120, 312, 1040, 1, (Color){138, 129, 117, 110});
-
         Rectangle area_texto = {120.0f, 332.0f, 1040.0f, 150.0f};
-        ui_desenhar_texto_quebrado(
-            &fonte_corpo,
-            "A tela desta fase ainda está em construção (issue #23).\n\n"
-            "Use Avançar para continuar o fluxo. O estado do jogo, os "
-            "suspeitos e o caderno são preservados.",
-            area_texto, 17.0f, 6.0f, COR_PAPEL);
+
+        if (jogo.dia.fase_atual == FASE_NOITE) {
+            const char *mensagem = "A noite passou sem novas vitimas.";
+
+            if (jogo.ultima_vitima != NENHUM) {
+                Suspeito *vitima = buscar_suspeito(
+                    &jogo, jogo.ultima_vitima
+                );
+
+                if (vitima != NULL) {
+                    mensagem = TextFormat(
+                        "Vitima da noite: %s.",
+                        vitima->nome
+                    );
+                }
+            }
+
+            ui_desenhar_texto_quebrado(
+                &fonte_corpo,
+                mensagem,
+                area_texto,
+                22.0f,
+                6.0f,
+                COR_PAPEL
+            );
+        } else {
+            ui_desenhar_texto_quebrado(
+                &fonte_corpo,
+                "A tela desta fase ainda esta em construcao.",
+                area_texto,
+                17.0f,
+                6.0f,
+                COR_PAPEL
+            );
+        }
+
     }
 }
 
@@ -670,6 +754,28 @@ void telas_executar(void) {
             selecionado = 0;
         } else if (acao == TELA_DEBATE_ENCERRAR) {
             avancar_fase_jogo(&jogo);
+
+            if (jogo.dia.fase_atual == FASE_JULGAMENTO) {
+                tela_julgamento_iniciar(&julgamento, &jogo, &recursos);
+                tela = TELA_JULGAMENTO;
+            } else {
+                configurar_botoes_interludio();
+                tela = TELA_INTERLUDIO;
+            }
+
+            selecionado = 0;
+        }
+
+    }
+
+    if (tela == TELA_JULGAMENTO) {
+        AcaoJulgamento acao = tela_julgamento_atualizar(&julgamento);
+
+        if (acao == JULGAMENTO_CONTINUAR) {
+            if (jogo.dia.fase_atual != FASE_FINALIZADO) {
+                avancar_fase_jogo(&jogo);
+            }
+
             configurar_botoes_interludio();
             tela = TELA_INTERLUDIO;
             selecionado = 0;
@@ -698,6 +804,11 @@ void telas_executar(void) {
             break;
         case TELA_DEBATE:
             // Os botões do debate são atualizados em tela_debate_atualizar.
+            botoes_atuais = NULL;
+            quantidade_botoes = 0;
+            break;
+        case TELA_JULGAMENTO:
+            // O julgamento gerencia seus próprios botões.
             botoes_atuais = NULL;
             quantidade_botoes = 0;
             break;
@@ -865,6 +976,14 @@ void telas_executar(void) {
             tela_debate_desenhar(&debate, &fonte_titulo, &fonte_corpo,
                                  &fonte_corpo_bold);
             break;
+        case TELA_JULGAMENTO:
+            tela_julgamento_desenhar(
+                &julgamento,
+                &fonte_titulo,
+                &fonte_corpo,
+                &fonte_corpo_bold
+            );
+            break;
 
         case TELA_CADERNO:
             if (tela_caderno_atualizar_desenhar(&fonte_corpo, jogo.caderno)) {
@@ -875,14 +994,30 @@ void telas_executar(void) {
 
         case TELA_INTERLUDIO:
             desenhar_interludio();
-            acionado = desenhar_botoes(&fonte_corpo_bold,
-                                       botoes_interludio, 2, selecionado);
+            acionado = desenhar_botoes(&fonte_corpo_bold,botoes_interludio, 2, selecionado);
             if (acionado == 0) {
+                bool partida_finalizada =
+                    jogo_terminou(&jogo) ||
+                    jogo.dia.fase_atual == FASE_FINALIZADO;
+
                 liberar_jogo(&jogo);
                 jogo_ativo = false;
-                tela = TELA_MENU;
                 selecionado = 0;
-            } else if (acionado == 1) {
+
+                if (partida_finalizada) {
+                    tela = TELA_DETETIVE;
+                    erro_inicio = NULL;
+                } else {
+                    tela = TELA_MENU;
+                }
+        } else if (acionado == 1) {
+            bool partida_finalizada =
+                jogo_terminou(&jogo) ||
+                jogo.dia.fase_atual == FASE_FINALIZADO;
+
+            if (partida_finalizada) {
+                fechar = true;
+            } else {
                 avancar_fase_jogo(&jogo);
                 if (jogo.dia.fase_atual == FASE_MANHA) {
                     tela = TELA_MANHA;
@@ -891,6 +1026,7 @@ void telas_executar(void) {
                 }
                 selecionado = 0;
             }
+        }
             break;
     }
 

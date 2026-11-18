@@ -90,6 +90,7 @@ if(ULTIMO_TURNO_BUILD_JOGO)
         interface/recursos.c
         interface/telas.c
         interface/telas/tela_debate.c
+        interface/telas/tela_julgamento.c
         jogo.c
         dia.c
         ${ULTIMO_TURNO_ESTRUTURAS}
