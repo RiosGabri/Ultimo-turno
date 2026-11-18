@@ -1,5 +1,5 @@
 
-#include "tela_caderno.h"
+#include "interface/telas/tela_caderno.h"
 #include "paleta.h"
 #include <stdio.h>
 

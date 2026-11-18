@@ -3,11 +3,10 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "interface/telas/tela_caderno.h"
 #include "interface/telas/tela_debate.h"
 #include "paleta.h"
 #include "rlgl.h"
-
-#include "tela_caderno.h"
 
 #define LARGURA_TELA TELAS_LARGURA
 #define ALTURA_TELA TELAS_ALTURA

@@ -1,7 +1,7 @@
 #ifndef TELA_CADERNO_H
 #define TELA_CADERNO_H
 
-#include "ui.h"
+#include "interface/ui.h"
 #include "entidades/caderno.h"
 
 // Desenha a tela do caderno e processa suas interações.
