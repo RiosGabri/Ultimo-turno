@@ -80,6 +80,14 @@ jobs:
       - name: Rodar os testes (inclui fonte e acentos)
         run: ctest --test-dir build -C Release --output-on-failure
 
+      # Garante que o alvo `make jogo` também continua compilando: o CMake e o
+      # Makefile mantêm listas de fontes separadas, então uma divergência entre
+      # elas (ex.: arquivo novo esquecido no JOGO_SRCS) só aparece aqui.
+      # Usa BUILD separado para não sobrescrever o binário gerado pelo CMake.
+      - name: Compilar o jogo pelo Makefile (Linux)
+        if: runner.os == 'Linux'
+        run: make BUILD=build-make jogo
+
       - name: Empacotar
         shell: bash
         run: |

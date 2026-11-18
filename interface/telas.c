@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "interface/telas/tela_caderno.h"
 #include "interface/telas/tela_debate.h"
 #include "paleta.h"
 #include "rlgl.h"
@@ -34,6 +35,12 @@ typedef enum {
     OPCAO_SAIR,
     TOTAL_OPCOES_MENU
 } OpcaoMenu;
+
+typedef enum {
+    OPCAO_ABRIR_CADERNO,
+    OPCAO_IR_DEBATE,
+    TOTAL_OPCOES_MANHA
+} OpcaoManha;
 
 static const char *ROTULOS_MENU[TOTAL_OPCOES_MENU] = {
     [OPCAO_INICIAR] = "Iniciar investigação",
@@ -425,6 +432,7 @@ static void desenhar_menu(const UIFonte *fonte_titulo,
 }
 
 static Tela tela = TELA_MENU;
+static Tela tela_origem_caderno = TELA_MANHA;
 static int selecionado = 0;
 static bool fechar = false;
 static bool jogo_ativo = false;
@@ -442,8 +450,7 @@ static TelaDebate debate;
 static BotaoUI botoes_menu[TOTAL_OPCOES_MENU];
 static BotaoUI botao_avancar_historia;
 static BotaoUI botao_iniciar_detetive;
-static BotaoUI botao_manha;
-static BotaoUI botao_voltar_caderno;
+static BotaoUI botoes_manha[TOTAL_OPCOES_MANHA];
 static BotaoUI botoes_interludio[2];
 
 static float escalas_detetives[2] = {1.06f, 0.98f};
@@ -476,51 +483,6 @@ static void desenhar_manha(void) {
                                descricao, 17.0f, 4.0f, COR_PAPEL);
 }
 
-static void desenhar_caderno(void) {
-    desenhar_fundo_textura_com_vinheta(recursos.fundo_detetives, 150);
-
-    DrawRectangle(96, 68, 28, 2, COR_TIJOLO);
-    ui_desenhar_texto(&fonte_corpo_bold, "ARQUIVO",
-                      (Vector2){96.0f, 80.0f}, 13.0f, COR_TIJOLO);
-    ui_desenhar_texto(&fonte_titulo, "CADERNO DE CAMPO",
-                      (Vector2){96.0f, 104.0f}, 52.0f, COR_OSSO);
-
-    Rectangle painel = {96.0f, 220.0f, 1088.0f, 360.0f};
-    DrawRectangleRec(painel, COR_TINTA);
-    DrawRectangleLinesEx(painel, 1.0f, COR_POEIRA);
-    DrawRectangle((int)painel.x, (int)painel.y, (int)painel.width, 4,
-                  COR_TIJOLO);
-
-    int depoimentos = 0;
-    int contradicoes = 0;
-    int pistas = 0;
-    if (jogo.caderno != NULL) {
-        depoimentos = jogo.caderno->depoimentos.tamanho;
-        contradicoes = jogo.caderno->contradicoes.tamanho;
-        pistas = jogo.caderno->pistas.tamanho;
-    }
-
-    ui_desenhar_texto(&fonte_corpo_bold, "REGISTROS",
-                      (Vector2){120.0f, 244.0f}, 11.0f, COR_POEIRA);
-
-    char resumo[160];
-    snprintf(resumo, sizeof(resumo),
-             "%d depoimentos · %d contradições · %d pistas",
-             depoimentos, contradicoes, pistas);
-    ui_desenhar_texto(&fonte_titulo, resumo,
-                      (Vector2){120.0f, 262.0f}, 30.0f, COR_OSSO);
-
-    DrawRectangle(120, 312, 1040, 1, (Color){138, 129, 117, 110});
-
-    Rectangle area_texto = {120.0f, 332.0f, 1040.0f, 220.0f};
-    ui_desenhar_texto_quebrado(
-        &fonte_corpo,
-        "A consulta completa ao caderno ainda não tem tela (issue #22).\n\n"
-        "Por enquanto, depoimentos, reações e contradições continuam sendo "
-        "registrados pelo debate. Volte ao debate para interrogar outro "
-        "suspeito ou encerrar a roda do dia.",
-        area_texto, 16.0f, 6.0f, COR_PAPEL);
-}
 
 static void configurar_botoes_interludio(void) {
     bool final = jogo_terminou(&jogo) ||
@@ -664,16 +626,16 @@ void telas_iniciar(void) {
         .primario = true,
     };
 
-    botao_manha = (BotaoUI){
-        .area = {900.0f, 620.0f, 300.0f, 56.0f},
-        .rotulo = "IR PARA O DEBATE >",
+    botoes_manha[OPCAO_ABRIR_CADERNO] = (BotaoUI){
+        .area = {96.0f, 620.0f, 260.0f, 56.0f},
+        .rotulo = "ABRIR CADERNO",
         .habilitado = true,
-        .primario = true,
+        .primario = false,
     };
 
-    botao_voltar_caderno = (BotaoUI){
-        .area = {888.0f, 650.0f, 296.0f, 56.0f},
-        .rotulo = "VOLTAR AO DEBATE",
+    botoes_manha[OPCAO_IR_DEBATE] = (BotaoUI){
+        .area = {900.0f, 620.0f, 300.0f, 56.0f},
+        .rotulo = "IR PARA O DEBATE >",
         .habilitado = true,
         .primario = true,
     };
@@ -703,6 +665,7 @@ void telas_executar(void) {
     if (tela == TELA_DEBATE) {
         AcaoDebate acao = tela_debate_atualizar(&debate);
         if (acao == TELA_DEBATE_ABRIR_CADERNO) {
+            tela_origem_caderno = TELA_DEBATE;
             tela = TELA_CADERNO;
             selecionado = 0;
         } else if (acao == TELA_DEBATE_ENCERRAR) {
@@ -730,8 +693,8 @@ void telas_executar(void) {
             quantidade_botoes = 0;
             break;
         case TELA_MANHA:
-            botoes_atuais = &botao_manha;
-            quantidade_botoes = 1;
+            botoes_atuais = botoes_manha;
+            quantidade_botoes = TOTAL_OPCOES_MANHA;
             break;
         case TELA_DEBATE:
             // Os botões do debate são atualizados em tela_debate_atualizar.
@@ -739,8 +702,9 @@ void telas_executar(void) {
             quantidade_botoes = 0;
             break;
         case TELA_CADERNO:
-            botoes_atuais = &botao_voltar_caderno;
-            quantidade_botoes = 1;
+             // O caderno gerencia seus próprios botões.
+            botoes_atuais = NULL;
+            quantidade_botoes = 0;
             break;
         case TELA_INTERLUDIO:
             botoes_atuais = botoes_interludio;
@@ -849,6 +813,7 @@ void telas_executar(void) {
                 int id_detetive = (selecionado == 0) ? ID_MISS_MARPLE
                                                      : ID_HERCULE_POIROT;
                 if (iniciar_jogo(&jogo, id_detetive)) {
+                    tela_caderno_iniciar_monitoramento(jogo.caderno);
                     jogo_ativo = true;
                     erro_inicio = NULL;
                     tela = TELA_MANHA;
@@ -870,10 +835,21 @@ void telas_executar(void) {
 
         case TELA_MANHA:
             desenhar_manha();
+
             acionado = desenhar_botoes(
-                &fonte_corpo_bold, &botao_manha, 1, selecionado);
-            if (acionado == 0) {
+                &fonte_corpo_bold,
+                botoes_manha,
+                TOTAL_OPCOES_MANHA,
+                selecionado
+            );
+
+                if (acionado == OPCAO_ABRIR_CADERNO) {
+                    tela_origem_caderno = TELA_MANHA;
+                    tela = TELA_CADERNO;
+                    selecionado = 0;
+                }else if (acionado == OPCAO_IR_DEBATE) {
                 avancar_fase_jogo(&jogo);
+
                 if (jogo.dia.fase_atual == FASE_DEBATE) {
                     tela_debate_iniciar(&debate, &jogo, &recursos);
                     tela = TELA_DEBATE;
@@ -885,19 +861,14 @@ void telas_executar(void) {
                 }
             }
             break;
-
         case TELA_DEBATE:
             tela_debate_desenhar(&debate, &fonte_titulo, &fonte_corpo,
                                  &fonte_corpo_bold);
             break;
 
         case TELA_CADERNO:
-            desenhar_caderno();
-            acionado = desenhar_botoes(&fonte_corpo_bold,
-                                       &botao_voltar_caderno, 1,
-                                       selecionado);
-            if (acionado == 0) {
-                tela = TELA_DEBATE;
+            if (tela_caderno_atualizar_desenhar(&fonte_corpo, jogo.caderno)) {
+                tela = tela_origem_caderno;
                 selecionado = 0;
             }
             break;
