@@ -1,12 +1,14 @@
-<img src="assets/logo.png">
+<img src="assets/logo.png" alt="Logotipo de O Último Turno">
+
+# O Último Turno
 
 Jogo de investigação (*whodunit*) em linguagem C, feito para a atividade prática da disciplina de Algoritmos e Estrutura de Dados (AED 2026.2, CESAR School).
 
 ## Sobre o jogo
 
-Um operário de *Tempos Modernos*, Chaplin, é encontrado morto ao fim do turno na fábrica. O jogador conduz a investigação como **Hercule Poirot** ou **Miss Marple** e tem **4 dias** para descobrir o culpado entre os suspeitos.
+Um operário de *Tempos Modernos*, Chaplin, é encontrado morto ao fim do turno na sala de máquinas da fábrica. O jogador conduz a investigação como **Miss Marple** ou **Hercule Poirot** e tem **4 dias** para descobrir o culpado entre os suspeitos.
 
-O assassino está entre os suspeitos e age nas noites seguintes à primeira, que passa sem mortes. Todo dia há um debate: o jogador interroga, os outros suspeitos reagem, e ele decide se prende alguém. Prender um inocente custa credibilidade. Chegar ao dia 4 sem prender o culpado é game over.
+O assassino está entre os suspeitos e age nas noites seguintes à primeira, que passa sem mortes. Todo dia há um debate: o jogador interroga, os outros suspeitos reagem e ele decide se prende alguém. Prender um inocente custa credibilidade. Chegar ao dia 4 sem prender o culpado é game over.
 
 ## Objetivo
 
@@ -15,67 +17,211 @@ Descobrir quem matou Chaplin, usando o caderno de pistas e depoimentos, antes qu
 ## Como funciona (resumo)
 
 - **Duração:** 4 dias.
-- **Suspeitos:** 6 no início (exemplo: Gerente, Capataz, Engenheiro, Operária, Enfermeiro e Vigia noturno), com 1 assassino e, possivelmente, 1 cúmplice.
+- **Suspeitos:** 6 no início (Gerente, Capataz, Engenheiro, Operário, Enfermeira e Vigia noturno), com 1 assassino e, possivelmente, 1 cúmplice.
 - **Cada dia tem 4 fases:** Manhã (resumo e pista), Debate, Julgamento e Noite. A primeira noite passa sem mortes.
 - **Debate:** os turnos seguem uma volta completa na lista de suspeitos vivos. O jogador pergunta, o suspeito responde e os demais reagem com "Concordo" ou "Discordo".
-- **Credibilidade:** começa em 100. Prender o inocente custa pontos, e chegar a 0 é game over.
-- **Cúmplice:** se existir, prendê-lo não vence; custa 15 de credibilidade e revela uma pista verdadeira sobre o assassino.
-- **Pontuação:** cada dia ainda não usado vale 200 pontos, cada ponto de credibilidade restante vale 10 e cada contradição encontrada no caderno vale 50; fechar o caso em vitória soma 3000. O total aparece no cabeçalho do terminal durante a partida e na tela final, junto com o texto do desfecho.
-- **Caderno:** registra depoimentos, pistas e reações, e destaca contradições.
+- **Credibilidade:** começa em **75**. Prender um inocente custa **25** pontos; prender o cúmplice custa **15**. Chegar a 0 é game over.
+- **Cúmplice:** se existir, prendê-lo não vence: custa 15 de credibilidade e revela uma pista verdadeira sobre o assassino.
+- **Pontuação:** cada dia ainda não usado vale 200 pontos, cada ponto de credibilidade restante vale 10 e cada contradição encontrada no caderno vale 50; fechar o caso em vitória soma 3000. O total aparece no cabeçalho da partida e na tela final, junto com o texto do desfecho.
+- **Caderno:** registra depoimentos, pistas e reações, destaca contradições e permite ordenar evidências.
 
-## Estruturas de dados e algoritmo de ordenação
+## Estruturas de dados e algoritmos
 
 | Item | Onde é usado |
 |---|---|
 | Lista circular duplamente encadeada | Ordem dos turnos dos suspeitos no debate |
-| Lista simplesmente encadeada | Suspeitos, evidências e registros do caderno |
+| Lista duplamente encadeada | Seções e registros do caderno |
+| Lista simplesmente encadeada | Resultados filtrados do caderno |
+| Matriz de agenda `[dia][período][suspeito]` | Locais de cada suspeito e local do crime |
+| Gerador xorshift32 | Papéis, agenda e vítimas reproduzíveis a partir de uma semente |
 | Bubble sort | Ordenação das evidências |
 
 ## Tecnologias
 
-- Linguagem **C**
-- Interface: terminal (protótipo jogável) e raylib 6.2 (menu inicial em desenvolvimento)
+- Linguagem **C11**.
+- **raylib 6.2** (submodule) para a interface gráfica; canvas virtual de 1280×720, redimensionável e com tela cheia (F11).
+- Interface de terminal completa como alternativa sem dependências gráficas.
+- Build com **Makefile** (Linux) e **CMake 3.22+** (Windows, Linux e macOS).
 
-## Como compilar e executar
+## Jogar sem compilar (release)
 
-### Dependências
+Se você só quer jogar, baixe um pacote pronto na aba [**Releases**](https://github.com/RiosGabri/Ultimo-turno/releases) do GitHub: abra a release mais recente e expanda **Assets** para ver os arquivos. Não é preciso instalar compilador, CMake, Git nem a raylib: o pacote já contém o executável e, na versão gráfica, a pasta `assets/`. Use sempre a release mais recente (no momento desta atualização, `v0.2.0-alpha.63`); as publicações atuais são pré-releases.
 
-- Compilador C (GCC, Clang ou MSVC) e Git
-- `make` no Linux/macOS **ou** CMake 3.22+ (recomendado no Windows)
-- Bibliotecas de desenvolvimento do X11/OpenGL, usadas apenas pela raylib no Linux
+| Sistema | Interface gráfica | Terminal |
+|---|---|---|
+| Windows | `ultimo-turno-grafico-windows-<versão>.zip` | `ultimo-turno-windows-<versão>.zip` |
+| Linux | `ultimo-turno-grafico-linux-<versão>.tar.gz` | `ultimo-turno-linux-<versão>.tar.gz` |
+| macOS | `ultimo-turno-grafico-macos-<versão>.tar.gz` | `ultimo-turno-macos-<versão>.tar.gz` |
 
-No Debian/Ubuntu/Linux Mint:
+**Windows:** extraia o `.zip` com o botão direito do mouse em *Extrair Tudo* (ou use o PowerShell) e execute `jogo.exe` com duplo clique; no pacote do terminal, execute `jogo-terminal.exe`.
 
-```sh
-sudo apt install build-essential git libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+```powershell
+Expand-Archive .\ultimo-turno-grafico-windows-v0.2.0-alpha.63.zip -DestinationPath .\ultimo-turno
+cd .\ultimo-turno
+.\jogo.exe
+# No pacote somente do terminal: .\jogo-terminal.exe
 ```
 
-### Passos
+**Linux e macOS:** extraia o `.tar.gz` dentro de uma pasta nova e execute o binário. Se o sistema não preservou a permissão de execução, rode `chmod +x` antes.
 
-> No Windows, use a seção **Com CMake** abaixo: ela não depende de `make`.
+```sh
+mkdir ultimo-turno
+tar -xzf ultimo-turno-grafico-linux-v0.2.0-alpha.63.tar.gz -C ultimo-turno
+cd ultimo-turno
+chmod +x jogo          # somente se necessário
+./jogo
+# No pacote somente do terminal: ./jogo-terminal
+```
 
-Clone o repositório já com os submódulos:
+No macOS, se o sistema bloquear a abertura por ser um binário não assinado, use *Ajustes do Sistema → Privacidade e Segurança → Abrir mesmo assim* (ou `xattr -d com.apple.quarantine ./jogo`). No Linux, a versão gráfica ainda precisa das bibliotecas gráficas/X11 do sistema em tempo de execução, normalmente já presentes em um desktop; `jogo-terminal` não tem essa exigência.
+
+## Compilando a partir do código-fonte
+
+O projeto tem dois executáveis:
+
+- `jogo` — interface gráfica (raylib): menu, história, escolha do detetive, manhã, debate, caderno, julgamento, noite e tela final.
+- `jogo-terminal` — partida completa no terminal, sem raylib.
+
+O código da raylib está no submodule `raylib/`, fixado na tag **6.2**. Clone já com os submódulos:
 
 ```sh
 git clone --recurse-submodules https://github.com/RiosGabri/Ultimo-turno.git
 ```
 
-Se o repositório já foi clonado, baixe os submódulos com:
+Se o repositório já foi clonado sem eles:
 
 ```sh
-make submodules
+git submodule update --init --recursive
 ```
 
-Compile e execute:
+> A pasta `assets/` (fontes, imagens e logotipo) deve acompanhar o executável gráfico. O CMake já a copia para junto do binário; com o Makefile, execute o jogo a partir da raiz do repositório.
+
+### Windows
+
+Use o CMake; o Makefile não é suportado no Windows.
+
+1. Instale o **CMake 3.22+**, o **Git for Windows** e o **Visual Studio 2022** com a carga de trabalho *Desenvolvimento para desktop com C++*.
+2. No **PowerShell** (ou no Git Bash), clone o repositório com os submódulos e entre na pasta:
+
+   ```powershell
+   git clone --recurse-submodules https://github.com/RiosGabri/Ultimo-turno.git
+   cd Ultimo-turno
+   ```
+
+3. Configure e compile em Release:
+
+   ```powershell
+   cmake -S . -B build-cmake
+   cmake --build build-cmake --config Release
+   ```
+
+4. Execute:
+
+   ```powershell
+   .\build-cmake\Release\jogo.exe          # interface gráfica
+   .\build-cmake\Release\jogo-terminal.exe # interface de terminal
+   ```
+
+Para gerar **apenas o terminal** (sem baixar/compilar a raylib):
+
+```powershell
+cmake -S . -B build-cmake -DULTIMO_TURNO_BUILD_JOGO=OFF
+cmake --build build-cmake --config Release
+.\build-cmake\Release\jogo-terminal.exe
+```
+
+Testes:
+
+```powershell
+ctest --test-dir build-cmake -C Release --output-on-failure
+```
+
+O terminal ajusta automaticamente a página de código do console para UTF-8, para os acentos aparecerem corretamente.
+
+### Linux
+
+Dependências no Debian/Ubuntu/Linux Mint (as bibliotecas X11/OpenGL são necessárias apenas para a raylib):
 
 ```sh
-make
+sudo apt install build-essential git cmake libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+```
+
+Clone com os submódulos e entre na pasta:
+
+```sh
+git clone --recurse-submodules https://github.com/RiosGabri/Ultimo-turno.git
+cd Ultimo-turno
+```
+
+**Com Makefile** (a partir da raiz do repositório):
+
+```sh
+make                 # compila a raylib e o jogo gráfico
 ./build/jogo
+
+make terminal        # compila somente o terminal
+./build/jogo-terminal
+
+make run             # compila e roda o jogo-terminal
 ```
 
-O primeiro `make` compila a **raylib** a partir do submódulo (`raylib/`) e gera `raylib/src/libraylib.a`. O jogo é então compilado e linkado contra essa biblioteca local, sem depender de uma instalação do sistema.
+**Com CMake** (alternativa para os dois executáveis):
 
-Outros comandos:
+```sh
+cmake -S . -B build-cmake
+cmake --build build-cmake
+./build-cmake/jogo
+./build-cmake/jogo-terminal
+```
+
+Em Fedora/RHEL, substitua a instalação por `sudo dnf install gcc git cmake libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel mesa-libGL-devel`.
+
+### macOS
+
+O Makefile usa `-lGL`/`-lX11` e não se aplica ao macOS; use o CMake (a raylib é linkada contra os frameworks do sistema).
+
+1. Instale as ferramentas de compilação e o CMake:
+
+   ```sh
+   xcode-select --install
+   brew install cmake   # se ainda não tiver o CMake
+   ```
+
+2. Clone com os submódulos e compile:
+
+   ```sh
+   git clone --recurse-submodules https://github.com/RiosGabri/Ultimo-turno.git
+   cd Ultimo-turno
+   cmake -S . -B build-cmake
+   cmake --build build-cmake
+   ```
+
+3. Execute:
+
+   ```sh
+   ./build-cmake/jogo
+   ./build-cmake/jogo-terminal
+   ```
+
+Para usar o gerador do Xcode:
+
+```sh
+cmake -S . -B build-cmake -G Xcode
+cmake --build build-cmake --config Release
+./build-cmake/Release/jogo
+./build-cmake/Release/jogo-terminal
+```
+
+Em qualquer sistema, para gerar só o terminal e os testes sem a raylib:
+
+```sh
+cmake -S . -B build-cmake -DULTIMO_TURNO_BUILD_JOGO=OFF
+cmake --build build-cmake
+```
+
+### Testes e limpeza
+
+Com o Makefile (Linux):
 
 ```sh
 make test        # testes das estruturas, do dia e do jogo
@@ -85,108 +231,66 @@ make clean       # remove a pasta build/
 make distclean   # remove build/ e os artefatos compilados da raylib
 ```
 
-### Com CMake (Windows, macOS e Linux)
-
-O CMake gera os dois executáveis: `jogo-terminal` (sem raylib) e `jogo`
-(gráfico, com raylib). O build é **Release** por padrão e a pasta `assets/` é
-copiada para junto do executável gráfico quando ela existir.
-
-```sh
-cmake -S . -B build-cmake
-cmake --build build-cmake
-```
-
-No Linux/macOS (configuração única), os binários ficam em `build-cmake/`:
-
-```sh
-./build-cmake/jogo-terminal
-./build-cmake/jogo
-```
-
-Para rodar os testes:
+Com o CMake (todos os sistemas):
 
 ```sh
 ctest --test-dir build-cmake --output-on-failure
-```
-
-No Windows com Visual Studio (gerador multi-config), informe `--config Release`:
-
-```bat
-cmake --build build-cmake --config Release
+# no Windows com Visual Studio:
 ctest --test-dir build-cmake -C Release --output-on-failure
-build-cmake\Release\jogo-terminal.exe
-build-cmake\Release\jogo.exe
 ```
-
-Para compilar apenas o terminal e os testes, sem raylib:
-
-```sh
-cmake -S . -B build-cmake -DULTIMO_TURNO_BUILD_JOGO=OFF
-cmake --build build-cmake
-```
-
-O alvo gráfico requer o submódulo `raylib/` inicializado
-(`git submodule update --init --recursive`), fixado na tag **6.2**, e as
-dependências de X11/OpenGL no Linux.
 
 ## Como jogar
 
-Enquanto a interface gráfica está em desenvolvimento, a partida completa roda no terminal:
+### Interface gráfica
+
+O fluxo completo roda na janela do jogo: **menu** → **prólogo** → escolha do **detetive** → **manhã** → **debate** → **julgamento** → **noite** (interlúdio) → próximo dia ou **fim do caso**.
+
+- **Manhã:** mostra a pista do dia; abre o caderno ou segue para o debate.
+- **Debate:** escolha o suspeito e o período a interrogar; veja o depoimento, as reações e o alerta de novas contradições. `C` abre o caderno e `E` encerra o debate.
+- **Caderno:** depoimentos, pistas, reações e contradições; volta à tela anterior ao sair.
+- **Julgamento:** escolha um suspeito, confirme a prisão (ou opte por não prender ninguém) e veja o resultado.
+- **Noite:** primeira noite sem mortes; nas seguintes, o assassino pode atacar um inocente.
+- **Fim:** texto do desfecho, identidade de assassino e cúmplice, pontuação e opção de jogar de novo ou sair.
+
+Navegue com **mouse** (hover e clique) ou **teclado** (setas/Tab para mudar o foco, Enter/Espaço para confirmar, Esc para voltar). Use **F11** para alternar tela cheia.
+
+### Terminal
+
+A partida completa também roda no terminal: escolha o detetive pelo número, acompanhe as quatro fases de cada dia e use o caderno para cruzar depoimentos, pistas, reações e contradições.
 
 ```sh
-make run
+make run                        # Linux (compila e executa)
+./build/jogo-terminal           # Linux, após make terminal
+.\build-cmake\Release\jogo-terminal.exe  # Windows (CMake)
+./build-cmake/jogo-terminal     # macOS/Linux (CMake)
 ```
 
-Ou, separadamente:
-
-```sh
-make terminal
-./build/jogo-terminal
-```
-
-Se compilou com CMake:
-
-```sh
-./build-cmake/jogo-terminal
-```
-
-A versão de terminal não depende da raylib. No Windows, ela ajusta a página de código do console para UTF-8 automaticamente, para os acentos aparecerem corretamente. Você escolhe o detetive, acompanha as quatro fases de cada dia e usa o caderno para cruzar depoimentos, pistas, reações e contradições.
-
-- **Manhã:** uma pista nova entra no caderno.
-- **Debate:** cada suspeito vivo fala uma vez. Escolha sobre quem perguntar; os outros reagem.
-- **Julgamento:** prenda um suspeito ou não prenda ninguém. Prender o assassino vence; prender um inocente custa 25 de credibilidade; prender o cúmplice custa 15 e revela o local verdadeiro do assassino na noite do crime.
-- **Noite:** a primeira noite passa sem mortes; nas seguintes, o assassino pode atacar um inocente e o caso continua no dia seguinte.
-
-O menu gráfico permite iniciar uma partida, escolher Miss Marple ou Hercule
-Poirot e sair. Depois da escolha, a tela mostra a detetive, a fase inicial e a
-pista do dia; as interações completas das fases continuam disponíveis no
-terminal:
-
-```sh
-make
-./build/jogo
-```
-
-O menu carrega `assets/fontes/DejaVuSans.ttf` com `LoadFontEx` e todos os
-caracteres do português (ASCII, Latin-1, Latin Extended-A e pontuação
-tipográfica). Se a fonte não for encontrada, o jogo avisa no log e usa a fonte
-padrão da raylib, que não tem acentos. Os auxiliares de fonte, texto, painéis,
-ícones geométricos e botões ficam em `interface/ui.c` e
-`interface/ui.h`; para textos longos,
-`ui_quebrar_texto` calcula o layout (respeitando `\n` e dividindo palavras
-maiores que a largura) e `ui_desenhar_texto_quebrado` desenha o resultado.
-`ui_desenhar_painel_texto` aplica a quebra ao espaço interno e recorta o texto
-à altura do painel. `ui_desenhar_icone` desenha concordância, discordância,
-neutralidade e alerta com formas, sem depender de glifos especiais.
-
-Os botões são reutilizáveis (`BotaoUI` + `ui_desenhar_botao`): o mouse
-funciona com hover e clique (apertar e soltar dentro do botão) e o teclado
-usa as setas ou Tab/Shift+Tab para mudar o foco e Enter/Espaço para acionar.
-`ui_navegar_botoes` já pula botões desabilitados.
+A versão de terminal não depende da raylib.
 
 ## Estrutura do projeto
 
-Em breve.
+```text
+.
+├── assets/                  # logotipo, imagens e fontes (.ttf)
+├── docs/
+│   ├── referencia/          # design system e referências visuais das telas
+│   └── RELATORIO-PARTIDAS.md
+├── estruturas/
+│   ├── entidades/           # caderno, suspeitos, personagens, locais, texto, aleatório
+│   └── listas/              # lista simples, dupla e dupla circular
+├── interface/
+│   ├── telas/               # caderno, debate e julgamento
+│   ├── recursos.c           # carregamento de texturas
+│   ├── telas.c              # menu, história, seleção, manhã e interlúdio
+│   └── ui.c                 # fontes, canvas, texto e botões
+├── terminal/                # interface de terminal
+├── test/                    # testes unitários
+├── main.c / jogo.c / dia.c  # ponto de entrada gráfico, motor do jogo e fases
+├── jogo_terminal.c          # interface de terminal
+├── Makefile / CMakeLists.txt
+```
+
+Relatórios adicionais: `docs/RELATORIO-PARTIDAS.md` (partidas de teste) e `docs/referencia/DESIGN.md` (paleta, tipografia e componentes).
 
 ## Equipe
 
@@ -201,7 +305,6 @@ Em breve.
     </tr>
   </tbody>
 </table>
-
 
 ## Referências
 
